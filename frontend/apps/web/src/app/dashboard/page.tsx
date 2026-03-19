@@ -29,6 +29,7 @@ const DashboardPage: FC = async () => {
         <ErrorBoundarySuspense fallback={<CardSmallSkeleton />}>
           <CardCurrentUser />
         </ErrorBoundarySuspense>
+
         <ErrorBoundarySuspense fallback={<CardSmallSkeleton />}>
           <CardSystemHealth />
         </ErrorBoundarySuspense>
