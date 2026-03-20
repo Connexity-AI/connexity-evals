@@ -64,6 +64,7 @@ from app.models.scenario_set import (  # noqa: F401
     ScenarioSetBase,
     ScenarioSetCreate,
     ScenarioSetMember,
+    ScenarioSetMembersUpdate,
     ScenarioSetPublic,
     ScenarioSetsPublic,
     ScenarioSetUpdate,
