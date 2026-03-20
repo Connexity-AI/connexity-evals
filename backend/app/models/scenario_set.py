@@ -18,9 +18,7 @@ class ScenarioSetMember(SQLModel, table=True):
     scenario_set_id: uuid.UUID = Field(
         foreign_key="scenario_set.id", primary_key=True, index=True
     )
-    scenario_id: uuid.UUID = Field(
-        foreign_key="scenario.id", primary_key=True
-    )
+    scenario_id: uuid.UUID = Field(foreign_key="scenario.id", primary_key=True)
     position: int = Field(default=0)
 
     # Relationships
@@ -73,3 +71,7 @@ class ScenarioSetPublic(ScenarioSetBase):
 class ScenarioSetsPublic(SQLModel):
     data: list[ScenarioSetPublic]
     count: int
+
+
+class ScenarioSetMembersUpdate(SQLModel):
+    scenario_ids: list[uuid.UUID]
