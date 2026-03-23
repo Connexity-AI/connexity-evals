@@ -1,4 +1,5 @@
 import logging
+import os
 
 import sentry_sdk
 from fastapi import FastAPI, HTTPException, Request
@@ -94,6 +95,13 @@ async def unhandled_exception_handler(
         status_code=500,
         content={"detail": "Internal server error", "code": code, "status": 500},
     )
+
+
+# Sync API keys into process env so LiteLLM can find them
+if settings.OPENAI_API_KEY:
+    os.environ.setdefault("OPENAI_API_KEY", settings.OPENAI_API_KEY)
+if settings.ANTHROPIC_API_KEY:
+    os.environ.setdefault("ANTHROPIC_API_KEY", settings.ANTHROPIC_API_KEY)
 
 
 log_settings(settings)
