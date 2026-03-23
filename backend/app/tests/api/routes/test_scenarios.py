@@ -299,6 +299,7 @@ def test_import_scenarios_create_new(
     assert result["skipped"] == 0
     assert result["overwritten"] == 0
     assert result["total"] == 2
+    assert result["errors"] == []
 
 
 def test_import_scenarios_round_trip(
@@ -386,7 +387,12 @@ def test_import_scenarios_skip_conflict(
 def test_import_scenarios_overwrite_conflict(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    scenario = create_test_scenario(db, name="Before Overwrite")
+    scenario = create_test_scenario(
+        db,
+        name="Before Overwrite",
+        persona={"type": "original", "description": "Keep me", "instructions": "Stay."},
+        user_context={"preserved": True},
+    )
     payload = [
         {
             "id": str(scenario.id),
@@ -403,13 +409,17 @@ def test_import_scenarios_overwrite_conflict(
     assert r.status_code == 200
     result = r.json()
     assert result["overwritten"] == 1
+    assert result["errors"] == []
 
-    # Verify updated
+    # Verify updated field changed, unset fields preserved
     r = client.get(
         f"{settings.API_V1_STR}/scenarios/{scenario.id}",
         cookies=superuser_auth_cookies,
     )
-    assert r.json()["name"] == "After Overwrite"
+    updated = r.json()
+    assert updated["name"] == "After Overwrite"
+    assert updated["persona"]["type"] == "original"
+    assert updated["user_context"]["preserved"] is True
 
 
 def test_import_scenarios_mixed(

@@ -87,6 +87,9 @@ def delete_scenario(*, session: Session, db_scenario: Scenario) -> None:
     session.commit()
 
 
+EXPORT_MAX_ROWS = 5000
+
+
 def export_scenarios(
     *,
     session: Session,
@@ -94,7 +97,7 @@ def export_scenarios(
     difficulty: Difficulty | None = None,
     status: ScenarioStatus | None = None,
 ) -> list[Scenario]:
-    """Export all scenarios matching optional filters (no pagination)."""
+    """Export scenarios matching optional filters (capped at EXPORT_MAX_ROWS)."""
     statement = select(Scenario)
 
     if tag is not None:
@@ -104,6 +107,7 @@ def export_scenarios(
     if status is not None:
         statement = statement.where(Scenario.status == status)
 
+    statement = statement.limit(EXPORT_MAX_ROWS)
     return list(session.exec(statement).all())
 
 
@@ -117,6 +121,7 @@ def bulk_import_scenarios(
     created = 0
     skipped = 0
     overwritten = 0
+    errors: list[str] = []
 
     # Batch-fetch existing scenarios for items that provide an id
     incoming_ids = [item.id for item in scenarios_in if item.id is not None]
@@ -127,33 +132,38 @@ def bulk_import_scenarios(
         ).all()
         existing = {row.id: row for row in rows}
 
-    for item in scenarios_in:
-        data = item.model_dump(exclude={"id"})
+    for idx, item in enumerate(scenarios_in):
+        try:
+            data = item.model_dump(exclude_unset=True, exclude={"id"})
 
-        if item.id is None:
-            # No id provided — always create new
-            db_obj = Scenario.model_validate(data)
-            session.add(db_obj)
-            created += 1
-        elif item.id in existing:
-            # Id exists in DB — apply conflict strategy
-            if on_conflict == OnConflict.SKIP:
-                skipped += 1
+            if item.id is None:
+                db_obj = Scenario.model_validate(data)
+                session.add(db_obj)
+                created += 1
+            elif item.id in existing:
+                if on_conflict == OnConflict.SKIP:
+                    skipped += 1
+                else:
+                    existing[item.id].sqlmodel_update(data)
+                    session.add(existing[item.id])
+                    overwritten += 1
             else:
-                existing[item.id].sqlmodel_update(data)
-                session.add(existing[item.id])
-                overwritten += 1
-        else:
-            # Id provided but not in DB — create with that id
-            db_obj = Scenario.model_validate({**data, "id": item.id})
-            session.add(db_obj)
-            created += 1
+                db_obj = Scenario.model_validate({**data, "id": item.id})
+                session.add(db_obj)
+                created += 1
+        except Exception as exc:
+            label = item.name if item.name else f"index {idx}"
+            errors.append(f"Item '{label}': {exc}")
 
-    session.commit()
+    if errors and created == 0 and overwritten == 0:
+        session.rollback()
+    else:
+        session.commit()
 
     return ScenarioImportResult(
         created=created,
         skipped=skipped,
         overwritten=overwritten,
         total=len(scenarios_in),
+        errors=errors,
     )

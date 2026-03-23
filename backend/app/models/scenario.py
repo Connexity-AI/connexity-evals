@@ -178,7 +178,7 @@ class OnConflict(StrEnum):
     OVERWRITE = "overwrite"
 
 
-class ScenarioImportItem(ScenarioBase):
+class ScenarioImportItem(ScenarioCreate):
     """Scenario payload for import — optional id enables round-trip and conflict detection."""
 
     id: uuid.UUID | None = None
@@ -189,6 +189,9 @@ class ScenarioImportResult(SQLModel):
     skipped: int
     overwritten: int
     total: int
+    errors: list[str] = Field(
+        default_factory=list, description="Per-item error messages"
+    )
 
 
 class ScenariosExport(SQLModel):
