@@ -19,6 +19,7 @@ from app.crud.scenario import (  # noqa: F401
     delete_scenario,
     get_scenario,
     list_scenarios,
+    replace_scenario,
     update_scenario,
 )
 from app.crud.scenario_result import (  # noqa: F401

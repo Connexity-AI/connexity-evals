@@ -8,10 +8,34 @@ from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
 from app.models.enums import Difficulty, ScenarioStatus
+from app.models.schemas import ExpectedToolCall, Persona
 
 if TYPE_CHECKING:
     from app.models.scenario_result import ScenarioResult
     from app.models.scenario_set import ScenarioSetMember
+
+
+def _validate_persona(v: Any) -> dict[str, Any] | None:
+    if v is None:
+        return None
+    if isinstance(v, BaseModel):
+        return v.model_dump()
+    if isinstance(v, dict):
+        return Persona.model_validate(v).model_dump()
+    raise ValueError("persona must be a Persona object or dict")
+
+
+def _validate_expected_tool_calls(v: Any) -> list[dict[str, Any]] | None:
+    if v is None:
+        return None
+    if isinstance(v, list):
+        return [
+            item.model_dump()
+            if isinstance(item, BaseModel)
+            else ExpectedToolCall.model_validate(item).model_dump()
+            for item in v
+        ]
+    raise ValueError("expected_tool_calls must be a list")
 
 
 class ScenarioBase(SQLModel):
@@ -43,18 +67,12 @@ class ScenarioBase(SQLModel):
     @field_validator("persona", mode="before")
     @classmethod
     def _serialize_persona(cls, v: Any) -> dict[str, Any] | None:
-        if isinstance(v, BaseModel):
-            return v.model_dump()
-        return v
+        return _validate_persona(v)
 
     @field_validator("expected_tool_calls", mode="before")
     @classmethod
     def _serialize_expected_tool_calls(cls, v: Any) -> list[dict[str, Any]] | None:
-        if isinstance(v, list):
-            return [
-                item.model_dump() if isinstance(item, BaseModel) else item for item in v
-            ]
-        return v
+        return _validate_expected_tool_calls(v)
 
 
 class Scenario(ScenarioBase, table=True):
@@ -96,6 +114,16 @@ class ScenarioUpdate(SQLModel):
     expected_outcomes: dict[str, Any] | None = None
     expected_tool_calls: list[dict[str, Any]] | None = None
     evaluation_criteria_override: str | None = None
+
+    @field_validator("persona", mode="before")
+    @classmethod
+    def _serialize_persona(cls, v: Any) -> dict[str, Any] | None:
+        return _validate_persona(v)
+
+    @field_validator("expected_tool_calls", mode="before")
+    @classmethod
+    def _serialize_expected_tool_calls(cls, v: Any) -> list[dict[str, Any]] | None:
+        return _validate_expected_tool_calls(v)
 
 
 class ScenarioPublic(ScenarioBase):

@@ -164,3 +164,145 @@ def test_update_scenario_with_new_fields(
     result = r.json()
     assert result["persona"]["type"] == "angry-customer"
     assert result["expected_outcomes"]["escalated"] is True
+
+
+def test_list_scenarios_search(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    unique = "xyzzy-route-search-unique"
+    create_test_scenario(db, name=f"Scenario {unique}")
+    r = client.get(
+        f"{settings.API_V1_STR}/scenarios/",
+        params={"search": unique},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["count"] >= 1
+    assert any(unique in s["name"] for s in data["data"])
+
+
+def test_list_scenarios_sort(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    create_test_scenario(db, name="aaa-route-sort")
+    create_test_scenario(db, name="zzz-route-sort")
+    r = client.get(
+        f"{settings.API_V1_STR}/scenarios/",
+        params={"sort_by": "name", "sort_dir": "desc"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    names = [s["name"] for s in r.json()["data"]]
+    assert names == sorted(names, reverse=True)
+
+
+def test_list_scenarios_filter_by_status(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    create_test_scenario(db, status="archived")
+    r = client.get(
+        f"{settings.API_V1_STR}/scenarios/",
+        params={"status": "archived"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["count"] >= 1
+    assert all(s["status"] == "archived" for s in data["data"])
+
+
+def test_replace_scenario(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    scenario = create_test_scenario(db, name="Original Replace", tags=["old"])
+    r = client.put(
+        f"{settings.API_V1_STR}/scenarios/{scenario.id}",
+        json={
+            "name": "Fully Replaced",
+            "tags": ["new"],
+            "difficulty": "hard",
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    result = r.json()
+    assert result["name"] == "Fully Replaced"
+    assert result["tags"] == ["new"]
+    assert result["difficulty"] == "hard"
+    assert result["id"] == str(scenario.id)
+
+
+def test_replace_scenario_not_found(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.put(
+        f"{settings.API_V1_STR}/scenarios/{uuid.uuid4()}",
+        json={"name": "Ghost"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 404
+
+
+def test_replace_scenario_resets_defaults(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    scenario = create_test_scenario(
+        db,
+        name="Has Persona",
+        persona={
+            "type": "test",
+            "description": "test",
+            "instructions": "test",
+        },
+        max_turns=10,
+    )
+    r = client.put(
+        f"{settings.API_V1_STR}/scenarios/{scenario.id}",
+        json={"name": "Minimal Replace"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    result = r.json()
+    assert result["persona"] is None
+    assert result["max_turns"] is None
+
+
+def test_create_scenario_invalid_persona(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/",
+        json={
+            "name": "Bad Persona",
+            "persona": {"description": "missing type and instructions"},
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
+
+
+def test_create_scenario_invalid_expected_tool_calls(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/",
+        json={
+            "name": "Bad Tool Calls",
+            "expected_tool_calls": [{"wrong_key": "value"}],
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
+
+
+def test_update_scenario_invalid_persona(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    scenario = create_test_scenario(db)
+    r = client.patch(
+        f"{settings.API_V1_STR}/scenarios/{scenario.id}",
+        json={"persona": {"description": "missing type"}},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422

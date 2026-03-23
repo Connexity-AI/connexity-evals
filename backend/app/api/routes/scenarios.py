@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -33,6 +34,9 @@ def list_scenarios(
     tag: str | None = None,
     difficulty: Difficulty | None = None,
     status: ScenarioStatus | None = None,
+    search: str | None = None,
+    sort_by: Literal["name", "created_at", "updated_at", "difficulty"] | None = None,
+    sort_dir: Literal["asc", "desc"] = Query(default="asc"),
 ) -> ScenariosPublic:
     items, count = crud.list_scenarios(
         session=session,
@@ -41,6 +45,9 @@ def list_scenarios(
         tag=tag,
         difficulty=difficulty,
         status=status,
+        search=search,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
     )
     return ScenariosPublic(data=items, count=count)  # type: ignore[arg-type]
 
@@ -51,6 +58,20 @@ def get_scenario(session: SessionDep, scenario_id: uuid.UUID) -> Scenario:
     if not scenario:
         raise HTTPException(status_code=404, detail="Scenario not found")
     return scenario
+
+
+@router.put("/{scenario_id}", response_model=ScenarioPublic)
+def replace_scenario(
+    session: SessionDep,
+    scenario_id: uuid.UUID,
+    scenario_in: ScenarioCreate,
+) -> Scenario:
+    scenario = crud.get_scenario(session=session, scenario_id=scenario_id)
+    if not scenario:
+        raise HTTPException(status_code=404, detail="Scenario not found")
+    return crud.replace_scenario(
+        session=session, db_scenario=scenario, scenario_in=scenario_in
+    )
 
 
 @router.patch("/{scenario_id}", response_model=ScenarioPublic)
