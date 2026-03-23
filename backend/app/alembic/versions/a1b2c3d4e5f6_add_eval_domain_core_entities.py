@@ -108,7 +108,7 @@ def upgrade() -> None:
         sa.Column("user_persona", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("user_goal", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("initial_message", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column("max_turns", sa.Integer(), nullable=False, server_default="20"),
+        sa.Column("max_turns", sa.Integer(), nullable=False, server_default="100"),
         sa.Column(
             "expected_outcomes",
             postgresql.JSONB(astext_type=sa.Text()),

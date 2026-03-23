@@ -56,7 +56,7 @@ class ScenarioBase(SQLModel):
         description="First message the simulated user sends to the agent",
     )
     max_turns: int = Field(
-        default=20,
+        default=100,
         description="Maximum conversation turns before the scenario is stopped",
     )
     expected_outcomes: list[ExpectedOutcome] = Field(
