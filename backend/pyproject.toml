@@ -24,6 +24,7 @@ dependencies = [
     "authlib>=1.6.0",
     "itsdangerous>=2.2.0",
     "click>=8.1.7",
+    "litellm>=1.55.0,<2.0.0",
 ]
 
 [project.scripts]
@@ -31,6 +32,7 @@ cli = "cli.main:app"
 
 [dependency-groups]
 dev = [
+    "pytest-asyncio>=0.23.0,<0.24.0",
     "pytest<8.0.0,>=7.4.3",
     "mypy<2.0.0,>=1.8.0",
     "ruff<1.0.0,>=0.2.2",
@@ -45,6 +47,9 @@ packages = ["app", "cli"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [tool.mypy]
 strict = true

@@ -93,6 +93,14 @@ class Settings(BaseSettings):
 
     EMAIL_RESET_TOKEN_EXPIRE_HOURS: int = 48
 
+    OPENAI_API_KEY: str | None = None
+    ANTHROPIC_API_KEY: str | None = None
+    LLM_DEFAULT_MODEL: str | None = None
+    LLM_DEFAULT_PROVIDER: str | None = None
+    LLM_RETRY_MAX_ATTEMPTS: int = 5
+    LLM_RETRY_MIN_WAIT_SECONDS: float = 1.0
+    LLM_RETRY_MAX_WAIT_SECONDS: float = 60.0
+
     # ------- Computed properties -------
 
     @computed_field  # type: ignore[prop-decorator]
