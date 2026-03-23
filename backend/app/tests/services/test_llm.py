@@ -6,15 +6,15 @@ import pytest
 from litellm.exceptions import RateLimitError
 
 from app.services.llm import (
-    LlmCallConfig,
-    LlmMessage,
+    LLMCallConfig,
+    LLMMessage,
     call_llm,
     resolve_litellm_model,
 )
 
 
 @dataclass
-class _FakeLlmSettings:
+class _FakeLLMSettings:
     LLM_DEFAULT_MODEL: str | None = "gpt-4.1-nano"
     LLM_DEFAULT_PROVIDER: str | None = None
     LLM_RETRY_MAX_ATTEMPTS: int = 5
@@ -33,7 +33,7 @@ def _fake_response(
 
 @pytest.mark.asyncio
 async def test_call_llm_success_maps_response() -> None:
-    fake = _FakeLlmSettings()
+    fake = _FakeLLMSettings()
     resp = _fake_response(content="hello", model="gpt-4.1-nano")
     with patch(
         "app.services.llm.litellm.acompletion",
@@ -41,8 +41,8 @@ async def test_call_llm_success_maps_response() -> None:
         return_value=resp,
     ) as mock_completion:
         out = await call_llm(
-            [LlmMessage(role="user", content="hi")],
-            LlmCallConfig(model="gpt-4.1-nano"),
+            [LLMMessage(role="user", content="hi")],
+            LLMCallConfig(model="gpt-4.1-nano"),
             app_settings=fake,
         )
     assert out.content == "hello"
@@ -79,7 +79,7 @@ def test_resolve_litellm_model(model: str, provider: str | None, expected: str) 
 
 @pytest.mark.asyncio
 async def test_call_llm_retries_on_rate_limit() -> None:
-    fake = _FakeLlmSettings(LLM_RETRY_MAX_ATTEMPTS=4)
+    fake = _FakeLLMSettings(LLM_RETRY_MAX_ATTEMPTS=4)
     ok = _fake_response()
     transient = RateLimitError("slow down", llm_provider="openai", model="gpt-4.1-nano")
     with patch(
@@ -88,8 +88,8 @@ async def test_call_llm_retries_on_rate_limit() -> None:
         side_effect=[transient, transient, ok],
     ) as mock_completion:
         out = await call_llm(
-            [LlmMessage(role="user", content="x")],
-            LlmCallConfig(model="gpt-4.1-nano"),
+            [LLMMessage(role="user", content="x")],
+            LLMCallConfig(model="gpt-4.1-nano"),
             app_settings=fake,
         )
     assert out.content == "ok"
@@ -98,7 +98,7 @@ async def test_call_llm_retries_on_rate_limit() -> None:
 
 @pytest.mark.asyncio
 async def test_call_llm_merges_global_default_model() -> None:
-    fake = _FakeLlmSettings(LLM_DEFAULT_MODEL="gpt-4o", LLM_DEFAULT_PROVIDER="openai")
+    fake = _FakeLLMSettings(LLM_DEFAULT_MODEL="gpt-4o", LLM_DEFAULT_PROVIDER="openai")
     resp = _fake_response()
     with patch(
         "app.services.llm.litellm.acompletion",
@@ -106,17 +106,18 @@ async def test_call_llm_merges_global_default_model() -> None:
         return_value=resp,
     ) as mock_completion:
         await call_llm(
-            [LlmMessage(role="user", content="y")],
+            [LLMMessage(role="user", content="y")],
             app_settings=fake,
         )
+    assert mock_completion.await_args is not None
     assert mock_completion.await_args.kwargs["model"] == "openai/gpt-4o"
 
 
 @pytest.mark.asyncio
 async def test_call_llm_raises_when_no_model_configured() -> None:
-    fake = _FakeLlmSettings(LLM_DEFAULT_MODEL=None)
+    fake = _FakeLLMSettings(LLM_DEFAULT_MODEL=None)
     with (
         patch("app.services.llm.litellm.acompletion", new_callable=AsyncMock),
         pytest.raises(ValueError, match="No LLM model configured"),
     ):
-        await call_llm([LlmMessage(role="user", content="z")], app_settings=fake)
+        await call_llm([LLMMessage(role="user", content="z")], app_settings=fake)

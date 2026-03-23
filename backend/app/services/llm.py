@@ -39,12 +39,12 @@ from tenacity import (
 
 from app.core.config import settings
 
-LlmExtraValue = str | int | float | bool | None
+LLMExtraValue = str | int | float | bool | None
 
-LlmRole = Literal["system", "user", "assistant"]
+LLMRole = Literal["system", "user", "assistant"]
 
 
-class LlmSettingsView(Protocol):
+class LLMSettingsView(Protocol):
     """Subset of :class:`~app.core.config.Settings` read by the LLM service."""
 
     LLM_DEFAULT_MODEL: str | None
@@ -54,12 +54,12 @@ class LlmSettingsView(Protocol):
     LLM_RETRY_MAX_WAIT_SECONDS: float
 
 
-class LlmMessage(BaseModel):
-    role: LlmRole
+class LLMMessage(BaseModel):
+    role: LLMRole
     content: str
 
 
-class LlmCallConfig(BaseModel):
+class LLMCallConfig(BaseModel):
     """Per-call overrides; ``None`` means fall back to :class:`Settings`."""
 
     model: str | None = None
@@ -67,10 +67,10 @@ class LlmCallConfig(BaseModel):
     temperature: float | None = None
     max_tokens: int | None = None
     timeout_seconds: float | None = None
-    extra: dict[str, LlmExtraValue] = Field(default_factory=dict)
+    extra: dict[str, LLMExtraValue] = Field(default_factory=dict)
 
 
-class LlmResponse(BaseModel):
+class LLMResponse(BaseModel):
     model_config = ConfigDict(protected_namespaces=())
 
     content: str
@@ -101,17 +101,17 @@ def resolve_litellm_model(model: str, provider: str | None) -> str:
 
 
 def _merge_effective_model_provider(
-    config: LlmCallConfig | None,
-    app_settings: LlmSettingsView,
+    config: LLMCallConfig | None,
+    app_settings: LLMSettingsView,
 ) -> tuple[str, str | None]:
-    c = config or LlmCallConfig()
+    c = config or LLMCallConfig()
     model = c.model if c.model is not None else app_settings.LLM_DEFAULT_MODEL
     provider = (
         c.provider if c.provider is not None else app_settings.LLM_DEFAULT_PROVIDER
     )
     if model is None:
         msg = (
-            "No LLM model configured: set LlmCallConfig.model or "
+            "No LLM model configured: set LLMCallConfig.model or "
             "LLM_DEFAULT_MODEL in the environment"
         )
         raise ValueError(msg)
@@ -167,7 +167,7 @@ async def _acompletion_once(
     temperature: float | None,
     max_tokens: int | None,
     timeout: float | None,
-    extra: dict[str, LlmExtraValue],
+    extra: dict[str, LLMExtraValue],
 ) -> object:
     kwargs: dict[str, object] = {
         "model": model,
@@ -186,15 +186,15 @@ async def _acompletion_once(
 
 
 async def call_llm(
-    messages: list[LlmMessage],
-    config: LlmCallConfig | None = None,
+    messages: list[LLMMessage],
+    config: LLMCallConfig | None = None,
     *,
-    app_settings: LlmSettingsView | None = None,
-) -> LlmResponse:
+    app_settings: LLMSettingsView | None = None,
+) -> LLMResponse:
     """Run a chat completion with exponential backoff on transient failures."""
     app_settings = app_settings or settings
     resolved_model, _ = _merge_effective_model_provider(config, app_settings)
-    c = config or LlmCallConfig()
+    c = config or LLMCallConfig()
 
     temperature = c.temperature
     max_tokens = c.max_tokens
@@ -227,7 +227,7 @@ async def call_llm(
             usage_obj = getattr(response, "usage", None)
             usage = _usage_to_dict(usage_obj) if usage_obj is not None else {}
             response_model = getattr(response, "model", None) or resolved_model
-            return LlmResponse(
+            return LLMResponse(
                 content=_content_from_response(response),
                 model=str(response_model),
                 usage=usage,

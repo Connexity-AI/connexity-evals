@@ -27,11 +27,11 @@ def _sync_api_keys_from_settings_to_environ() -> None:
 
 
 async def _run(*, model: str) -> int:
-    from app.services.llm import LlmCallConfig, LlmMessage, call_llm
+    from app.services.llm import LLMCallConfig, LLMMessage, call_llm
 
     resp = await call_llm(
-        [LlmMessage(role="user", content="Reply with exactly the word: pong")],
-        LlmCallConfig(model=model, max_tokens=32, temperature=0),
+        [LLMMessage(role="user", content="Reply with exactly the word: pong")],
+        LLMCallConfig(model=model, max_tokens=32, temperature=0),
     )
     print(resp.model_dump_json(indent=2))
     return 0
