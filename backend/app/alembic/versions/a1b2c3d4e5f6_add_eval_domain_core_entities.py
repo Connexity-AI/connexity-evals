@@ -18,7 +18,7 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
     # Enums
     difficulty_enum = postgresql.ENUM(
         "normal", "hard", name="difficulty", create_type=False
@@ -30,14 +30,28 @@ def upgrade():
         "scripted", "llm_driven", name="simulationmode", create_type=False
     )
     runstatus_enum = postgresql.ENUM(
-        "pending", "running", "completed", "failed", "cancelled",
-        name="runstatus", create_type=False,
+        "pending",
+        "running",
+        "completed",
+        "failed",
+        "cancelled",
+        name="runstatus",
+        create_type=False,
     )
     errorcategory_enum = postgresql.ENUM(
-        "none", "off_topic", "hallucination", "refusal", "tool_misuse",
-        "safety_violation", "prompt_violation", "incomplete",
-        "latency_timeout", "agent_error", "other",
-        name="errorcategory", create_type=False,
+        "none",
+        "off_topic",
+        "hallucination",
+        "refusal",
+        "tool_misuse",
+        "safety_violation",
+        "prompt_violation",
+        "incomplete",
+        "latency_timeout",
+        "agent_error",
+        "other",
+        name="errorcategory",
+        create_type=False,
     )
 
     # Create enum types in PostgreSQL
@@ -52,11 +66,19 @@ def upgrade():
         "agent",
         sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
         sa.Column("description", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column("endpoint_url", sqlmodel.sql.sqltypes.AutoString(length=2048), nullable=False),
+        sa.Column(
+            "endpoint_url",
+            sqlmodel.sql.sqltypes.AutoString(length=2048),
+            nullable=False,
+        ),
         sa.Column("metadata", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
 
@@ -65,25 +87,53 @@ def upgrade():
         "scenario",
         sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=False),
         sa.Column("description", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column("difficulty", difficulty_enum, nullable=False, server_default="normal"),
-        sa.Column("tags", postgresql.ARRAY(sa.Text()), nullable=False, server_default="{}"),
-        sa.Column("status", scenariostatus_enum, nullable=False, server_default="active"),
-        sa.Column("simulation_mode", simulationmode_enum, nullable=False, server_default="llm_driven"),
-        sa.Column("scripted_steps", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column(
+            "difficulty", difficulty_enum, nullable=False, server_default="normal"
+        ),
+        sa.Column(
+            "tags", postgresql.ARRAY(sa.Text()), nullable=False, server_default="{}"
+        ),
+        sa.Column(
+            "status", scenariostatus_enum, nullable=False, server_default="active"
+        ),
+        sa.Column(
+            "simulation_mode",
+            simulationmode_enum,
+            nullable=False,
+            server_default="llm_driven",
+        ),
+        sa.Column(
+            "scripted_steps", postgresql.JSONB(astext_type=sa.Text()), nullable=True
+        ),
         sa.Column("user_persona", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("user_goal", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("initial_message", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("max_turns", sa.Integer(), nullable=False, server_default="20"),
-        sa.Column("expected_outcomes", postgresql.JSONB(astext_type=sa.Text()), nullable=False, server_default="[]"),
-        sa.Column("evaluation_criteria_override", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
+        sa.Column(
+            "expected_outcomes",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=False,
+            server_default="[]",
+        ),
+        sa.Column(
+            "evaluation_criteria_override",
+            sqlmodel.sql.sqltypes.AutoString(),
+            nullable=True,
+        ),
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_scenario_difficulty", "scenario", ["difficulty"])
     op.create_index("ix_scenario_status", "scenario", ["status"])
-    op.create_index("ix_scenario_tags_gin", "scenario", ["tags"], postgresql_using="gin")
+    op.create_index(
+        "ix_scenario_tags_gin", "scenario", ["tags"], postgresql_using="gin"
+    )
 
     # ── scenario_sets ──────────────────────────────────────────────
     op.create_table(
@@ -92,8 +142,12 @@ def upgrade():
         sa.Column("description", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("version", sa.Integer(), nullable=False, server_default="1"),
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
+        ),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_scenario_set_name", "scenario_set", ["name"])
@@ -108,31 +162,59 @@ def upgrade():
         sa.ForeignKeyConstraint(["scenario_id"], ["scenario.id"]),
         sa.PrimaryKeyConstraint("scenario_set_id", "scenario_id"),
     )
-    op.create_index("ix_scenario_set_member_set_id", "scenario_set_member", ["scenario_set_id"])
+    op.create_index(
+        "ix_scenario_set_member_set_id", "scenario_set_member", ["scenario_set_id"]
+    )
 
     # ── runs ───────────────────────────────────────────────────────
     op.create_table(
         "run",
         sa.Column("name", sqlmodel.sql.sqltypes.AutoString(length=255), nullable=True),
         sa.Column("agent_id", sa.Uuid(), nullable=False),
-        sa.Column("agent_endpoint_url", sqlmodel.sql.sqltypes.AutoString(length=2048), nullable=False),
-        sa.Column("agent_system_prompt", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column("agent_tools", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("prompt_version", sqlmodel.sql.sqltypes.AutoString(length=100), nullable=True),
+        sa.Column(
+            "agent_endpoint_url",
+            sqlmodel.sql.sqltypes.AutoString(length=2048),
+            nullable=False,
+        ),
+        sa.Column(
+            "agent_system_prompt", sqlmodel.sql.sqltypes.AutoString(), nullable=True
+        ),
+        sa.Column(
+            "agent_tools", postgresql.JSONB(astext_type=sa.Text()), nullable=True
+        ),
+        sa.Column(
+            "prompt_version",
+            sqlmodel.sql.sqltypes.AutoString(length=100),
+            nullable=True,
+        ),
         sa.Column("prompt_snapshot", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
-        sa.Column("tools_snapshot", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("tools_snapshot_hash", sqlmodel.sql.sqltypes.AutoString(length=64), nullable=True),
+        sa.Column(
+            "tools_snapshot", postgresql.JSONB(astext_type=sa.Text()), nullable=True
+        ),
+        sa.Column(
+            "tools_snapshot_hash",
+            sqlmodel.sql.sqltypes.AutoString(length=64),
+            nullable=True,
+        ),
         sa.Column("scenario_set_id", sa.Uuid(), nullable=False),
-        sa.Column("scenario_set_version", sa.Integer(), nullable=False, server_default="1"),
+        sa.Column(
+            "scenario_set_version", sa.Integer(), nullable=False, server_default="1"
+        ),
         sa.Column("config", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column("status", runstatus_enum, nullable=False, server_default="pending"),
         sa.Column("is_baseline", sa.Boolean(), nullable=False, server_default="false"),
-        sa.Column("aggregate_metrics", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column(
+            "aggregate_metrics", postgresql.JSONB(astext_type=sa.Text()), nullable=True
+        ),
         sa.Column("started_at", sa.DateTime(), nullable=True),
         sa.Column("completed_at", sa.DateTime(), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
+        ),
         sa.ForeignKeyConstraint(["agent_id"], ["agent.id"]),
         sa.ForeignKeyConstraint(["scenario_set_id"], ["scenario_set.id"]),
         sa.PrimaryKeyConstraint("id"),
@@ -155,28 +237,44 @@ def upgrade():
         sa.Column("agent_latency_p50_ms", sa.Integer(), nullable=True),
         sa.Column("agent_latency_p95_ms", sa.Integer(), nullable=True),
         sa.Column("agent_latency_max_ms", sa.Integer(), nullable=True),
-        sa.Column("agent_token_usage", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
-        sa.Column("platform_token_usage", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column(
+            "agent_token_usage", postgresql.JSONB(astext_type=sa.Text()), nullable=True
+        ),
+        sa.Column(
+            "platform_token_usage",
+            postgresql.JSONB(astext_type=sa.Text()),
+            nullable=True,
+        ),
         sa.Column("estimated_cost_usd", sa.Float(), nullable=True),
         sa.Column("passed", sa.Boolean(), nullable=True),
-        sa.Column("error_category", errorcategory_enum, nullable=False, server_default="none"),
+        sa.Column(
+            "error_category", errorcategory_enum, nullable=False, server_default="none"
+        ),
         sa.Column("error_message", sqlmodel.sql.sqltypes.AutoString(), nullable=True),
         sa.Column("started_at", sa.DateTime(), nullable=True),
         sa.Column("completed_at", sa.DateTime(), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
-        sa.Column("created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
+        ),
+        sa.Column(
+            "updated_at", sa.DateTime(), server_default=sa.text("now()"), nullable=False
+        ),
         sa.ForeignKeyConstraint(["run_id"], ["run.id"]),
         sa.ForeignKeyConstraint(["scenario_id"], ["scenario.id"]),
         sa.PrimaryKeyConstraint("id"),
     )
     op.create_index("ix_scenario_result_run_id", "scenario_result", ["run_id"])
-    op.create_index("ix_scenario_result_scenario_id", "scenario_result", ["scenario_id"])
+    op.create_index(
+        "ix_scenario_result_scenario_id", "scenario_result", ["scenario_id"]
+    )
     op.create_index("ix_scenario_result_passed", "scenario_result", ["passed"])
-    op.create_index("ix_scenario_result_error_category", "scenario_result", ["error_category"])
+    op.create_index(
+        "ix_scenario_result_error_category", "scenario_result", ["error_category"]
+    )
 
 
-def downgrade():
+def downgrade() -> None:
     # Drop tables in reverse dependency order
     op.drop_table("scenario_result")
     op.drop_table("run")
