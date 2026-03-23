@@ -112,6 +112,82 @@ def test_delete_scenario(
     assert r.status_code == 200
 
 
+def test_list_scenarios_search(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    create_test_scenario(db, name="Banana Split Scenario")
+    r = client.get(
+        f"{settings.API_V1_STR}/scenarios/",
+        params={"search": "banana split"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["count"] >= 1
+    assert any("Banana Split" in s["name"] for s in data["data"])
+
+
+def test_list_scenarios_sort(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.get(
+        f"{settings.API_V1_STR}/scenarios/",
+        params={"sort_by": "name", "sort_order": "asc"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    names = [s["name"] for s in r.json()["data"]]
+    assert names == sorted(names)
+
+
+def test_list_scenarios_invalid_sort_order(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.get(
+        f"{settings.API_V1_STR}/scenarios/",
+        params={"sort_order": "invalid"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
+
+
+def test_create_scenario_invalid_difficulty(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/",
+        json={"name": "Bad Scenario", "difficulty": "impossible"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
+    detail = r.json()["detail"]
+    assert any("difficulty" in str(e).lower() for e in detail)
+
+
+def test_create_scenario_missing_name(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/",
+        json={"tags": ["test"]},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
+    detail = r.json()["detail"]
+    assert any("name" in str(e).lower() for e in detail)
+
+
+def test_create_scenario_invalid_persona_structure(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/scenarios/",
+        json={"name": "Bad Persona", "persona": {"wrong_field": "value"}},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 422
+
+
 def test_create_scenario_with_full_schema(
     client: TestClient, superuser_auth_cookies: dict[str, str]
 ) -> None:
@@ -223,6 +299,7 @@ def test_import_scenarios_create_new(
     assert result["skipped"] == 0
     assert result["overwritten"] == 0
     assert result["total"] == 2
+    assert result["errors"] == []
 
 
 def test_import_scenarios_round_trip(
@@ -310,7 +387,12 @@ def test_import_scenarios_skip_conflict(
 def test_import_scenarios_overwrite_conflict(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    scenario = create_test_scenario(db, name="Before Overwrite")
+    scenario = create_test_scenario(
+        db,
+        name="Before Overwrite",
+        persona={"type": "original", "description": "Keep me", "instructions": "Stay."},
+        user_context={"preserved": True},
+    )
     payload = [
         {
             "id": str(scenario.id),
@@ -327,13 +409,17 @@ def test_import_scenarios_overwrite_conflict(
     assert r.status_code == 200
     result = r.json()
     assert result["overwritten"] == 1
+    assert result["errors"] == []
 
-    # Verify updated
+    # Verify updated field changed, unset fields preserved
     r = client.get(
         f"{settings.API_V1_STR}/scenarios/{scenario.id}",
         cookies=superuser_auth_cookies,
     )
-    assert r.json()["name"] == "After Overwrite"
+    updated = r.json()
+    assert updated["name"] == "After Overwrite"
+    assert updated["persona"]["type"] == "original"
+    assert updated["user_context"]["preserved"] is True
 
 
 def test_import_scenarios_mixed(
