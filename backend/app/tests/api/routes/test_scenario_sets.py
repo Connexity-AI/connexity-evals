@@ -116,6 +116,9 @@ def test_add_scenarios_to_set(
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
+    result = r.json()
+    assert result["version"] == 2
+    assert result["scenario_count"] == 1
 
 
 def test_replace_scenarios_in_set(
@@ -130,6 +133,9 @@ def test_replace_scenarios_in_set(
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
+    result = r.json()
+    assert result["version"] == 2
+    assert result["scenario_count"] == 1
 
     # Verify replacement
     r2 = client.get(
@@ -150,3 +156,26 @@ def test_remove_scenario_from_set(
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
+    result = r.json()
+    assert result["version"] == 2
+    assert result["scenario_count"] == 0
+
+
+def test_scenario_count_in_response(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    s1 = create_test_scenario(db)
+    s2 = create_test_scenario(db)
+    data = {
+        "name": "Count Check Set",
+        "scenario_ids": [str(s1.id), str(s2.id)],
+    }
+    r = client.post(
+        f"{settings.API_V1_STR}/scenario-sets/",
+        json=data,
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    result = r.json()
+    assert result["scenario_count"] == 2
+    assert result["version"] == 1

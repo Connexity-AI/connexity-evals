@@ -67,6 +67,11 @@ def delete_scenario_set(*, session: Session, db_scenario_set: ScenarioSet) -> No
     session.commit()
 
 
+def _bump_version(*, scenario_set: ScenarioSet) -> None:
+    """Increment the version of a scenario set in place."""
+    scenario_set.version += 1
+
+
 def _next_position(*, session: Session, scenario_set_id: uuid.UUID) -> int:
     """Return max(position) + 1 for existing members, or 0 if empty."""
     result = session.exec(
@@ -77,50 +82,56 @@ def _next_position(*, session: Session, scenario_set_id: uuid.UUID) -> int:
     return (result + 1) if result is not None else 0
 
 
-def add_scenario_to_set(
+def add_scenarios_to_set(
     *,
     session: Session,
-    scenario_set_id: uuid.UUID,
-    scenario_id: uuid.UUID,
-    position: int | None = None,
-) -> ScenarioSetMember:
-    if position is None:
-        position = _next_position(session=session, scenario_set_id=scenario_set_id)
-    member = ScenarioSetMember(
-        scenario_set_id=scenario_set_id,
-        scenario_id=scenario_id,
-        position=position,
-    )
-    session.add(member)
+    db_scenario_set: ScenarioSet,
+    scenario_ids: list[uuid.UUID],
+) -> ScenarioSet:
+    next_pos = _next_position(session=session, scenario_set_id=db_scenario_set.id)
+    for i, scenario_id in enumerate(scenario_ids):
+        member = ScenarioSetMember(
+            scenario_set_id=db_scenario_set.id,
+            scenario_id=scenario_id,
+            position=next_pos + i,
+        )
+        session.add(member)
+    _bump_version(scenario_set=db_scenario_set)
     session.commit()
-    session.refresh(member)
-    return member
+    session.refresh(db_scenario_set)
+    return db_scenario_set
 
 
 def remove_scenario_from_set(
-    *, session: Session, scenario_set_id: uuid.UUID, scenario_id: uuid.UUID
-) -> None:
+    *,
+    session: Session,
+    db_scenario_set: ScenarioSet,
+    scenario_id: uuid.UUID,
+) -> ScenarioSet:
     member = session.exec(
         select(ScenarioSetMember).where(
-            ScenarioSetMember.scenario_set_id == scenario_set_id,
+            ScenarioSetMember.scenario_set_id == db_scenario_set.id,
             ScenarioSetMember.scenario_id == scenario_id,
         )
     ).first()
     if member:
         session.delete(member)
-        session.commit()
+        _bump_version(scenario_set=db_scenario_set)
+    session.commit()
+    session.refresh(db_scenario_set)
+    return db_scenario_set
 
 
 def replace_scenarios_in_set(
     *,
     session: Session,
-    scenario_set_id: uuid.UUID,
+    db_scenario_set: ScenarioSet,
     scenario_ids: list[uuid.UUID],
-) -> list[ScenarioSetMember]:
+) -> ScenarioSet:
     # Delete existing members
     existing = session.exec(
         select(ScenarioSetMember).where(
-            ScenarioSetMember.scenario_set_id == scenario_set_id
+            ScenarioSetMember.scenario_set_id == db_scenario_set.id
         )
     ).all()
     for member in existing:
@@ -128,20 +139,24 @@ def replace_scenarios_in_set(
     session.flush()
 
     # Insert new members
-    new_members = []
     for position, scenario_id in enumerate(scenario_ids):
         member = ScenarioSetMember(
-            scenario_set_id=scenario_set_id,
+            scenario_set_id=db_scenario_set.id,
             scenario_id=scenario_id,
             position=position,
         )
         session.add(member)
-        new_members.append(member)
 
+    _bump_version(scenario_set=db_scenario_set)
     session.commit()
-    for m in new_members:
-        session.refresh(m)
-    return new_members
+    session.refresh(db_scenario_set)
+    return db_scenario_set
+
+
+def count_scenarios_in_set(*, session: Session, scenario_set_id: uuid.UUID) -> int:
+    return session.exec(
+        select(func.count()).where(ScenarioSetMember.scenario_set_id == scenario_set_id)
+    ).one()
 
 
 def list_scenarios_in_set(

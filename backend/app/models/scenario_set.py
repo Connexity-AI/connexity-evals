@@ -59,11 +59,11 @@ class ScenarioSetCreate(ScenarioSetBase):
 class ScenarioSetUpdate(SQLModel):
     name: str | None = None
     description: str | None = None
-    version: int | None = None
 
 
 class ScenarioSetPublic(ScenarioSetBase):
     id: uuid.UUID
+    scenario_count: int = 0
     created_at: datetime
     updated_at: datetime
 
