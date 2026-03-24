@@ -6,6 +6,7 @@ export const AgentCreateSchema = {
       type: 'string',
       maxLength: 255,
       title: 'Name',
+      description: 'Human-readable agent name',
     },
     description: {
       anyOf: [
@@ -17,11 +18,13 @@ export const AgentCreateSchema = {
         },
       ],
       title: 'Description',
+      description: 'What this agent does and its purpose',
     },
     endpoint_url: {
       type: 'string',
       maxLength: 2048,
       title: 'Endpoint Url',
+      description: "URL of the agent's API endpoint",
     },
     agent_metadata: {
       anyOf: [
@@ -33,6 +36,7 @@ export const AgentCreateSchema = {
         },
       ],
       title: 'Agent Metadata',
+      description: 'Arbitrary key-value metadata about the agent',
     },
   },
   type: 'object',
@@ -46,6 +50,7 @@ export const AgentPublicSchema = {
       type: 'string',
       maxLength: 255,
       title: 'Name',
+      description: 'Human-readable agent name',
     },
     description: {
       anyOf: [
@@ -57,11 +62,13 @@ export const AgentPublicSchema = {
         },
       ],
       title: 'Description',
+      description: 'What this agent does and its purpose',
     },
     endpoint_url: {
       type: 'string',
       maxLength: 2048,
       title: 'Endpoint Url',
+      description: "URL of the agent's API endpoint",
     },
     agent_metadata: {
       anyOf: [
@@ -73,21 +80,25 @@ export const AgentPublicSchema = {
         },
       ],
       title: 'Agent Metadata',
+      description: 'Arbitrary key-value metadata about the agent',
     },
     id: {
       type: 'string',
       format: 'uuid',
       title: 'Id',
+      description: 'Unique agent identifier',
     },
     created_at: {
       type: 'string',
       format: 'date-time',
       title: 'Created At',
+      description: 'When the agent was created',
     },
     updated_at: {
       type: 'string',
       format: 'date-time',
       title: 'Updated At',
+      description: 'When the agent was last updated',
     },
   },
   type: 'object',
@@ -108,6 +119,7 @@ export const AgentUpdateSchema = {
         },
       ],
       title: 'Name',
+      description: 'Human-readable agent name',
     },
     description: {
       anyOf: [
@@ -119,6 +131,7 @@ export const AgentUpdateSchema = {
         },
       ],
       title: 'Description',
+      description: 'What this agent does and its purpose',
     },
     endpoint_url: {
       anyOf: [
@@ -131,6 +144,7 @@ export const AgentUpdateSchema = {
         },
       ],
       title: 'Endpoint Url',
+      description: "URL of the agent's API endpoint",
     },
     agent_metadata: {
       anyOf: [
@@ -142,6 +156,7 @@ export const AgentUpdateSchema = {
         },
       ],
       title: 'Agent Metadata',
+      description: 'Arbitrary key-value metadata about the agent',
     },
   },
   type: 'object',
@@ -156,10 +171,12 @@ export const AgentsPublicSchema = {
       },
       type: 'array',
       title: 'Data',
+      description: 'List of agents',
     },
     count: {
       type: 'integer',
       title: 'Count',
+      description: 'Total number of agents matching the query',
     },
   },
   type: 'object',
@@ -172,22 +189,27 @@ export const AggregateMetrics_InputSchema = {
     total_scenarios: {
       type: 'integer',
       title: 'Total Scenarios',
+      description: 'Total number of scenarios executed in the run',
     },
     passed_count: {
       type: 'integer',
       title: 'Passed Count',
+      description: 'Number of scenarios that passed',
     },
     failed_count: {
       type: 'integer',
       title: 'Failed Count',
+      description: 'Number of scenarios that failed',
     },
     error_count: {
       type: 'integer',
       title: 'Error Count',
+      description: 'Number of scenarios that errored during execution',
     },
     pass_rate: {
       type: 'number',
       title: 'Pass Rate',
+      description: 'Fraction of scenarios that passed (0.0–1.0)',
     },
     latency_p50_ms: {
       anyOf: [
@@ -199,6 +221,7 @@ export const AggregateMetrics_InputSchema = {
         },
       ],
       title: 'Latency P50 Ms',
+      description: 'Median agent latency across scenarios',
     },
     latency_p95_ms: {
       anyOf: [
@@ -210,6 +233,7 @@ export const AggregateMetrics_InputSchema = {
         },
       ],
       title: 'Latency P95 Ms',
+      description: '95th percentile agent latency',
     },
     latency_max_ms: {
       anyOf: [
@@ -221,6 +245,7 @@ export const AggregateMetrics_InputSchema = {
         },
       ],
       title: 'Latency Max Ms',
+      description: 'Maximum agent latency across scenarios',
     },
     latency_avg_ms: {
       anyOf: [
@@ -232,6 +257,7 @@ export const AggregateMetrics_InputSchema = {
         },
       ],
       title: 'Latency Avg Ms',
+      description: 'Mean agent latency across scenarios',
     },
     total_agent_token_usage: {
       anyOf: [
@@ -246,6 +272,7 @@ export const AggregateMetrics_InputSchema = {
         },
       ],
       title: 'Total Agent Token Usage',
+      description: 'Summed token usage from the agent across all scenarios',
     },
     total_platform_token_usage: {
       anyOf: [
@@ -260,6 +287,7 @@ export const AggregateMetrics_InputSchema = {
         },
       ],
       title: 'Total Platform Token Usage',
+      description: 'Summed token usage from the platform (simulator + judge)',
     },
     total_estimated_cost_usd: {
       anyOf: [
@@ -271,6 +299,7 @@ export const AggregateMetrics_InputSchema = {
         },
       ],
       title: 'Total Estimated Cost Usd',
+      description: 'Total estimated cost in USD for the entire run',
     },
     error_category_distribution: {
       items: {
@@ -278,7 +307,7 @@ export const AggregateMetrics_InputSchema = {
       },
       type: 'array',
       title: 'Error Category Distribution',
-      default: [],
+      description: 'Breakdown of error counts by category',
     },
     avg_overall_score: {
       anyOf: [
@@ -290,6 +319,7 @@ export const AggregateMetrics_InputSchema = {
         },
       ],
       title: 'Avg Overall Score',
+      description: 'Mean judge overall score across all scenarios',
     },
   },
   type: 'object',
@@ -302,22 +332,27 @@ export const AggregateMetrics_OutputSchema = {
     total_scenarios: {
       type: 'integer',
       title: 'Total Scenarios',
+      description: 'Total number of scenarios executed in the run',
     },
     passed_count: {
       type: 'integer',
       title: 'Passed Count',
+      description: 'Number of scenarios that passed',
     },
     failed_count: {
       type: 'integer',
       title: 'Failed Count',
+      description: 'Number of scenarios that failed',
     },
     error_count: {
       type: 'integer',
       title: 'Error Count',
+      description: 'Number of scenarios that errored during execution',
     },
     pass_rate: {
       type: 'number',
       title: 'Pass Rate',
+      description: 'Fraction of scenarios that passed (0.0–1.0)',
     },
     latency_p50_ms: {
       anyOf: [
@@ -329,6 +364,7 @@ export const AggregateMetrics_OutputSchema = {
         },
       ],
       title: 'Latency P50 Ms',
+      description: 'Median agent latency across scenarios',
     },
     latency_p95_ms: {
       anyOf: [
@@ -340,6 +376,7 @@ export const AggregateMetrics_OutputSchema = {
         },
       ],
       title: 'Latency P95 Ms',
+      description: '95th percentile agent latency',
     },
     latency_max_ms: {
       anyOf: [
@@ -351,6 +388,7 @@ export const AggregateMetrics_OutputSchema = {
         },
       ],
       title: 'Latency Max Ms',
+      description: 'Maximum agent latency across scenarios',
     },
     latency_avg_ms: {
       anyOf: [
@@ -362,6 +400,7 @@ export const AggregateMetrics_OutputSchema = {
         },
       ],
       title: 'Latency Avg Ms',
+      description: 'Mean agent latency across scenarios',
     },
     total_agent_token_usage: {
       anyOf: [
@@ -376,6 +415,7 @@ export const AggregateMetrics_OutputSchema = {
         },
       ],
       title: 'Total Agent Token Usage',
+      description: 'Summed token usage from the agent across all scenarios',
     },
     total_platform_token_usage: {
       anyOf: [
@@ -390,6 +430,7 @@ export const AggregateMetrics_OutputSchema = {
         },
       ],
       title: 'Total Platform Token Usage',
+      description: 'Summed token usage from the platform (simulator + judge)',
     },
     total_estimated_cost_usd: {
       anyOf: [
@@ -401,6 +442,7 @@ export const AggregateMetrics_OutputSchema = {
         },
       ],
       title: 'Total Estimated Cost Usd',
+      description: 'Total estimated cost in USD for the entire run',
     },
     error_category_distribution: {
       items: {
@@ -408,7 +450,7 @@ export const AggregateMetrics_OutputSchema = {
       },
       type: 'array',
       title: 'Error Category Distribution',
-      default: [],
+      description: 'Breakdown of error counts by category',
     },
     avg_overall_score: {
       anyOf: [
@@ -420,6 +462,7 @@ export const AggregateMetrics_OutputSchema = {
         },
       ],
       title: 'Avg Overall Score',
+      description: 'Mean judge overall score across all scenarios',
     },
   },
   type: 'object',
@@ -488,18 +531,53 @@ export const Body_login_login_access_tokenSchema = {
   title: 'Body_login-login_access_token',
 } as const;
 
-export const ConversationTurnSchema = {
+export const ConfigPublicSchema = {
+  properties: {
+    project_name: {
+      type: 'string',
+      title: 'Project Name',
+    },
+    api_version: {
+      type: 'string',
+      title: 'Api Version',
+    },
+    environment: {
+      type: 'string',
+      enum: ['local', 'staging', 'production'],
+      title: 'Environment',
+    },
+    docs_url: {
+      type: 'string',
+      title: 'Docs Url',
+    },
+  },
+  type: 'object',
+  required: ['project_name', 'api_version', 'environment', 'docs_url'],
+  title: 'ConfigPublic',
+} as const;
+
+export const ConversationTurn_InputSchema = {
   properties: {
     index: {
       type: 'integer',
       title: 'Index',
+      description: 'Zero-based turn index in the conversation',
     },
     role: {
       $ref: '#/components/schemas/TurnRole',
+      description: 'Who produced this turn (user, assistant, system, tool)',
     },
     content: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Content',
+      description: 'Text content of the turn; null for tool-call-only assistant turns',
     },
     tool_calls: {
       anyOf: [
@@ -514,6 +592,19 @@ export const ConversationTurnSchema = {
         },
       ],
       title: 'Tool Calls',
+      description: 'Tool calls made during this turn',
+    },
+    tool_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tool Call Id',
+      description: 'For role=tool turns, references the id of the tool call this message answers',
     },
     latency_ms: {
       anyOf: [
@@ -525,6 +616,7 @@ export const ConversationTurnSchema = {
         },
       ],
       title: 'Latency Ms',
+      description: 'Response latency in milliseconds',
     },
     token_count: {
       anyOf: [
@@ -536,15 +628,103 @@ export const ConversationTurnSchema = {
         },
       ],
       title: 'Token Count',
+      description: 'Token count for this turn',
     },
     timestamp: {
       type: 'string',
       format: 'date-time',
       title: 'Timestamp',
+      description: 'When this turn occurred',
     },
   },
   type: 'object',
-  required: ['index', 'role', 'content', 'timestamp'],
+  required: ['index', 'role', 'timestamp'],
+  title: 'ConversationTurn',
+} as const;
+
+export const ConversationTurn_OutputSchema = {
+  properties: {
+    index: {
+      type: 'integer',
+      title: 'Index',
+      description: 'Zero-based turn index in the conversation',
+    },
+    role: {
+      $ref: '#/components/schemas/TurnRole',
+      description: 'Who produced this turn (user, assistant, system, tool)',
+    },
+    content: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Content',
+      description: 'Text content of the turn; null for tool-call-only assistant turns',
+    },
+    tool_calls: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/ToolCall',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tool Calls',
+      description: 'Tool calls made during this turn',
+    },
+    tool_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Tool Call Id',
+      description: 'For role=tool turns, references the id of the tool call this message answers',
+    },
+    latency_ms: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Latency Ms',
+      description: 'Response latency in milliseconds',
+    },
+    token_count: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Token Count',
+      description: 'Token count for this turn',
+    },
+    timestamp: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Timestamp',
+      description: 'When this turn occurred',
+    },
+  },
+  type: 'object',
+  required: ['index', 'role', 'timestamp'],
   title: 'ConversationTurn',
 } as const;
 
@@ -553,23 +733,28 @@ export const CriterionScoreSchema = {
     criterion: {
       type: 'string',
       title: 'Criterion',
+      description: 'Name of the evaluated criterion',
     },
     score: {
       type: 'number',
       title: 'Score',
+      description: 'Score from 1.0 to 5.0',
     },
     label: {
       type: 'string',
       title: 'Label',
+      description: 'Human-readable label (fail, poor, acceptable, good, excellent)',
     },
     weight: {
       type: 'number',
       title: 'Weight',
+      description: 'Relative weight of this criterion',
       default: 1,
     },
     justification: {
       type: 'string',
       title: 'Justification',
+      description: "Judge's reasoning for the assigned score",
     },
   },
   type: 'object',
@@ -605,10 +790,12 @@ export const ErrorCategoryCountSchema = {
   properties: {
     category: {
       $ref: '#/components/schemas/ErrorCategory',
+      description: 'The error category',
     },
     count: {
       type: 'integer',
       title: 'Count',
+      description: 'Number of results in this category',
     },
   },
   type: 'object',
@@ -616,18 +803,49 @@ export const ErrorCategoryCountSchema = {
   title: 'ErrorCategoryCount',
 } as const;
 
-export const HTTPValidationErrorSchema = {
+export const ErrorResponseSchema = {
   properties: {
     detail: {
-      items: {
-        $ref: '#/components/schemas/ValidationError',
-      },
-      type: 'array',
+      type: 'string',
       title: 'Detail',
+    },
+    code: {
+      type: 'string',
+      title: 'Code',
+    },
+    status: {
+      type: 'integer',
+      title: 'Status',
     },
   },
   type: 'object',
-  title: 'HTTPValidationError',
+  required: ['detail', 'code', 'status'],
+  title: 'ErrorResponse',
+} as const;
+
+export const ExpectedToolCallSchema = {
+  properties: {
+    tool: {
+      type: 'string',
+      title: 'Tool',
+      description: 'Tool/function name the agent should invoke',
+    },
+    expected_params: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Expected Params',
+      description: 'Key parameters the judge verifies; null = any params acceptable',
+    },
+  },
+  type: 'object',
+  required: ['tool'],
+  title: 'ExpectedToolCall',
 } as const;
 
 export const JudgeVerdictSchema = {
@@ -635,10 +853,12 @@ export const JudgeVerdictSchema = {
     passed: {
       type: 'boolean',
       title: 'Passed',
+      description: 'Whether the scenario passed overall',
     },
     overall_score: {
       type: 'number',
       title: 'Overall Score',
+      description: 'Weighted overall score across all criteria',
     },
     criterion_scores: {
       items: {
@@ -646,14 +866,17 @@ export const JudgeVerdictSchema = {
       },
       type: 'array',
       title: 'Criterion Scores',
+      description: 'Per-criterion score breakdown',
     },
     error_category: {
       $ref: '#/components/schemas/ErrorCategory',
+      description: 'Classified error category if failed',
       default: 'none',
     },
     summary: {
       type: 'string',
       title: 'Summary',
+      description: "Judge's overall reasoning summary",
     },
     raw_judge_output: {
       anyOf: [
@@ -665,14 +888,17 @@ export const JudgeVerdictSchema = {
         },
       ],
       title: 'Raw Judge Output',
+      description: 'Raw unprocessed judge LLM output',
     },
     judge_model: {
       type: 'string',
       title: 'Judge Model',
+      description: 'Model ID used for judging',
     },
     judge_provider: {
       type: 'string',
       title: 'Judge Provider',
+      description: 'Provider of the judge model',
     },
     judge_latency_ms: {
       anyOf: [
@@ -684,6 +910,7 @@ export const JudgeVerdictSchema = {
         },
       ],
       title: 'Judge Latency Ms',
+      description: 'Judge evaluation latency in milliseconds',
     },
     judge_token_usage: {
       anyOf: [
@@ -698,6 +925,7 @@ export const JudgeVerdictSchema = {
         },
       ],
       title: 'Judge Token Usage',
+      description: 'Token usage for the judge call',
     },
   },
   type: 'object',
@@ -742,6 +970,35 @@ export const NewPasswordSchema = {
   title: 'NewPassword',
 } as const;
 
+export const OnConflictSchema = {
+  type: 'string',
+  enum: ['skip', 'overwrite'],
+  title: 'OnConflict',
+} as const;
+
+export const PersonaSchema = {
+  properties: {
+    type: {
+      type: 'string',
+      title: 'Type',
+      description: 'Short persona archetype label',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+      description: 'Detailed persona description',
+    },
+    instructions: {
+      type: 'string',
+      title: 'Instructions',
+      description: 'Behavioral directives for the LLM simulator',
+    },
+  },
+  type: 'object',
+  required: ['type', 'description', 'instructions'],
+  title: 'Persona',
+} as const;
+
 export const RunConfigSchema = {
   properties: {
     judge_model: {
@@ -754,6 +1011,7 @@ export const RunConfigSchema = {
         },
       ],
       title: 'Judge Model',
+      description: 'Model ID for the judge LLM',
     },
     judge_provider: {
       anyOf: [
@@ -765,6 +1023,7 @@ export const RunConfigSchema = {
         },
       ],
       title: 'Judge Provider',
+      description: 'Provider for the judge LLM (e.g. anthropic, openai)',
     },
     simulator_model: {
       anyOf: [
@@ -776,6 +1035,7 @@ export const RunConfigSchema = {
         },
       ],
       title: 'Simulator Model',
+      description: 'Model ID for the user simulator LLM',
     },
     simulator_provider: {
       anyOf: [
@@ -787,15 +1047,18 @@ export const RunConfigSchema = {
         },
       ],
       title: 'Simulator Provider',
+      description: 'Provider for the simulator LLM',
     },
     concurrency: {
       type: 'integer',
       title: 'Concurrency',
+      description: 'Max parallel scenario executions',
       default: 5,
     },
     timeout_per_scenario_ms: {
       type: 'integer',
       title: 'Timeout Per Scenario Ms',
+      description: 'Timeout per scenario in milliseconds before forced stop',
       default: 120000,
     },
   },
@@ -815,15 +1078,18 @@ export const RunCreateSchema = {
         },
       ],
       title: 'Name',
+      description: 'Optional human-readable run label',
     },
     agent_id: {
       type: 'string',
       format: 'uuid',
       title: 'Agent Id',
+      description: 'FK to the agent being evaluated',
     },
     agent_endpoint_url: {
       type: 'string',
       title: 'Agent Endpoint Url',
+      description: 'Agent endpoint URL snapshot captured at run start',
     },
     agent_system_prompt: {
       anyOf: [
@@ -835,6 +1101,7 @@ export const RunCreateSchema = {
         },
       ],
       title: 'Agent System Prompt',
+      description: 'Agent system prompt snapshot captured at run start',
     },
     agent_tools: {
       anyOf: [
@@ -849,6 +1116,7 @@ export const RunCreateSchema = {
         },
       ],
       title: 'Agent Tools',
+      description: 'Agent tool definitions snapshot captured at run start',
     },
     prompt_version: {
       anyOf: [
@@ -860,6 +1128,7 @@ export const RunCreateSchema = {
         },
       ],
       title: 'Prompt Version',
+      description: 'Semantic version tag of the prompt used',
     },
     prompt_snapshot: {
       anyOf: [
@@ -871,6 +1140,7 @@ export const RunCreateSchema = {
         },
       ],
       title: 'Prompt Snapshot',
+      description: 'Full text of the system prompt at run time',
     },
     tools_snapshot: {
       anyOf: [
@@ -885,6 +1155,7 @@ export const RunCreateSchema = {
         },
       ],
       title: 'Tools Snapshot',
+      description: 'Full tool schema array at run time',
     },
     tools_snapshot_hash: {
       anyOf: [
@@ -896,15 +1167,18 @@ export const RunCreateSchema = {
         },
       ],
       title: 'Tools Snapshot Hash',
+      description: 'SHA-256 hash of tools_snapshot for change detection',
     },
     scenario_set_id: {
       type: 'string',
       format: 'uuid',
       title: 'Scenario Set Id',
+      description: 'FK to the scenario set to execute',
     },
     scenario_set_version: {
       type: 'integer',
       title: 'Scenario Set Version',
+      description: 'Version of the scenario set at run time',
       default: 1,
     },
     config: {
@@ -916,10 +1190,12 @@ export const RunCreateSchema = {
           type: 'null',
         },
       ],
+      description: 'Run configuration (judge model, concurrency, timeouts, etc.)',
     },
     is_baseline: {
       type: 'boolean',
       title: 'Is Baseline',
+      description: 'Whether this run is marked as the baseline for comparison',
       default: false,
     },
   },
@@ -934,6 +1210,7 @@ export const RunPublicSchema = {
       type: 'string',
       format: 'uuid',
       title: 'Id',
+      description: 'Unique run identifier',
     },
     name: {
       anyOf: [
@@ -945,15 +1222,18 @@ export const RunPublicSchema = {
         },
       ],
       title: 'Name',
+      description: 'Optional human-readable run label',
     },
     agent_id: {
       type: 'string',
       format: 'uuid',
       title: 'Agent Id',
+      description: 'FK to the agent being evaluated',
     },
     agent_endpoint_url: {
       type: 'string',
       title: 'Agent Endpoint Url',
+      description: 'Agent endpoint URL snapshot captured at run start',
     },
     agent_system_prompt: {
       anyOf: [
@@ -965,15 +1245,18 @@ export const RunPublicSchema = {
         },
       ],
       title: 'Agent System Prompt',
+      description: 'Agent system prompt snapshot captured at run start',
     },
     scenario_set_id: {
       type: 'string',
       format: 'uuid',
       title: 'Scenario Set Id',
+      description: 'FK to the scenario set executed in this run',
     },
     scenario_set_version: {
       type: 'integer',
       title: 'Scenario Set Version',
+      description: 'Version of the scenario set at run time',
     },
     config: {
       anyOf: [
@@ -984,13 +1267,16 @@ export const RunPublicSchema = {
           type: 'null',
         },
       ],
+      description: 'Run configuration (judge model, concurrency, timeouts, etc.)',
     },
     status: {
       $ref: '#/components/schemas/RunStatus',
+      description: 'Current execution status of the run',
     },
     is_baseline: {
       type: 'boolean',
       title: 'Is Baseline',
+      description: 'Whether this run is marked as the baseline for comparison',
     },
     aggregate_metrics: {
       anyOf: [
@@ -1001,6 +1287,7 @@ export const RunPublicSchema = {
           type: 'null',
         },
       ],
+      description: 'Aggregate metrics computed after completion',
     },
     started_at: {
       anyOf: [
@@ -1013,6 +1300,7 @@ export const RunPublicSchema = {
         },
       ],
       title: 'Started At',
+      description: 'When the run began executing',
     },
     completed_at: {
       anyOf: [
@@ -1025,16 +1313,19 @@ export const RunPublicSchema = {
         },
       ],
       title: 'Completed At',
+      description: 'When the run finished (success or failure)',
     },
     created_at: {
       type: 'string',
       format: 'date-time',
       title: 'Created At',
+      description: 'When the run was created',
     },
     updated_at: {
       type: 'string',
       format: 'date-time',
       title: 'Updated At',
+      description: 'When the run was last updated',
     },
   },
   type: 'object',
@@ -1074,6 +1365,7 @@ export const RunUpdateSchema = {
         },
       ],
       title: 'Name',
+      description: 'Optional human-readable run label',
     },
     status: {
       anyOf: [
@@ -1084,6 +1376,7 @@ export const RunUpdateSchema = {
           type: 'null',
         },
       ],
+      description: 'Current execution status of the run',
     },
     is_baseline: {
       anyOf: [
@@ -1095,6 +1388,7 @@ export const RunUpdateSchema = {
         },
       ],
       title: 'Is Baseline',
+      description: 'Whether this run is marked as the baseline for comparison',
     },
     aggregate_metrics: {
       anyOf: [
@@ -1105,6 +1399,7 @@ export const RunUpdateSchema = {
           type: 'null',
         },
       ],
+      description: 'Aggregate metrics computed after completion',
     },
     started_at: {
       anyOf: [
@@ -1117,6 +1412,7 @@ export const RunUpdateSchema = {
         },
       ],
       title: 'Started At',
+      description: 'When the run began executing',
     },
     completed_at: {
       anyOf: [
@@ -1129,6 +1425,7 @@ export const RunUpdateSchema = {
         },
       ],
       title: 'Completed At',
+      description: 'When the run finished (success or failure)',
     },
   },
   type: 'object',
@@ -1143,10 +1440,12 @@ export const RunsPublicSchema = {
       },
       type: 'array',
       title: 'Data',
+      description: 'List of runs',
     },
     count: {
       type: 'integer',
       title: 'Count',
+      description: 'Total number of runs matching the query',
     },
   },
   type: 'object',
@@ -1160,6 +1459,7 @@ export const ScenarioCreateSchema = {
       type: 'string',
       maxLength: 255,
       title: 'Name',
+      description: 'Human-readable short name',
     },
     description: {
       anyOf: [
@@ -1171,9 +1471,11 @@ export const ScenarioCreateSchema = {
         },
       ],
       title: 'Description',
+      description: 'What this scenario tests (for humans)',
     },
     difficulty: {
       $ref: '#/components/schemas/Difficulty',
+      description: 'Two-level difficulty classification',
       default: 'normal',
     },
     tags: {
@@ -1182,21 +1484,22 @@ export const ScenarioCreateSchema = {
       },
       type: 'array',
       title: 'Tags',
+      description: 'Free-form tags for grouping and filtering',
     },
     status: {
       $ref: '#/components/schemas/ScenarioStatus',
+      description: 'Lifecycle status — only active scenarios run by default',
       default: 'active',
     },
     persona: {
       anyOf: [
         {
-          type: 'object',
+          $ref: '#/components/schemas/Persona',
         },
         {
           type: 'null',
         },
       ],
-      title: 'Persona',
     },
     initial_message: {
       anyOf: [
@@ -1208,6 +1511,7 @@ export const ScenarioCreateSchema = {
         },
       ],
       title: 'Initial Message',
+      description: 'First message the simulated user sends to the agent',
     },
     user_context: {
       anyOf: [
@@ -1219,6 +1523,7 @@ export const ScenarioCreateSchema = {
         },
       ],
       title: 'User Context',
+      description: 'Free-form domain knowledge JSON-dumped into simulator prompt',
     },
     max_turns: {
       anyOf: [
@@ -1230,6 +1535,7 @@ export const ScenarioCreateSchema = {
         },
       ],
       title: 'Max Turns',
+      description: 'Max conversation turns; null = no cap',
     },
     expected_outcomes: {
       anyOf: [
@@ -1241,12 +1547,13 @@ export const ScenarioCreateSchema = {
         },
       ],
       title: 'Expected Outcomes',
+      description: 'Free-form success criteria the judge evaluates against',
     },
     expected_tool_calls: {
       anyOf: [
         {
           items: {
-            type: 'object',
+            $ref: '#/components/schemas/ExpectedToolCall',
           },
           type: 'array',
         },
@@ -1266,11 +1573,186 @@ export const ScenarioCreateSchema = {
         },
       ],
       title: 'Evaluation Criteria Override',
+      description: 'Custom judge prompt section that overrides default criteria',
     },
   },
   type: 'object',
   required: ['name'],
   title: 'ScenarioCreate',
+} as const;
+
+export const ScenarioImportItemSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+      description: 'Human-readable short name',
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+      description: 'What this scenario tests (for humans)',
+    },
+    difficulty: {
+      $ref: '#/components/schemas/Difficulty',
+      description: 'Two-level difficulty classification',
+      default: 'normal',
+    },
+    tags: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Tags',
+      description: 'Free-form tags for grouping and filtering',
+    },
+    status: {
+      $ref: '#/components/schemas/ScenarioStatus',
+      description: 'Lifecycle status — only active scenarios run by default',
+      default: 'active',
+    },
+    persona: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Persona',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    initial_message: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Initial Message',
+      description: 'First message the simulated user sends to the agent',
+    },
+    user_context: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'User Context',
+      description: 'Free-form domain knowledge JSON-dumped into simulator prompt',
+    },
+    max_turns: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Turns',
+      description: 'Max conversation turns; null = no cap',
+    },
+    expected_outcomes: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Expected Outcomes',
+      description: 'Free-form success criteria the judge evaluates against',
+    },
+    expected_tool_calls: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/ExpectedToolCall',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Expected Tool Calls',
+    },
+    evaluation_criteria_override: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Evaluation Criteria Override',
+      description: 'Custom judge prompt section that overrides default criteria',
+    },
+    id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Id',
+    },
+  },
+  type: 'object',
+  required: ['name'],
+  title: 'ScenarioImportItem',
+  description:
+    'Scenario payload for import — optional id enables round-trip and conflict detection.',
+} as const;
+
+export const ScenarioImportResultSchema = {
+  properties: {
+    created: {
+      type: 'integer',
+      title: 'Created',
+    },
+    skipped: {
+      type: 'integer',
+      title: 'Skipped',
+    },
+    overwritten: {
+      type: 'integer',
+      title: 'Overwritten',
+    },
+    total: {
+      type: 'integer',
+      title: 'Total',
+    },
+    errors: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Errors',
+      description: 'Per-item error messages',
+    },
+  },
+  type: 'object',
+  required: ['created', 'skipped', 'overwritten', 'total'],
+  title: 'ScenarioImportResult',
 } as const;
 
 export const ScenarioPublicSchema = {
@@ -1279,6 +1761,7 @@ export const ScenarioPublicSchema = {
       type: 'string',
       maxLength: 255,
       title: 'Name',
+      description: 'Human-readable short name',
     },
     description: {
       anyOf: [
@@ -1290,9 +1773,11 @@ export const ScenarioPublicSchema = {
         },
       ],
       title: 'Description',
+      description: 'What this scenario tests (for humans)',
     },
     difficulty: {
       $ref: '#/components/schemas/Difficulty',
+      description: 'Two-level difficulty classification',
       default: 'normal',
     },
     tags: {
@@ -1301,21 +1786,22 @@ export const ScenarioPublicSchema = {
       },
       type: 'array',
       title: 'Tags',
+      description: 'Free-form tags for grouping and filtering',
     },
     status: {
       $ref: '#/components/schemas/ScenarioStatus',
+      description: 'Lifecycle status — only active scenarios run by default',
       default: 'active',
     },
     persona: {
       anyOf: [
         {
-          type: 'object',
+          $ref: '#/components/schemas/Persona',
         },
         {
           type: 'null',
         },
       ],
-      title: 'Persona',
     },
     initial_message: {
       anyOf: [
@@ -1327,6 +1813,7 @@ export const ScenarioPublicSchema = {
         },
       ],
       title: 'Initial Message',
+      description: 'First message the simulated user sends to the agent',
     },
     user_context: {
       anyOf: [
@@ -1338,6 +1825,7 @@ export const ScenarioPublicSchema = {
         },
       ],
       title: 'User Context',
+      description: 'Free-form domain knowledge JSON-dumped into simulator prompt',
     },
     max_turns: {
       anyOf: [
@@ -1349,6 +1837,7 @@ export const ScenarioPublicSchema = {
         },
       ],
       title: 'Max Turns',
+      description: 'Max conversation turns; null = no cap',
     },
     expected_outcomes: {
       anyOf: [
@@ -1360,12 +1849,13 @@ export const ScenarioPublicSchema = {
         },
       ],
       title: 'Expected Outcomes',
+      description: 'Free-form success criteria the judge evaluates against',
     },
     expected_tool_calls: {
       anyOf: [
         {
           items: {
-            type: 'object',
+            $ref: '#/components/schemas/ExpectedToolCall',
           },
           type: 'array',
         },
@@ -1385,21 +1875,25 @@ export const ScenarioPublicSchema = {
         },
       ],
       title: 'Evaluation Criteria Override',
+      description: 'Custom judge prompt section that overrides default criteria',
     },
     id: {
       type: 'string',
       format: 'uuid',
       title: 'Id',
+      description: 'Unique scenario identifier',
     },
     created_at: {
       type: 'string',
       format: 'date-time',
       title: 'Created At',
+      description: 'When the scenario was created',
     },
     updated_at: {
       type: 'string',
       format: 'date-time',
       title: 'Updated At',
+      description: 'When the scenario was last updated',
     },
   },
   type: 'object',
@@ -1413,11 +1907,13 @@ export const ScenarioResultCreateSchema = {
       type: 'string',
       format: 'uuid',
       title: 'Run Id',
+      description: 'FK to the parent run',
     },
     scenario_id: {
       type: 'string',
       format: 'uuid',
       title: 'Scenario Id',
+      description: 'FK to the scenario that was executed',
     },
   },
   type: 'object',
@@ -1431,22 +1927,25 @@ export const ScenarioResultPublicSchema = {
       type: 'string',
       format: 'uuid',
       title: 'Id',
+      description: 'Unique scenario result identifier',
     },
     run_id: {
       type: 'string',
       format: 'uuid',
       title: 'Run Id',
+      description: 'FK to the parent run',
     },
     scenario_id: {
       type: 'string',
       format: 'uuid',
       title: 'Scenario Id',
+      description: 'FK to the scenario that was executed',
     },
     transcript: {
       anyOf: [
         {
           items: {
-            $ref: '#/components/schemas/ConversationTurn',
+            $ref: '#/components/schemas/ConversationTurn-Output',
           },
           type: 'array',
         },
@@ -1455,6 +1954,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Transcript',
+      description: 'Full conversation transcript as a list of turns',
     },
     turn_count: {
       anyOf: [
@@ -1466,6 +1966,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Turn Count',
+      description: 'Total number of conversation turns',
     },
     verdict: {
       anyOf: [
@@ -1476,6 +1977,7 @@ export const ScenarioResultPublicSchema = {
           type: 'null',
         },
       ],
+      description: 'Judge verdict with scores, pass/fail, and reasoning',
     },
     total_latency_ms: {
       anyOf: [
@@ -1487,6 +1989,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Total Latency Ms',
+      description: 'Total wall-clock latency for the scenario in milliseconds',
     },
     agent_latency_p50_ms: {
       anyOf: [
@@ -1498,6 +2001,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Agent Latency P50 Ms',
+      description: 'Agent response latency p50 in milliseconds',
     },
     agent_latency_p95_ms: {
       anyOf: [
@@ -1509,6 +2013,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Agent Latency P95 Ms',
+      description: 'Agent response latency p95 in milliseconds',
     },
     agent_latency_max_ms: {
       anyOf: [
@@ -1520,6 +2025,37 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Agent Latency Max Ms',
+      description: 'Maximum agent response latency in milliseconds',
+    },
+    agent_token_usage: {
+      anyOf: [
+        {
+          additionalProperties: {
+            type: 'integer',
+          },
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Token Usage',
+      description: 'Token usage breakdown from the agent (input/output counts)',
+    },
+    platform_token_usage: {
+      anyOf: [
+        {
+          additionalProperties: {
+            type: 'integer',
+          },
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Platform Token Usage',
+      description: 'Token usage from the eval platform (simulator + judge)',
     },
     estimated_cost_usd: {
       anyOf: [
@@ -1531,6 +2067,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Estimated Cost Usd',
+      description: 'Estimated total cost in USD for this scenario',
     },
     passed: {
       anyOf: [
@@ -1542,9 +2079,11 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Passed',
+      description: 'Whether the scenario passed evaluation',
     },
     error_category: {
       $ref: '#/components/schemas/ErrorCategory',
+      description: 'Classified error category if the scenario failed',
     },
     error_message: {
       anyOf: [
@@ -1556,6 +2095,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Error Message',
+      description: 'Human-readable error message if applicable',
     },
     started_at: {
       anyOf: [
@@ -1568,6 +2108,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Started At',
+      description: 'When scenario execution began',
     },
     completed_at: {
       anyOf: [
@@ -1580,16 +2121,19 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Completed At',
+      description: 'When scenario execution finished',
     },
     created_at: {
       type: 'string',
       format: 'date-time',
       title: 'Created At',
+      description: 'When the result was created',
     },
     updated_at: {
       type: 'string',
       format: 'date-time',
       title: 'Updated At',
+      description: 'When the result was last updated',
     },
   },
   type: 'object',
@@ -1620,7 +2164,7 @@ export const ScenarioResultUpdateSchema = {
       anyOf: [
         {
           items: {
-            $ref: '#/components/schemas/ConversationTurn',
+            $ref: '#/components/schemas/ConversationTurn-Input',
           },
           type: 'array',
         },
@@ -1629,6 +2173,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Transcript',
+      description: 'Full conversation transcript as a list of turns',
     },
     turn_count: {
       anyOf: [
@@ -1640,6 +2185,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Turn Count',
+      description: 'Total number of conversation turns',
     },
     verdict: {
       anyOf: [
@@ -1650,6 +2196,7 @@ export const ScenarioResultUpdateSchema = {
           type: 'null',
         },
       ],
+      description: 'Judge verdict with scores, pass/fail, and reasoning',
     },
     total_latency_ms: {
       anyOf: [
@@ -1661,6 +2208,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Total Latency Ms',
+      description: 'Total wall-clock latency for the scenario in milliseconds',
     },
     agent_latency_p50_ms: {
       anyOf: [
@@ -1672,6 +2220,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Agent Latency P50 Ms',
+      description: 'Agent response latency p50 in milliseconds',
     },
     agent_latency_p95_ms: {
       anyOf: [
@@ -1683,6 +2232,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Agent Latency P95 Ms',
+      description: 'Agent response latency p95 in milliseconds',
     },
     agent_latency_max_ms: {
       anyOf: [
@@ -1694,6 +2244,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Agent Latency Max Ms',
+      description: 'Maximum agent response latency in milliseconds',
     },
     agent_token_usage: {
       anyOf: [
@@ -1708,6 +2259,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Agent Token Usage',
+      description: 'Token usage breakdown from the agent (input/output counts)',
     },
     platform_token_usage: {
       anyOf: [
@@ -1722,6 +2274,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Platform Token Usage',
+      description: 'Token usage from the eval platform (simulator + judge)',
     },
     estimated_cost_usd: {
       anyOf: [
@@ -1733,6 +2286,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Estimated Cost Usd',
+      description: 'Estimated total cost in USD for this scenario',
     },
     passed: {
       anyOf: [
@@ -1744,6 +2298,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Passed',
+      description: 'Whether the scenario passed evaluation',
     },
     error_category: {
       anyOf: [
@@ -1754,6 +2309,7 @@ export const ScenarioResultUpdateSchema = {
           type: 'null',
         },
       ],
+      description: 'Classified error category if the scenario failed',
     },
     error_message: {
       anyOf: [
@@ -1765,6 +2321,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Error Message',
+      description: 'Human-readable error message if applicable',
     },
     started_at: {
       anyOf: [
@@ -1777,6 +2334,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Started At',
+      description: 'When scenario execution began',
     },
     completed_at: {
       anyOf: [
@@ -1789,6 +2347,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Completed At',
+      description: 'When scenario execution finished',
     },
   },
   type: 'object',
@@ -1803,10 +2362,12 @@ export const ScenarioResultsPublicSchema = {
       },
       type: 'array',
       title: 'Data',
+      description: 'List of scenario results',
     },
     count: {
       type: 'integer',
       title: 'Count',
+      description: 'Total number of results matching the query',
     },
   },
   type: 'object',
@@ -1820,6 +2381,7 @@ export const ScenarioSetCreateSchema = {
       type: 'string',
       maxLength: 255,
       title: 'Name',
+      description: 'Human-readable set name',
     },
     description: {
       anyOf: [
@@ -1831,10 +2393,12 @@ export const ScenarioSetCreateSchema = {
         },
       ],
       title: 'Description',
+      description: 'What this scenario set covers',
     },
     version: {
       type: 'integer',
       title: 'Version',
+      description: 'Monotonically increasing version for snapshot tracking',
       default: 1,
     },
     scenario_ids: {
@@ -1851,6 +2415,7 @@ export const ScenarioSetCreateSchema = {
         },
       ],
       title: 'Scenario Ids',
+      description: 'Scenarios to include in the set on creation',
     },
   },
   type: 'object',
@@ -1880,6 +2445,7 @@ export const ScenarioSetPublicSchema = {
       type: 'string',
       maxLength: 255,
       title: 'Name',
+      description: 'Human-readable set name',
     },
     description: {
       anyOf: [
@@ -1891,26 +2457,31 @@ export const ScenarioSetPublicSchema = {
         },
       ],
       title: 'Description',
+      description: 'What this scenario set covers',
     },
     version: {
       type: 'integer',
       title: 'Version',
+      description: 'Monotonically increasing version for snapshot tracking',
       default: 1,
     },
     id: {
       type: 'string',
       format: 'uuid',
       title: 'Id',
+      description: 'Unique scenario set identifier',
     },
     created_at: {
       type: 'string',
       format: 'date-time',
       title: 'Created At',
+      description: 'When the set was created',
     },
     updated_at: {
       type: 'string',
       format: 'date-time',
       title: 'Updated At',
+      description: 'When the set was last updated',
     },
   },
   type: 'object',
@@ -1930,6 +2501,7 @@ export const ScenarioSetUpdateSchema = {
         },
       ],
       title: 'Name',
+      description: 'Human-readable set name',
     },
     description: {
       anyOf: [
@@ -1941,6 +2513,7 @@ export const ScenarioSetUpdateSchema = {
         },
       ],
       title: 'Description',
+      description: 'What this scenario set covers',
     },
     version: {
       anyOf: [
@@ -1952,6 +2525,7 @@ export const ScenarioSetUpdateSchema = {
         },
       ],
       title: 'Version',
+      description: 'Monotonically increasing version for snapshot tracking',
     },
   },
   type: 'object',
@@ -1966,10 +2540,12 @@ export const ScenarioSetsPublicSchema = {
       },
       type: 'array',
       title: 'Data',
+      description: 'List of scenario sets',
     },
     count: {
       type: 'integer',
       title: 'Count',
+      description: 'Total number of sets matching the query',
     },
   },
   type: 'object',
@@ -1995,6 +2571,7 @@ export const ScenarioUpdateSchema = {
         },
       ],
       title: 'Name',
+      description: 'Human-readable short name',
     },
     description: {
       anyOf: [
@@ -2006,6 +2583,7 @@ export const ScenarioUpdateSchema = {
         },
       ],
       title: 'Description',
+      description: 'What this scenario tests (for humans)',
     },
     difficulty: {
       anyOf: [
@@ -2016,6 +2594,7 @@ export const ScenarioUpdateSchema = {
           type: 'null',
         },
       ],
+      description: 'Two-level difficulty classification',
     },
     tags: {
       anyOf: [
@@ -2030,6 +2609,7 @@ export const ScenarioUpdateSchema = {
         },
       ],
       title: 'Tags',
+      description: 'Free-form tags for grouping and filtering',
     },
     status: {
       anyOf: [
@@ -2040,17 +2620,17 @@ export const ScenarioUpdateSchema = {
           type: 'null',
         },
       ],
+      description: 'Lifecycle status — only active scenarios run by default',
     },
     persona: {
       anyOf: [
         {
-          type: 'object',
+          $ref: '#/components/schemas/Persona',
         },
         {
           type: 'null',
         },
       ],
-      title: 'Persona',
     },
     initial_message: {
       anyOf: [
@@ -2062,6 +2642,7 @@ export const ScenarioUpdateSchema = {
         },
       ],
       title: 'Initial Message',
+      description: 'First message the simulated user sends to the agent',
     },
     user_context: {
       anyOf: [
@@ -2084,6 +2665,7 @@ export const ScenarioUpdateSchema = {
         },
       ],
       title: 'Max Turns',
+      description: 'Max conversation turns; null = no cap',
     },
     expected_outcomes: {
       anyOf: [
@@ -2100,7 +2682,7 @@ export const ScenarioUpdateSchema = {
       anyOf: [
         {
           items: {
-            type: 'object',
+            $ref: '#/components/schemas/ExpectedToolCall',
           },
           type: 'array',
         },
@@ -2120,10 +2702,35 @@ export const ScenarioUpdateSchema = {
         },
       ],
       title: 'Evaluation Criteria Override',
+      description: 'Custom judge prompt section that overrides default criteria',
     },
   },
   type: 'object',
   title: 'ScenarioUpdate',
+} as const;
+
+export const ScenariosExportSchema = {
+  properties: {
+    exported_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Exported At',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+    scenarios: {
+      items: {
+        $ref: '#/components/schemas/ScenarioPublic',
+      },
+      type: 'array',
+      title: 'Scenarios',
+    },
+  },
+  type: 'object',
+  required: ['exported_at', 'count', 'scenarios'],
+  title: 'ScenariosExport',
 } as const;
 
 export const ScenariosPublicSchema = {
@@ -2134,10 +2741,12 @@ export const ScenariosPublicSchema = {
       },
       type: 'array',
       title: 'Data',
+      description: 'List of scenarios',
     },
     count: {
       type: 'integer',
       title: 'Count',
+      description: 'Total number of scenarios matching the query',
     },
   },
   type: 'object',
@@ -2163,13 +2772,22 @@ export const TokenSchema = {
 
 export const ToolCallSchema = {
   properties: {
-    tool_name: {
+    id: {
       type: 'string',
-      title: 'Tool Name',
+      title: 'Id',
+      description: 'Unique tool call identifier (e.g. call_abc123), OpenAI-compatible',
     },
-    tool_input: {
-      type: 'object',
-      title: 'Tool Input',
+    type: {
+      type: 'string',
+      enum: ['function'],
+      const: 'function',
+      title: 'Type',
+      description: 'Tool call type; only function is supported',
+      default: 'function',
+    },
+    function: {
+      $ref: '#/components/schemas/ToolCallFunction',
+      description: 'Function name and arguments',
     },
     tool_result: {
       anyOf: [
@@ -2179,16 +2797,35 @@ export const ToolCallSchema = {
         },
       ],
       title: 'Tool Result',
+      description: 'Result returned by the tool (platform extension, not in agent wire format)',
     },
   },
   type: 'object',
-  required: ['tool_name', 'tool_input'],
+  required: ['id', 'function'],
   title: 'ToolCall',
+} as const;
+
+export const ToolCallFunctionSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      title: 'Name',
+      description: 'Tool/function name',
+    },
+    arguments: {
+      type: 'string',
+      title: 'Arguments',
+      description: 'JSON-encoded arguments string (OpenAI chat completions convention)',
+    },
+  },
+  type: 'object',
+  required: ['name', 'arguments'],
+  title: 'ToolCallFunction',
 } as const;
 
 export const TurnRoleSchema = {
   type: 'string',
-  enum: ['user', 'agent', 'system'],
+  enum: ['user', 'assistant', 'system', 'tool'],
   title: 'TurnRole',
 } as const;
 
@@ -2331,34 +2968,4 @@ export const UserUpdateMeSchema = {
   },
   type: 'object',
   title: 'UserUpdateMe',
-} as const;
-
-export const ValidationErrorSchema = {
-  properties: {
-    loc: {
-      items: {
-        anyOf: [
-          {
-            type: 'string',
-          },
-          {
-            type: 'integer',
-          },
-        ],
-      },
-      type: 'array',
-      title: 'Location',
-    },
-    msg: {
-      type: 'string',
-      title: 'Message',
-    },
-    type: {
-      type: 'string',
-      title: 'Error Type',
-    },
-  },
-  type: 'object',
-  required: ['loc', 'msg', 'type'],
-  title: 'ValidationError',
 } as const;

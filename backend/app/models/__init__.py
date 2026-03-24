@@ -18,6 +18,15 @@ from app.models.agent import (  # noqa: F401
     AgentUpdate,
 )
 
+# ── Agent HTTP contract (OpenAI-compatible) ────────────────────────
+from app.models.agent_contract import (  # noqa: F401
+    AgentRequest,
+    AgentRequestMetadata,
+    AgentResponse,
+    ChatMessage,
+    TokenUsage,
+)
+
 # ── Common ─────────────────────────────────────────────────────────
 from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
 
@@ -87,6 +96,7 @@ from app.models.schemas import (  # noqa: F401
     Persona,
     RunConfig,
     ToolCall,
+    ToolCallFunction,
 )
 
 # ── Existing user models ──────────────────────────────────────────

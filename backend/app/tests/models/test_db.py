@@ -1,5 +1,3 @@
-"""ORM model instantiation tests — no database required."""
-
 import uuid
 
 from app.models.agent import Agent, AgentCreate

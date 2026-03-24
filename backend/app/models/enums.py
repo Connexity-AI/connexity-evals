@@ -36,5 +36,6 @@ class ErrorCategory(StrEnum):
 
 class TurnRole(StrEnum):
     USER = "user"
-    AGENT = "agent"
+    ASSISTANT = "assistant"
     SYSTEM = "system"
+    TOOL = "tool"

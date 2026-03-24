@@ -1,12 +1,4 @@
 #!/usr/bin/env python3
-"""Live LLM smoke test via ``app.services.llm``.
-
-Run from the ``backend/`` directory so ``../.env`` resolves (see ``Settings``):
-
-    cd backend && uv sync --group dev && uv run python scripts/llm_smoke.py
-
-Optional: ``--model`` (default ``gpt-4.1-nano`` or env ``LLM_SMOKE_MODEL``).
-"""
 
 from __future__ import annotations
 

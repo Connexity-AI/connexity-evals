@@ -1,5 +1,3 @@
-"""Pydantic round-trip serialization tests for all JSONB nested models."""
-
 from datetime import UTC, datetime
 
 from app.models.enums import ErrorCategory, TurnRole
@@ -13,6 +11,7 @@ from app.models.schemas import (
     Persona,
     RunConfig,
     ToolCall,
+    ToolCallFunction,
 )
 
 
@@ -64,15 +63,24 @@ def test_expected_tool_call_with_params():
 
 
 def test_tool_call_minimal():
-    tc = ToolCall(tool_name="search", tool_input={"query": "test"})
+    tc = ToolCall(
+        id="call_search1",
+        function=ToolCallFunction(
+            name="search",
+            arguments='{"query": "test"}',
+        ),
+    )
     restored = _round_trip(ToolCall, tc)
     assert restored.tool_result is None
 
 
 def test_tool_call_with_result():
     tc = ToolCall(
-        tool_name="get_balance",
-        tool_input={"account_id": "123"},
+        id="call_balance1",
+        function=ToolCallFunction(
+            name="get_balance",
+            arguments='{"account_id": "123"}',
+        ),
         tool_result={"balance": 42.50, "currency": "USD"},
     )
     _round_trip(ToolCall, tc)
@@ -96,13 +104,19 @@ def test_conversation_turn_minimal():
 def test_conversation_turn_with_tool_calls():
     turn = ConversationTurn(
         index=1,
-        role=TurnRole.AGENT,
+        role=TurnRole.ASSISTANT,
         content="Let me look that up.",
         tool_calls=[
-            ToolCall(tool_name="search", tool_input={"q": "weather"}),
             ToolCall(
-                tool_name="format",
-                tool_input={"template": "result"},
+                id="call_w1",
+                function=ToolCallFunction(name="search", arguments='{"q": "weather"}'),
+            ),
+            ToolCall(
+                id="call_w2",
+                function=ToolCallFunction(
+                    name="format",
+                    arguments='{"template": "result"}',
+                ),
                 tool_result="Sunny, 72F",
             ),
         ],
@@ -112,7 +126,7 @@ def test_conversation_turn_with_tool_calls():
     )
     restored = _round_trip(ConversationTurn, turn)
     assert len(restored.tool_calls) == 2
-    assert restored.tool_calls[0].tool_name == "search"
+    assert restored.tool_calls[0].function.name == "search"
     assert restored.tool_calls[1].tool_result == "Sunny, 72F"
 
 
