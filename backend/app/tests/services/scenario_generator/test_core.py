@@ -3,10 +3,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.generator.core import _parse_scenarios, generate_scenarios
-from app.generator.schemas import GenerateRequest
 from app.models.scenario import ScenarioCreate
 from app.services.llm import LLMResponse
+from app.services.scenario_generator.core import _parse_scenarios, generate_scenarios
+from app.services.scenario_generator.schemas import GenerateRequest
 
 from .conftest import MOCK_LLM_RESPONSE, MOCK_SCENARIOS_RAW
 
@@ -63,7 +63,7 @@ def test_parse_scenarios_not_array_raises() -> None:
 def test_parse_scenarios_partial_results_logs_warning() -> None:
     # Only 1 scenario but expecting 5
     data = [MOCK_SCENARIOS_RAW[0]]
-    with patch("app.generator.core.logger") as mock_logger:
+    with patch("app.services.scenario_generator.core.logger") as mock_logger:
         scenarios = _parse_scenarios(json.dumps(data), expected_count=5)
         assert len(scenarios) == 1
         mock_logger.warning.assert_called_once()
@@ -77,7 +77,7 @@ async def test_generate_scenarios_calls_llm() -> None:
         count=10,
     )
     with patch(
-        "app.generator.core.call_llm",
+        "app.services.scenario_generator.core.call_llm",
         new_callable=AsyncMock,
         return_value=_fake_llm_response(),
     ) as mock_call:
@@ -98,11 +98,11 @@ async def test_generate_scenarios_uses_config_default_model() -> None:
     )
     with (
         patch(
-            "app.generator.core.call_llm",
+            "app.services.scenario_generator.core.call_llm",
             new_callable=AsyncMock,
             return_value=_fake_llm_response(),
         ),
-        patch("app.generator.core.settings") as mock_settings,
+        patch("app.services.scenario_generator.core.settings") as mock_settings,
     ):
         mock_settings.LLM_DEFAULT_MODEL = "gpt-4o"
         mock_settings.GENERATOR_MAX_TOKENS = 16_000
@@ -123,11 +123,11 @@ async def test_generate_scenarios_respects_model_override() -> None:
     resp.model = "gpt-4o-mini"
     with (
         patch(
-            "app.generator.core.call_llm",
+            "app.services.scenario_generator.core.call_llm",
             new_callable=AsyncMock,
             return_value=resp,
         ) as mock_call,
-        patch("app.generator.core.settings") as mock_settings,
+        patch("app.services.scenario_generator.core.settings") as mock_settings,
     ):
         mock_settings.LLM_DEFAULT_MODEL = "gpt-4o"
         mock_settings.GENERATOR_MAX_TOKENS = 16_000

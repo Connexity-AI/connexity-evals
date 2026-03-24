@@ -69,8 +69,8 @@ def generate(
     no_persist: bool,
 ) -> None:
     """Generate evaluation scenarios from an agent prompt."""
-    from app.generator.core import generate_scenarios
-    from app.generator.schemas import GenerateRequest, ToolDefinition
+    from app.services.scenario_generator.core import generate_scenarios
+    from app.services.scenario_generator.schemas import GenerateRequest, ToolDefinition
 
     agent_prompt = Path(prompt_file).read_text(encoding="utf-8")
 
