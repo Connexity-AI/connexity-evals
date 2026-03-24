@@ -10,18 +10,26 @@ export type ClientOptions = {
 export type AgentCreate = {
   /**
    * Name
+   *
+   * Human-readable agent name
    */
   name: string;
   /**
    * Description
+   *
+   * What this agent does and its purpose
    */
   description?: string | null;
   /**
    * Endpoint Url
+   *
+   * URL of the agent's API endpoint
    */
   endpoint_url: string;
   /**
    * Agent Metadata
+   *
+   * Arbitrary key-value metadata about the agent
    */
   agent_metadata?: {
     [key: string]: unknown;
@@ -34,32 +42,46 @@ export type AgentCreate = {
 export type AgentPublic = {
   /**
    * Name
+   *
+   * Human-readable agent name
    */
   name: string;
   /**
    * Description
+   *
+   * What this agent does and its purpose
    */
   description?: string | null;
   /**
    * Endpoint Url
+   *
+   * URL of the agent's API endpoint
    */
   endpoint_url: string;
   /**
    * Agent Metadata
+   *
+   * Arbitrary key-value metadata about the agent
    */
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
   /**
    * Id
+   *
+   * Unique agent identifier
    */
   id: string;
   /**
    * Created At
+   *
+   * When the agent was created
    */
   created_at: string;
   /**
    * Updated At
+   *
+   * When the agent was last updated
    */
   updated_at: string;
 };
@@ -70,18 +92,26 @@ export type AgentPublic = {
 export type AgentUpdate = {
   /**
    * Name
+   *
+   * Human-readable agent name
    */
   name?: string | null;
   /**
    * Description
+   *
+   * What this agent does and its purpose
    */
   description?: string | null;
   /**
    * Endpoint Url
+   *
+   * URL of the agent's API endpoint
    */
   endpoint_url?: string | null;
   /**
    * Agent Metadata
+   *
+   * Arbitrary key-value metadata about the agent
    */
   agent_metadata?: {
     [key: string]: unknown;
@@ -94,10 +124,14 @@ export type AgentUpdate = {
 export type AgentsPublic = {
   /**
    * Data
+   *
+   * List of agents
    */
   data: Array<AgentPublic>;
   /**
    * Count
+   *
+   * Total number of agents matching the query
    */
   count: number;
 };
@@ -108,62 +142,90 @@ export type AgentsPublic = {
 export type AggregateMetricsInput = {
   /**
    * Total Scenarios
+   *
+   * Total number of scenarios executed in the run
    */
   total_scenarios: number;
   /**
    * Passed Count
+   *
+   * Number of scenarios that passed
    */
   passed_count: number;
   /**
    * Failed Count
+   *
+   * Number of scenarios that failed
    */
   failed_count: number;
   /**
    * Error Count
+   *
+   * Number of scenarios that errored during execution
    */
   error_count: number;
   /**
    * Pass Rate
+   *
+   * Fraction of scenarios that passed (0.0–1.0)
    */
   pass_rate: number;
   /**
    * Latency P50 Ms
+   *
+   * Median agent latency across scenarios
    */
   latency_p50_ms?: number | null;
   /**
    * Latency P95 Ms
+   *
+   * 95th percentile agent latency
    */
   latency_p95_ms?: number | null;
   /**
    * Latency Max Ms
+   *
+   * Maximum agent latency across scenarios
    */
   latency_max_ms?: number | null;
   /**
    * Latency Avg Ms
+   *
+   * Mean agent latency across scenarios
    */
   latency_avg_ms?: number | null;
   /**
    * Total Agent Token Usage
+   *
+   * Summed token usage from the agent across all scenarios
    */
   total_agent_token_usage?: {
     [key: string]: number;
   } | null;
   /**
    * Total Platform Token Usage
+   *
+   * Summed token usage from the platform (simulator + judge)
    */
   total_platform_token_usage?: {
     [key: string]: number;
   } | null;
   /**
    * Total Estimated Cost Usd
+   *
+   * Total estimated cost in USD for the entire run
    */
   total_estimated_cost_usd?: number | null;
   /**
    * Error Category Distribution
+   *
+   * Breakdown of error counts by category
    */
   error_category_distribution?: Array<ErrorCategoryCount>;
   /**
    * Avg Overall Score
+   *
+   * Mean judge overall score across all scenarios
    */
   avg_overall_score?: number | null;
 };
@@ -174,62 +236,90 @@ export type AggregateMetricsInput = {
 export type AggregateMetricsOutput = {
   /**
    * Total Scenarios
+   *
+   * Total number of scenarios executed in the run
    */
   total_scenarios: number;
   /**
    * Passed Count
+   *
+   * Number of scenarios that passed
    */
   passed_count: number;
   /**
    * Failed Count
+   *
+   * Number of scenarios that failed
    */
   failed_count: number;
   /**
    * Error Count
+   *
+   * Number of scenarios that errored during execution
    */
   error_count: number;
   /**
    * Pass Rate
+   *
+   * Fraction of scenarios that passed (0.0–1.0)
    */
   pass_rate: number;
   /**
    * Latency P50 Ms
+   *
+   * Median agent latency across scenarios
    */
   latency_p50_ms?: number | null;
   /**
    * Latency P95 Ms
+   *
+   * 95th percentile agent latency
    */
   latency_p95_ms?: number | null;
   /**
    * Latency Max Ms
+   *
+   * Maximum agent latency across scenarios
    */
   latency_max_ms?: number | null;
   /**
    * Latency Avg Ms
+   *
+   * Mean agent latency across scenarios
    */
   latency_avg_ms?: number | null;
   /**
    * Total Agent Token Usage
+   *
+   * Summed token usage from the agent across all scenarios
    */
   total_agent_token_usage?: {
     [key: string]: number;
   } | null;
   /**
    * Total Platform Token Usage
+   *
+   * Summed token usage from the platform (simulator + judge)
    */
   total_platform_token_usage?: {
     [key: string]: number;
   } | null;
   /**
    * Total Estimated Cost Usd
+   *
+   * Total estimated cost in USD for the entire run
    */
   total_estimated_cost_usd?: number | null;
   /**
    * Error Category Distribution
+   *
+   * Breakdown of error counts by category
    */
   error_category_distribution?: Array<ErrorCategoryCount>;
   /**
    * Avg Overall Score
+   *
+   * Mean judge overall score across all scenarios
    */
   avg_overall_score?: number | null;
 };
@@ -275,32 +365,127 @@ export type BodyLoginLoginAccessToken = {
 };
 
 /**
+ * ConfigPublic
+ */
+export type ConfigPublic = {
+  /**
+   * Project Name
+   */
+  project_name: string;
+  /**
+   * Api Version
+   */
+  api_version: string;
+  /**
+   * Environment
+   */
+  environment: 'local' | 'staging' | 'production';
+  /**
+   * Docs Url
+   */
+  docs_url: string;
+};
+
+/**
  * ConversationTurn
  */
-export type ConversationTurn = {
+export type ConversationTurnInput = {
   /**
    * Index
+   *
+   * Zero-based turn index in the conversation
    */
   index: number;
+  /**
+   * Who produced this turn (user, assistant, system, tool)
+   */
   role: TurnRole;
   /**
    * Content
+   *
+   * Text content of the turn; null for tool-call-only assistant turns
    */
-  content: string;
+  content?: string | null;
   /**
    * Tool Calls
+   *
+   * Tool calls made during this turn
    */
   tool_calls?: Array<ToolCall> | null;
   /**
+   * Tool Call Id
+   *
+   * For role=tool turns, references the id of the tool call this message answers
+   */
+  tool_call_id?: string | null;
+  /**
    * Latency Ms
+   *
+   * Response latency in milliseconds
    */
   latency_ms?: number | null;
   /**
    * Token Count
+   *
+   * Token count for this turn
    */
   token_count?: number | null;
   /**
    * Timestamp
+   *
+   * When this turn occurred
+   */
+  timestamp: string;
+};
+
+/**
+ * ConversationTurn
+ */
+export type ConversationTurnOutput = {
+  /**
+   * Index
+   *
+   * Zero-based turn index in the conversation
+   */
+  index: number;
+  /**
+   * Who produced this turn (user, assistant, system, tool)
+   */
+  role: TurnRole;
+  /**
+   * Content
+   *
+   * Text content of the turn; null for tool-call-only assistant turns
+   */
+  content?: string | null;
+  /**
+   * Tool Calls
+   *
+   * Tool calls made during this turn
+   */
+  tool_calls?: Array<ToolCall> | null;
+  /**
+   * Tool Call Id
+   *
+   * For role=tool turns, references the id of the tool call this message answers
+   */
+  tool_call_id?: string | null;
+  /**
+   * Latency Ms
+   *
+   * Response latency in milliseconds
+   */
+  latency_ms?: number | null;
+  /**
+   * Token Count
+   *
+   * Token count for this turn
+   */
+  token_count?: number | null;
+  /**
+   * Timestamp
+   *
+   * When this turn occurred
    */
   timestamp: string;
 };
@@ -311,22 +496,32 @@ export type ConversationTurn = {
 export type CriterionScore = {
   /**
    * Criterion
+   *
+   * Name of the evaluated criterion
    */
   criterion: string;
   /**
    * Score
+   *
+   * Score from 1.0 to 5.0
    */
   score: number;
   /**
    * Label
+   *
+   * Human-readable label (fail, poor, acceptable, good, excellent)
    */
   label: string;
   /**
    * Weight
+   *
+   * Relative weight of this criterion
    */
   weight?: number;
   /**
    * Justification
+   *
+   * Judge's reasoning for the assigned score
    */
   justification: string;
 };
@@ -367,21 +562,54 @@ export type ErrorCategory = (typeof ErrorCategory)[keyof typeof ErrorCategory];
  * ErrorCategoryCount
  */
 export type ErrorCategoryCount = {
+  /**
+   * The error category
+   */
   category: ErrorCategory;
   /**
    * Count
+   *
+   * Number of results in this category
    */
   count: number;
 };
 
 /**
- * HTTPValidationError
+ * ErrorResponse
  */
-export type HttpValidationError = {
+export type ErrorResponse = {
   /**
    * Detail
    */
-  detail?: Array<ValidationError>;
+  detail: string;
+  /**
+   * Code
+   */
+  code: string;
+  /**
+   * Status
+   */
+  status: number;
+};
+
+/**
+ * ExpectedToolCall
+ */
+export type ExpectedToolCall = {
+  /**
+   * Tool
+   *
+   * Tool/function name the agent should invoke
+   */
+  tool: string;
+  /**
+   * Expected Params
+   *
+   * Key parameters the judge verifies; null = any params acceptable
+   */
+  expected_params?: {
+    [key: string]: unknown;
+  } | null;
 };
 
 /**
@@ -390,39 +618,60 @@ export type HttpValidationError = {
 export type JudgeVerdict = {
   /**
    * Passed
+   *
+   * Whether the scenario passed overall
    */
   passed: boolean;
   /**
    * Overall Score
+   *
+   * Weighted overall score across all criteria
    */
   overall_score: number;
   /**
    * Criterion Scores
+   *
+   * Per-criterion score breakdown
    */
   criterion_scores: Array<CriterionScore>;
+  /**
+   * Classified error category if failed
+   */
   error_category?: ErrorCategory;
   /**
    * Summary
+   *
+   * Judge's overall reasoning summary
    */
   summary: string;
   /**
    * Raw Judge Output
+   *
+   * Raw unprocessed judge LLM output
    */
   raw_judge_output?: string | null;
   /**
    * Judge Model
+   *
+   * Model ID used for judging
    */
   judge_model: string;
   /**
    * Judge Provider
+   *
+   * Provider of the judge model
    */
   judge_provider: string;
   /**
    * Judge Latency Ms
+   *
+   * Judge evaluation latency in milliseconds
    */
   judge_latency_ms?: number | null;
   /**
    * Judge Token Usage
+   *
+   * Token usage for the judge call
    */
   judge_token_usage?: {
     [key: string]: number;
@@ -454,31 +703,77 @@ export type NewPassword = {
 };
 
 /**
+ * OnConflict
+ */
+export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
+
+/**
+ * OnConflict
+ */
+export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
+
+/**
+ * Persona
+ */
+export type Persona = {
+  /**
+   * Type
+   *
+   * Short persona archetype label
+   */
+  type: string;
+  /**
+   * Description
+   *
+   * Detailed persona description
+   */
+  description: string;
+  /**
+   * Instructions
+   *
+   * Behavioral directives for the LLM simulator
+   */
+  instructions: string;
+};
+
+/**
  * RunConfig
  */
 export type RunConfig = {
   /**
    * Judge Model
+   *
+   * Model ID for the judge LLM
    */
   judge_model?: string | null;
   /**
    * Judge Provider
+   *
+   * Provider for the judge LLM (e.g. anthropic, openai)
    */
   judge_provider?: string | null;
   /**
    * Simulator Model
+   *
+   * Model ID for the user simulator LLM
    */
   simulator_model?: string | null;
   /**
    * Simulator Provider
+   *
+   * Provider for the simulator LLM
    */
   simulator_provider?: string | null;
   /**
    * Concurrency
+   *
+   * Max parallel scenario executions
    */
   concurrency?: number;
   /**
    * Timeout Per Scenario Ms
+   *
+   * Timeout per scenario in milliseconds before forced stop
    */
   timeout_per_scenario_ms?: number;
 };
@@ -489,55 +784,82 @@ export type RunConfig = {
 export type RunCreate = {
   /**
    * Name
+   *
+   * Optional human-readable run label
    */
   name?: string | null;
   /**
    * Agent Id
+   *
+   * FK to the agent being evaluated
    */
   agent_id: string;
   /**
    * Agent Endpoint Url
+   *
+   * Agent endpoint URL snapshot captured at run start
    */
   agent_endpoint_url: string;
   /**
    * Agent System Prompt
+   *
+   * Agent system prompt snapshot captured at run start
    */
   agent_system_prompt?: string | null;
   /**
    * Agent Tools
+   *
+   * Agent tool definitions snapshot captured at run start
    */
   agent_tools?: Array<{
     [key: string]: unknown;
   }> | null;
   /**
    * Prompt Version
+   *
+   * Semantic version tag of the prompt used
    */
   prompt_version?: string | null;
   /**
    * Prompt Snapshot
+   *
+   * Full text of the system prompt at run time
    */
   prompt_snapshot?: string | null;
   /**
    * Tools Snapshot
+   *
+   * Full tool schema array at run time
    */
   tools_snapshot?: Array<{
     [key: string]: unknown;
   }> | null;
   /**
    * Tools Snapshot Hash
+   *
+   * SHA-256 hash of tools_snapshot for change detection
    */
   tools_snapshot_hash?: string | null;
   /**
    * Scenario Set Id
+   *
+   * FK to the scenario set to execute
    */
   scenario_set_id: string;
   /**
    * Scenario Set Version
+   *
+   * Version of the scenario set at run time
    */
   scenario_set_version?: number;
+  /**
+   * Run configuration (judge model, concurrency, timeouts, etc.)
+   */
   config?: RunConfig | null;
   /**
    * Is Baseline
+   *
+   * Whether this run is marked as the baseline for comparison
    */
   is_baseline?: boolean;
 };
@@ -548,53 +870,86 @@ export type RunCreate = {
 export type RunPublic = {
   /**
    * Id
+   *
+   * Unique run identifier
    */
   id: string;
   /**
    * Name
+   *
+   * Optional human-readable run label
    */
   name: string | null;
   /**
    * Agent Id
+   *
+   * FK to the agent being evaluated
    */
   agent_id: string;
   /**
    * Agent Endpoint Url
+   *
+   * Agent endpoint URL snapshot captured at run start
    */
   agent_endpoint_url: string;
   /**
    * Agent System Prompt
+   *
+   * Agent system prompt snapshot captured at run start
    */
   agent_system_prompt: string | null;
   /**
    * Scenario Set Id
+   *
+   * FK to the scenario set executed in this run
    */
   scenario_set_id: string;
   /**
    * Scenario Set Version
+   *
+   * Version of the scenario set at run time
    */
   scenario_set_version: number;
+  /**
+   * Run configuration (judge model, concurrency, timeouts, etc.)
+   */
   config?: RunConfig | null;
+  /**
+   * Current execution status of the run
+   */
   status: RunStatus;
   /**
    * Is Baseline
+   *
+   * Whether this run is marked as the baseline for comparison
    */
   is_baseline: boolean;
+  /**
+   * Aggregate metrics computed after completion
+   */
   aggregate_metrics?: AggregateMetricsOutput | null;
   /**
    * Started At
+   *
+   * When the run began executing
    */
   started_at: string | null;
   /**
    * Completed At
+   *
+   * When the run finished (success or failure)
    */
   completed_at: string | null;
   /**
    * Created At
+   *
+   * When the run was created
    */
   created_at: string;
   /**
    * Updated At
+   *
+   * When the run was last updated
    */
   updated_at: string;
 };
@@ -621,20 +976,34 @@ export type RunStatus = (typeof RunStatus)[keyof typeof RunStatus];
 export type RunUpdate = {
   /**
    * Name
+   *
+   * Optional human-readable run label
    */
   name?: string | null;
+  /**
+   * Current execution status of the run
+   */
   status?: RunStatus | null;
   /**
    * Is Baseline
+   *
+   * Whether this run is marked as the baseline for comparison
    */
   is_baseline?: boolean | null;
+  /**
+   * Aggregate metrics computed after completion
+   */
   aggregate_metrics?: AggregateMetricsInput | null;
   /**
    * Started At
+   *
+   * When the run began executing
    */
   started_at?: string | null;
   /**
    * Completed At
+   *
+   * When the run finished (success or failure)
    */
   completed_at?: string | null;
 };
@@ -645,10 +1014,14 @@ export type RunUpdate = {
 export type RunsPublic = {
   /**
    * Data
+   *
+   * List of runs
    */
   data: Array<RunPublic>;
   /**
    * Count
+   *
+   * Total number of runs matching the query
    */
   count: number;
 };
@@ -659,40 +1032,55 @@ export type RunsPublic = {
 export type ScenarioCreate = {
   /**
    * Name
+   *
+   * Human-readable short name
    */
   name: string;
   /**
    * Description
+   *
+   * What this scenario tests (for humans)
    */
   description?: string | null;
+  /**
+   * Two-level difficulty classification
+   */
   difficulty?: Difficulty;
   /**
    * Tags
+   *
+   * Free-form tags for grouping and filtering
    */
   tags?: Array<string>;
-  status?: ScenarioStatus;
   /**
-   * Persona
+   * Lifecycle status — only active scenarios run by default
    */
-  persona?: {
-    [key: string]: unknown;
-  } | null;
+  status?: ScenarioStatus;
+  persona?: Persona | null;
   /**
    * Initial Message
+   *
+   * First message the simulated user sends to the agent
    */
   initial_message?: string | null;
   /**
    * User Context
+   *
+   * Free-form domain knowledge JSON-dumped into simulator prompt
    */
   user_context?: {
     [key: string]: unknown;
   } | null;
   /**
    * Max Turns
+   *
+   * Max conversation turns; null = no cap
    */
   max_turns?: number | null;
   /**
    * Expected Outcomes
+   *
+   * Free-form success criteria the judge evaluates against
    */
   expected_outcomes?: {
     [key: string]: unknown;
@@ -700,13 +1088,118 @@ export type ScenarioCreate = {
   /**
    * Expected Tool Calls
    */
-  expected_tool_calls?: Array<{
-    [key: string]: unknown;
-  }> | null;
+  expected_tool_calls?: Array<ExpectedToolCall> | null;
   /**
    * Evaluation Criteria Override
+   *
+   * Custom judge prompt section that overrides default criteria
    */
   evaluation_criteria_override?: string | null;
+};
+
+/**
+ * ScenarioImportItem
+ *
+ * Scenario payload for import — optional id enables round-trip and conflict detection.
+ */
+export type ScenarioImportItem = {
+  /**
+   * Name
+   *
+   * Human-readable short name
+   */
+  name: string;
+  /**
+   * Description
+   *
+   * What this scenario tests (for humans)
+   */
+  description?: string | null;
+  /**
+   * Two-level difficulty classification
+   */
+  difficulty?: Difficulty;
+  /**
+   * Tags
+   *
+   * Free-form tags for grouping and filtering
+   */
+  tags?: Array<string>;
+  /**
+   * Lifecycle status — only active scenarios run by default
+   */
+  status?: ScenarioStatus;
+  persona?: Persona | null;
+  /**
+   * Initial Message
+   *
+   * First message the simulated user sends to the agent
+   */
+  initial_message?: string | null;
+  /**
+   * User Context
+   *
+   * Free-form domain knowledge JSON-dumped into simulator prompt
+   */
+  user_context?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Max Turns
+   *
+   * Max conversation turns; null = no cap
+   */
+  max_turns?: number | null;
+  /**
+   * Expected Outcomes
+   *
+   * Free-form success criteria the judge evaluates against
+   */
+  expected_outcomes?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Expected Tool Calls
+   */
+  expected_tool_calls?: Array<ExpectedToolCall> | null;
+  /**
+   * Evaluation Criteria Override
+   *
+   * Custom judge prompt section that overrides default criteria
+   */
+  evaluation_criteria_override?: string | null;
+  /**
+   * Id
+   */
+  id?: string | null;
+};
+
+/**
+ * ScenarioImportResult
+ */
+export type ScenarioImportResult = {
+  /**
+   * Created
+   */
+  created: number;
+  /**
+   * Skipped
+   */
+  skipped: number;
+  /**
+   * Overwritten
+   */
+  overwritten: number;
+  /**
+   * Total
+   */
+  total: number;
+  /**
+   * Errors
+   *
+   * Per-item error messages
+   */
+  errors?: Array<string>;
 };
 
 /**
@@ -715,40 +1208,55 @@ export type ScenarioCreate = {
 export type ScenarioPublic = {
   /**
    * Name
+   *
+   * Human-readable short name
    */
   name: string;
   /**
    * Description
+   *
+   * What this scenario tests (for humans)
    */
   description?: string | null;
+  /**
+   * Two-level difficulty classification
+   */
   difficulty?: Difficulty;
   /**
    * Tags
+   *
+   * Free-form tags for grouping and filtering
    */
   tags?: Array<string>;
-  status?: ScenarioStatus;
   /**
-   * Persona
+   * Lifecycle status — only active scenarios run by default
    */
-  persona?: {
-    [key: string]: unknown;
-  } | null;
+  status?: ScenarioStatus;
+  persona?: Persona | null;
   /**
    * Initial Message
+   *
+   * First message the simulated user sends to the agent
    */
   initial_message?: string | null;
   /**
    * User Context
+   *
+   * Free-form domain knowledge JSON-dumped into simulator prompt
    */
   user_context?: {
     [key: string]: unknown;
   } | null;
   /**
    * Max Turns
+   *
+   * Max conversation turns; null = no cap
    */
   max_turns?: number | null;
   /**
    * Expected Outcomes
+   *
+   * Free-form success criteria the judge evaluates against
    */
   expected_outcomes?: {
     [key: string]: unknown;
@@ -756,23 +1264,29 @@ export type ScenarioPublic = {
   /**
    * Expected Tool Calls
    */
-  expected_tool_calls?: Array<{
-    [key: string]: unknown;
-  }> | null;
+  expected_tool_calls?: Array<ExpectedToolCall> | null;
   /**
    * Evaluation Criteria Override
+   *
+   * Custom judge prompt section that overrides default criteria
    */
   evaluation_criteria_override?: string | null;
   /**
    * Id
+   *
+   * Unique scenario identifier
    */
   id: string;
   /**
    * Created At
+   *
+   * When the scenario was created
    */
   created_at: string;
   /**
    * Updated At
+   *
+   * When the scenario was last updated
    */
   updated_at: string;
 };
@@ -783,10 +1297,14 @@ export type ScenarioPublic = {
 export type ScenarioResultCreate = {
   /**
    * Run Id
+   *
+   * FK to the parent run
    */
   run_id: string;
   /**
    * Scenario Id
+   *
+   * FK to the scenario that was executed
    */
   scenario_id: string;
 };
@@ -797,68 +1315,122 @@ export type ScenarioResultCreate = {
 export type ScenarioResultPublic = {
   /**
    * Id
+   *
+   * Unique scenario result identifier
    */
   id: string;
   /**
    * Run Id
+   *
+   * FK to the parent run
    */
   run_id: string;
   /**
    * Scenario Id
+   *
+   * FK to the scenario that was executed
    */
   scenario_id: string;
   /**
    * Transcript
+   *
+   * Full conversation transcript as a list of turns
    */
-  transcript?: Array<ConversationTurn> | null;
+  transcript?: Array<ConversationTurnOutput> | null;
   /**
    * Turn Count
+   *
+   * Total number of conversation turns
    */
   turn_count: number | null;
+  /**
+   * Judge verdict with scores, pass/fail, and reasoning
+   */
   verdict?: JudgeVerdict | null;
   /**
    * Total Latency Ms
+   *
+   * Total wall-clock latency for the scenario in milliseconds
    */
   total_latency_ms: number | null;
   /**
    * Agent Latency P50 Ms
+   *
+   * Agent response latency p50 in milliseconds
    */
   agent_latency_p50_ms: number | null;
   /**
    * Agent Latency P95 Ms
+   *
+   * Agent response latency p95 in milliseconds
    */
   agent_latency_p95_ms: number | null;
   /**
    * Agent Latency Max Ms
+   *
+   * Maximum agent response latency in milliseconds
    */
   agent_latency_max_ms: number | null;
   /**
+   * Agent Token Usage
+   *
+   * Token usage breakdown from the agent (input/output counts)
+   */
+  agent_token_usage?: {
+    [key: string]: number;
+  } | null;
+  /**
+   * Platform Token Usage
+   *
+   * Token usage from the eval platform (simulator + judge)
+   */
+  platform_token_usage?: {
+    [key: string]: number;
+  } | null;
+  /**
    * Estimated Cost Usd
+   *
+   * Estimated total cost in USD for this scenario
    */
   estimated_cost_usd: number | null;
   /**
    * Passed
+   *
+   * Whether the scenario passed evaluation
    */
   passed: boolean | null;
+  /**
+   * Classified error category if the scenario failed
+   */
   error_category: ErrorCategory;
   /**
    * Error Message
+   *
+   * Human-readable error message if applicable
    */
   error_message: string | null;
   /**
    * Started At
+   *
+   * When scenario execution began
    */
   started_at: string | null;
   /**
    * Completed At
+   *
+   * When scenario execution finished
    */
   completed_at: string | null;
   /**
    * Created At
+   *
+   * When the result was created
    */
   created_at: string;
   /**
    * Updated At
+   *
+   * When the result was last updated
    */
   updated_at: string;
 };
@@ -869,60 +1441,92 @@ export type ScenarioResultPublic = {
 export type ScenarioResultUpdate = {
   /**
    * Transcript
+   *
+   * Full conversation transcript as a list of turns
    */
-  transcript?: Array<ConversationTurn> | null;
+  transcript?: Array<ConversationTurnInput> | null;
   /**
    * Turn Count
+   *
+   * Total number of conversation turns
    */
   turn_count?: number | null;
+  /**
+   * Judge verdict with scores, pass/fail, and reasoning
+   */
   verdict?: JudgeVerdict | null;
   /**
    * Total Latency Ms
+   *
+   * Total wall-clock latency for the scenario in milliseconds
    */
   total_latency_ms?: number | null;
   /**
    * Agent Latency P50 Ms
+   *
+   * Agent response latency p50 in milliseconds
    */
   agent_latency_p50_ms?: number | null;
   /**
    * Agent Latency P95 Ms
+   *
+   * Agent response latency p95 in milliseconds
    */
   agent_latency_p95_ms?: number | null;
   /**
    * Agent Latency Max Ms
+   *
+   * Maximum agent response latency in milliseconds
    */
   agent_latency_max_ms?: number | null;
   /**
    * Agent Token Usage
+   *
+   * Token usage breakdown from the agent (input/output counts)
    */
   agent_token_usage?: {
     [key: string]: number;
   } | null;
   /**
    * Platform Token Usage
+   *
+   * Token usage from the eval platform (simulator + judge)
    */
   platform_token_usage?: {
     [key: string]: number;
   } | null;
   /**
    * Estimated Cost Usd
+   *
+   * Estimated total cost in USD for this scenario
    */
   estimated_cost_usd?: number | null;
   /**
    * Passed
+   *
+   * Whether the scenario passed evaluation
    */
   passed?: boolean | null;
+  /**
+   * Classified error category if the scenario failed
+   */
   error_category?: ErrorCategory | null;
   /**
    * Error Message
+   *
+   * Human-readable error message if applicable
    */
   error_message?: string | null;
   /**
    * Started At
+   *
+   * When scenario execution began
    */
   started_at?: string | null;
   /**
    * Completed At
+   *
+   * When scenario execution finished
    */
   completed_at?: string | null;
 };
@@ -933,10 +1537,14 @@ export type ScenarioResultUpdate = {
 export type ScenarioResultsPublic = {
   /**
    * Data
+   *
+   * List of scenario results
    */
   data: Array<ScenarioResultPublic>;
   /**
    * Count
+   *
+   * Total number of results matching the query
    */
   count: number;
 };
@@ -947,18 +1555,26 @@ export type ScenarioResultsPublic = {
 export type ScenarioSetCreate = {
   /**
    * Name
+   *
+   * Human-readable set name
    */
   name: string;
   /**
    * Description
+   *
+   * What this scenario set covers
    */
   description?: string | null;
   /**
    * Version
+   *
+   * Monotonically increasing version for snapshot tracking
    */
   version?: number;
   /**
    * Scenario Ids
+   *
+   * Scenarios to include in the set on creation
    */
   scenario_ids?: Array<string> | null;
 };
@@ -979,26 +1595,38 @@ export type ScenarioSetMembersUpdate = {
 export type ScenarioSetPublic = {
   /**
    * Name
+   *
+   * Human-readable set name
    */
   name: string;
   /**
    * Description
+   *
+   * What this scenario set covers
    */
   description?: string | null;
   /**
    * Version
+   *
+   * Monotonically increasing version for snapshot tracking
    */
   version?: number;
   /**
    * Id
+   *
+   * Unique scenario set identifier
    */
   id: string;
   /**
    * Created At
+   *
+   * When the set was created
    */
   created_at: string;
   /**
    * Updated At
+   *
+   * When the set was last updated
    */
   updated_at: string;
 };
@@ -1009,14 +1637,20 @@ export type ScenarioSetPublic = {
 export type ScenarioSetUpdate = {
   /**
    * Name
+   *
+   * Human-readable set name
    */
   name?: string | null;
   /**
    * Description
+   *
+   * What this scenario set covers
    */
   description?: string | null;
   /**
    * Version
+   *
+   * Monotonically increasing version for snapshot tracking
    */
   version?: number | null;
 };
@@ -1027,10 +1661,14 @@ export type ScenarioSetUpdate = {
 export type ScenarioSetsPublic = {
   /**
    * Data
+   *
+   * List of scenario sets
    */
   data: Array<ScenarioSetPublic>;
   /**
    * Count
+   *
+   * Total number of sets matching the query
    */
   count: number;
 };
@@ -1055,26 +1693,35 @@ export type ScenarioStatus = (typeof ScenarioStatus)[keyof typeof ScenarioStatus
 export type ScenarioUpdate = {
   /**
    * Name
+   *
+   * Human-readable short name
    */
   name?: string | null;
   /**
    * Description
+   *
+   * What this scenario tests (for humans)
    */
   description?: string | null;
+  /**
+   * Two-level difficulty classification
+   */
   difficulty?: Difficulty | null;
   /**
    * Tags
+   *
+   * Free-form tags for grouping and filtering
    */
   tags?: Array<string> | null;
-  status?: ScenarioStatus | null;
   /**
-   * Persona
+   * Lifecycle status — only active scenarios run by default
    */
-  persona?: {
-    [key: string]: unknown;
-  } | null;
+  status?: ScenarioStatus | null;
+  persona?: Persona | null;
   /**
    * Initial Message
+   *
+   * First message the simulated user sends to the agent
    */
   initial_message?: string | null;
   /**
@@ -1085,6 +1732,8 @@ export type ScenarioUpdate = {
   } | null;
   /**
    * Max Turns
+   *
+   * Max conversation turns; null = no cap
    */
   max_turns?: number | null;
   /**
@@ -1096,13 +1745,31 @@ export type ScenarioUpdate = {
   /**
    * Expected Tool Calls
    */
-  expected_tool_calls?: Array<{
-    [key: string]: unknown;
-  }> | null;
+  expected_tool_calls?: Array<ExpectedToolCall> | null;
   /**
    * Evaluation Criteria Override
+   *
+   * Custom judge prompt section that overrides default criteria
    */
   evaluation_criteria_override?: string | null;
+};
+
+/**
+ * ScenariosExport
+ */
+export type ScenariosExport = {
+  /**
+   * Exported At
+   */
+  exported_at: string;
+  /**
+   * Count
+   */
+  count: number;
+  /**
+   * Scenarios
+   */
+  scenarios: Array<ScenarioPublic>;
 };
 
 /**
@@ -1111,10 +1778,14 @@ export type ScenarioUpdate = {
 export type ScenariosPublic = {
   /**
    * Data
+   *
+   * List of scenarios
    */
   data: Array<ScenarioPublic>;
   /**
    * Count
+   *
+   * Total number of scenarios matching the query
    */
   count: number;
 };
@@ -1138,19 +1809,45 @@ export type Token = {
  */
 export type ToolCall = {
   /**
-   * Tool Name
+   * Id
+   *
+   * Unique tool call identifier (e.g. call_abc123), OpenAI-compatible
    */
-  tool_name: string;
+  id: string;
   /**
-   * Tool Input
+   * Type
+   *
+   * Tool call type; only function is supported
    */
-  tool_input: {
-    [key: string]: unknown;
-  };
+  type?: 'function';
+  /**
+   * Function name and arguments
+   */
+  function: ToolCallFunction;
   /**
    * Tool Result
+   *
+   * Result returned by the tool (platform extension, not in agent wire format)
    */
   tool_result?: unknown | null;
+};
+
+/**
+ * ToolCallFunction
+ */
+export type ToolCallFunction = {
+  /**
+   * Name
+   *
+   * Tool/function name
+   */
+  name: string;
+  /**
+   * Arguments
+   *
+   * JSON-encoded arguments string (OpenAI chat completions convention)
+   */
+  arguments: string;
 };
 
 /**
@@ -1158,8 +1855,9 @@ export type ToolCall = {
  */
 export const TurnRole = {
   USER: 'user',
-  AGENT: 'agent',
+  ASSISTANT: 'assistant',
   SYSTEM: 'system',
+  TOOL: 'tool',
 } as const;
 
 /**
@@ -1244,24 +1942,6 @@ export type UserUpdateMe = {
   email?: string | null;
 };
 
-/**
- * ValidationError
- */
-export type ValidationError = {
-  /**
-   * Location
-   */
-  loc: Array<string | number>;
-  /**
-   * Message
-   */
-  msg: string;
-  /**
-   * Error Type
-   */
-  type: string;
-};
-
 export type HealthHealthData = {
   body?: never;
   path?: never;
@@ -1287,9 +1967,33 @@ export type LoginLoginAccessTokenData = {
 
 export type LoginLoginAccessTokenErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type LoginLoginAccessTokenError =
@@ -1311,6 +2015,39 @@ export type LoginTestTokenData = {
   query?: never;
   url: '/api/v1/login/test-token';
 };
+
+export type LoginTestTokenErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type LoginTestTokenError = LoginTestTokenErrors[keyof LoginTestTokenErrors];
 
 export type LoginTestTokenResponses = {
   /**
@@ -1335,9 +2072,33 @@ export type LoginRecoverPasswordData = {
 
 export type LoginRecoverPasswordErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type LoginRecoverPasswordError =
@@ -1362,9 +2123,33 @@ export type LoginResetPasswordData = {
 
 export type LoginResetPasswordErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type LoginResetPasswordError = LoginResetPasswordErrors[keyof LoginResetPasswordErrors];
@@ -1393,9 +2178,33 @@ export type LoginRecoverPasswordHtmlContentData = {
 
 export type LoginRecoverPasswordHtmlContentErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type LoginRecoverPasswordHtmlContentError =
@@ -1418,6 +2227,39 @@ export type LoginLogoutData = {
   url: '/api/v1/logout';
 };
 
+export type LoginLogoutErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type LoginLogoutError = LoginLogoutErrors[keyof LoginLogoutErrors];
+
 export type LoginLogoutResponses = {
   /**
    * Successful Response
@@ -1431,6 +2273,39 @@ export type LoginLoginGithubData = {
   query?: never;
   url: '/api/v1/login/github';
 };
+
+export type LoginLoginGithubErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type LoginLoginGithubError = LoginLoginGithubErrors[keyof LoginLoginGithubErrors];
 
 export type LoginLoginGithubResponses = {
   /**
@@ -1448,6 +2323,40 @@ export type LoginAuthGithubCallbackData = {
   url: '/api/v1/auth/github/callback';
 };
 
+export type LoginAuthGithubCallbackErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type LoginAuthGithubCallbackError =
+  LoginAuthGithubCallbackErrors[keyof LoginAuthGithubCallbackErrors];
+
 export type LoginAuthGithubCallbackResponses = {
   /**
    * Successful Response
@@ -1464,9 +2373,33 @@ export type UsersRegisterUserData = {
 
 export type UsersRegisterUserErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type UsersRegisterUserError = UsersRegisterUserErrors[keyof UsersRegisterUserErrors];
@@ -1488,6 +2421,39 @@ export type UsersDeleteUserMeData = {
   url: '/api/v1/users/me';
 };
 
+export type UsersDeleteUserMeErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type UsersDeleteUserMeError = UsersDeleteUserMeErrors[keyof UsersDeleteUserMeErrors];
+
 export type UsersDeleteUserMeResponses = {
   /**
    * Successful Response
@@ -1504,6 +2470,39 @@ export type UsersReadUserMeData = {
   query?: never;
   url: '/api/v1/users/me';
 };
+
+export type UsersReadUserMeErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type UsersReadUserMeError = UsersReadUserMeErrors[keyof UsersReadUserMeErrors];
 
 export type UsersReadUserMeResponses = {
   /**
@@ -1523,9 +2522,33 @@ export type UsersUpdateUserMeData = {
 
 export type UsersUpdateUserMeErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type UsersUpdateUserMeError = UsersUpdateUserMeErrors[keyof UsersUpdateUserMeErrors];
@@ -1549,9 +2572,33 @@ export type UsersUpdatePasswordMeData = {
 
 export type UsersUpdatePasswordMeErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type UsersUpdatePasswordMeError =
@@ -1585,9 +2632,33 @@ export type AgentsListAgentsData = {
 
 export type AgentsListAgentsErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type AgentsListAgentsError = AgentsListAgentsErrors[keyof AgentsListAgentsErrors];
@@ -1610,9 +2681,33 @@ export type AgentsCreateAgentData = {
 
 export type AgentsCreateAgentErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type AgentsCreateAgentError = AgentsCreateAgentErrors[keyof AgentsCreateAgentErrors];
@@ -1641,9 +2736,33 @@ export type AgentsDeleteAgentData = {
 
 export type AgentsDeleteAgentErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type AgentsDeleteAgentError = AgentsDeleteAgentErrors[keyof AgentsDeleteAgentErrors];
@@ -1672,9 +2791,33 @@ export type AgentsGetAgentData = {
 
 export type AgentsGetAgentErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type AgentsGetAgentError = AgentsGetAgentErrors[keyof AgentsGetAgentErrors];
@@ -1702,9 +2845,33 @@ export type AgentsUpdateAgentData = {
 
 export type AgentsUpdateAgentErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type AgentsUpdateAgentError = AgentsUpdateAgentErrors[keyof AgentsUpdateAgentErrors];
@@ -1743,15 +2910,57 @@ export type ScenariosListScenariosData = {
      * Status
      */
     status?: ScenarioStatus | null;
+    /**
+     * Search
+     *
+     * Case-insensitive text search on name and description
+     */
+    search?: string | null;
+    /**
+     * Sort By
+     *
+     * Sort field: created_at, updated_at, name, difficulty, status
+     */
+    sort_by?: string;
+    /**
+     * Sort Order
+     *
+     * Sort direction
+     */
+    sort_order?: string;
   };
   url: '/api/v1/scenarios/';
 };
 
 export type ScenariosListScenariosErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenariosListScenariosError =
@@ -1776,9 +2985,33 @@ export type ScenariosCreateScenarioData = {
 
 export type ScenariosCreateScenarioErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenariosCreateScenarioError =
@@ -1794,6 +3027,126 @@ export type ScenariosCreateScenarioResponses = {
 export type ScenariosCreateScenarioResponse =
   ScenariosCreateScenarioResponses[keyof ScenariosCreateScenarioResponses];
 
+export type ScenariosExportScenariosData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Tag
+     */
+    tag?: string | null;
+    /**
+     * Difficulty
+     */
+    difficulty?: Difficulty | null;
+    /**
+     * Status
+     */
+    status?: ScenarioStatus | null;
+  };
+  url: '/api/v1/scenarios/export';
+};
+
+export type ScenariosExportScenariosErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ScenariosExportScenariosError =
+  ScenariosExportScenariosErrors[keyof ScenariosExportScenariosErrors];
+
+export type ScenariosExportScenariosResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenariosExport;
+};
+
+export type ScenariosExportScenariosResponse =
+  ScenariosExportScenariosResponses[keyof ScenariosExportScenariosResponses];
+
+export type ScenariosImportScenariosData = {
+  /**
+   * Scenarios In
+   */
+  body: Array<ScenarioImportItem>;
+  path?: never;
+  query?: {
+    on_conflict?: OnConflict;
+  };
+  url: '/api/v1/scenarios/import';
+};
+
+export type ScenariosImportScenariosErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ScenariosImportScenariosError =
+  ScenariosImportScenariosErrors[keyof ScenariosImportScenariosErrors];
+
+export type ScenariosImportScenariosResponses = {
+  /**
+   * Successful Response
+   */
+  200: ScenarioImportResult;
+};
+
+export type ScenariosImportScenariosResponse =
+  ScenariosImportScenariosResponses[keyof ScenariosImportScenariosResponses];
+
 export type ScenariosDeleteScenarioData = {
   body?: never;
   path: {
@@ -1808,9 +3161,33 @@ export type ScenariosDeleteScenarioData = {
 
 export type ScenariosDeleteScenarioErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenariosDeleteScenarioError =
@@ -1840,9 +3217,33 @@ export type ScenariosGetScenarioData = {
 
 export type ScenariosGetScenarioErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenariosGetScenarioError =
@@ -1872,9 +3273,33 @@ export type ScenariosUpdateScenarioData = {
 
 export type ScenariosUpdateScenarioErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenariosUpdateScenarioError =
@@ -1908,9 +3333,33 @@ export type ScenarioSetsListScenarioSetsData = {
 
 export type ScenarioSetsListScenarioSetsErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioSetsListScenarioSetsError =
@@ -1935,9 +3384,33 @@ export type ScenarioSetsCreateScenarioSetData = {
 
 export type ScenarioSetsCreateScenarioSetErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioSetsCreateScenarioSetError =
@@ -1967,9 +3440,33 @@ export type ScenarioSetsDeleteScenarioSetData = {
 
 export type ScenarioSetsDeleteScenarioSetErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioSetsDeleteScenarioSetError =
@@ -1999,9 +3496,33 @@ export type ScenarioSetsGetScenarioSetData = {
 
 export type ScenarioSetsGetScenarioSetErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioSetsGetScenarioSetError =
@@ -2031,9 +3552,33 @@ export type ScenarioSetsUpdateScenarioSetData = {
 
 export type ScenarioSetsUpdateScenarioSetErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioSetsUpdateScenarioSetError =
@@ -2063,9 +3608,33 @@ export type ScenarioSetsListScenariosInSetData = {
 
 export type ScenarioSetsListScenariosInSetErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioSetsListScenariosInSetError =
@@ -2095,9 +3664,33 @@ export type ScenarioSetsAddScenariosToSetData = {
 
 export type ScenarioSetsAddScenariosToSetErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioSetsAddScenariosToSetError =
@@ -2127,9 +3720,33 @@ export type ScenarioSetsReplaceScenariosInSetData = {
 
 export type ScenarioSetsReplaceScenariosInSetErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioSetsReplaceScenariosInSetError =
@@ -2163,9 +3780,33 @@ export type ScenarioSetsRemoveScenarioFromSetData = {
 
 export type ScenarioSetsRemoveScenarioFromSetErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioSetsRemoveScenarioFromSetError =
@@ -2215,9 +3856,33 @@ export type RunsListRunsData = {
 
 export type RunsListRunsErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type RunsListRunsError = RunsListRunsErrors[keyof RunsListRunsErrors];
@@ -2240,9 +3905,33 @@ export type RunsCreateRunData = {
 
 export type RunsCreateRunErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type RunsCreateRunError = RunsCreateRunErrors[keyof RunsCreateRunErrors];
@@ -2270,9 +3959,33 @@ export type RunsDeleteRunData = {
 
 export type RunsDeleteRunErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type RunsDeleteRunError = RunsDeleteRunErrors[keyof RunsDeleteRunErrors];
@@ -2300,9 +4013,33 @@ export type RunsGetRunData = {
 
 export type RunsGetRunErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type RunsGetRunError = RunsGetRunErrors[keyof RunsGetRunErrors];
@@ -2330,9 +4067,33 @@ export type RunsUpdateRunData = {
 
 export type RunsUpdateRunErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type RunsUpdateRunError = RunsUpdateRunErrors[keyof RunsUpdateRunErrors];
@@ -2372,9 +4133,33 @@ export type ScenarioResultsListScenarioResultsData = {
 
 export type ScenarioResultsListScenarioResultsErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioResultsListScenarioResultsError =
@@ -2399,9 +4184,33 @@ export type ScenarioResultsCreateScenarioResultData = {
 
 export type ScenarioResultsCreateScenarioResultErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioResultsCreateScenarioResultError =
@@ -2431,9 +4240,33 @@ export type ScenarioResultsDeleteScenarioResultData = {
 
 export type ScenarioResultsDeleteScenarioResultErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioResultsDeleteScenarioResultError =
@@ -2463,9 +4296,33 @@ export type ScenarioResultsGetScenarioResultData = {
 
 export type ScenarioResultsGetScenarioResultErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioResultsGetScenarioResultError =
@@ -2495,9 +4352,33 @@ export type ScenarioResultsUpdateScenarioResultData = {
 
 export type ScenarioResultsUpdateScenarioResultErrors = {
   /**
-   * Validation Error
+   * Bad Request
    */
-  422: HttpValidationError;
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
 };
 
 export type ScenarioResultsUpdateScenarioResultError =
@@ -2512,3 +4393,52 @@ export type ScenarioResultsUpdateScenarioResultResponses = {
 
 export type ScenarioResultsUpdateScenarioResultResponse =
   ScenarioResultsUpdateScenarioResultResponses[keyof ScenarioResultsUpdateScenarioResultResponses];
+
+export type ConfigGetConfigData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/config/';
+};
+
+export type ConfigGetConfigErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type ConfigGetConfigError = ConfigGetConfigErrors[keyof ConfigGetConfigErrors];
+
+export type ConfigGetConfigResponses = {
+  /**
+   * Successful Response
+   */
+  200: ConfigPublic;
+};
+
+export type ConfigGetConfigResponse = ConfigGetConfigResponses[keyof ConfigGetConfigResponses];

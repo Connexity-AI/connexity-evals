@@ -109,7 +109,7 @@ erDiagram
 | `ScenarioStatus` | `draft`, `active`, `archived` |
 | `RunStatus` | `pending`, `running`, `completed`, `failed`, `cancelled` |
 | `ErrorCategory` | `none`, `off_topic`, `hallucination`, `refusal`, `tool_misuse`, `safety_violation`, `prompt_violation`, `incomplete`, `latency_timeout`, `agent_error`, `other` |
-| `TurnRole` | `user`, `agent`, `system` |
+| `TurnRole` | `user`, `assistant`, `system`, `tool` |
 
 ## JSONB Nested Entities
 
@@ -132,18 +132,22 @@ These are stored inside JSONB columns, not as separate tables.
 |-------|------|
 | `index` | `int` |
 | `role` | `TurnRole` |
-| `content` | `str` |
+| `content` | `str \| None` |
 | `tool_calls` | `list[ToolCall] \| None` |
+| `tool_call_id` | `str \| None` |
 | `latency_ms` | `int \| None` |
 | `token_count` | `int \| None` |
 | `timestamp` | `datetime` |
 
 ### ToolCall (nested in `ConversationTurn.tool_calls`)
 
+OpenAI chat-completions shape, plus optional `tool_result` for platform-stored outcomes.
+
 | Field | Type |
 |-------|------|
-| `tool_name` | `str` |
-| `tool_input` | `dict[str, Any]` |
+| `id` | `str` |
+| `type` | `function` |
+| `function` | `ToolCallFunction` (`name`, `arguments` JSON string) |
 | `tool_result` | `Any \| None` |
 
 ### JudgeVerdict (stored in `scenario_results.verdict`)

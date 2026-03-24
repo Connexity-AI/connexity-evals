@@ -7,7 +7,7 @@ on the ORM table models (Run, ScenarioResult, Scenario).
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -56,22 +56,42 @@ class RunConfig(BaseModel):
 # ── Conversation nested types ──────────────────────────────────────
 
 
-class ToolCall(BaseModel):
-    tool_name: str = Field(description="Name of the tool/function called")
-    tool_input: dict[str, Any] = Field(
-        description="Input parameters passed to the tool"
+class ToolCallFunction(BaseModel):
+    name: str = Field(description="Tool/function name")
+    arguments: str = Field(
+        description="JSON-encoded arguments string (OpenAI chat completions convention)"
     )
+
+
+class ToolCall(BaseModel):
+    id: str = Field(
+        description="Unique tool call identifier (e.g. call_abc123), OpenAI-compatible"
+    )
+    type: Literal["function"] = Field(
+        default="function", description="Tool call type; only function is supported"
+    )
+    function: ToolCallFunction = Field(description="Function name and arguments")
     tool_result: Any | None = Field(
-        default=None, description="Result returned by the tool"
+        default=None,
+        description="Result returned by the tool (platform extension, not in agent wire format)",
     )
 
 
 class ConversationTurn(BaseModel):
     index: int = Field(description="Zero-based turn index in the conversation")
-    role: TurnRole = Field(description="Who produced this turn (user, agent, system)")
-    content: str = Field(description="Text content of the turn")
+    role: TurnRole = Field(
+        description="Who produced this turn (user, assistant, system, tool)"
+    )
+    content: str | None = Field(
+        default=None,
+        description="Text content of the turn; null for tool-call-only assistant turns",
+    )
     tool_calls: list[ToolCall] | None = Field(
         default=None, description="Tool calls made during this turn"
+    )
+    tool_call_id: str | None = Field(
+        default=None,
+        description="For role=tool turns, references the id of the tool call this message answers",
     )
     latency_ms: int | None = Field(
         default=None, description="Response latency in milliseconds"

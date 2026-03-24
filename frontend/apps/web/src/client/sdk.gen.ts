@@ -18,16 +18,22 @@ import type {
   AgentsUpdateAgentData,
   AgentsUpdateAgentErrors,
   AgentsUpdateAgentResponses,
+  ConfigGetConfigData,
+  ConfigGetConfigErrors,
+  ConfigGetConfigResponses,
   HealthHealthData,
   HealthHealthResponses,
   LoginAuthGithubCallbackData,
+  LoginAuthGithubCallbackErrors,
   LoginAuthGithubCallbackResponses,
   LoginLoginAccessTokenData,
   LoginLoginAccessTokenErrors,
   LoginLoginAccessTokenResponses,
   LoginLoginGithubData,
+  LoginLoginGithubErrors,
   LoginLoginGithubResponses,
   LoginLogoutData,
+  LoginLogoutErrors,
   LoginLogoutResponses,
   LoginRecoverPasswordData,
   LoginRecoverPasswordErrors,
@@ -39,6 +45,7 @@ import type {
   LoginResetPasswordErrors,
   LoginResetPasswordResponses,
   LoginTestTokenData,
+  LoginTestTokenErrors,
   LoginTestTokenResponses,
   RunsCreateRunData,
   RunsCreateRunErrors,
@@ -103,9 +110,15 @@ import type {
   ScenarioSetsUpdateScenarioSetData,
   ScenarioSetsUpdateScenarioSetErrors,
   ScenarioSetsUpdateScenarioSetResponses,
+  ScenariosExportScenariosData,
+  ScenariosExportScenariosErrors,
+  ScenariosExportScenariosResponses,
   ScenariosGetScenarioData,
   ScenariosGetScenarioErrors,
   ScenariosGetScenarioResponses,
+  ScenariosImportScenariosData,
+  ScenariosImportScenariosErrors,
+  ScenariosImportScenariosResponses,
   ScenariosListScenariosData,
   ScenariosListScenariosErrors,
   ScenariosListScenariosResponses,
@@ -113,8 +126,10 @@ import type {
   ScenariosUpdateScenarioErrors,
   ScenariosUpdateScenarioResponses,
   UsersDeleteUserMeData,
+  UsersDeleteUserMeErrors,
   UsersDeleteUserMeResponses,
   UsersReadUserMeData,
+  UsersReadUserMeErrors,
   UsersReadUserMeResponses,
   UsersRegisterUserData,
   UsersRegisterUserErrors,
@@ -192,7 +207,11 @@ export class LoginService {
   public static testToken<ThrowOnError extends boolean = false>(
     options?: Options<LoginTestTokenData, ThrowOnError>
   ) {
-    return (options?.client ?? client).post<LoginTestTokenResponses, unknown, ThrowOnError>({
+    return (options?.client ?? client).post<
+      LoginTestTokenResponses,
+      LoginTestTokenErrors,
+      ThrowOnError
+    >({
       security: [
         {
           in: 'cookie',
@@ -275,7 +294,7 @@ export class LoginService {
   public static logout<ThrowOnError extends boolean = false>(
     options?: Options<LoginLogoutData, ThrowOnError>
   ) {
-    return (options?.client ?? client).post<LoginLogoutResponses, unknown, ThrowOnError>({
+    return (options?.client ?? client).post<LoginLogoutResponses, LoginLogoutErrors, ThrowOnError>({
       security: [
         {
           in: 'cookie',
@@ -297,10 +316,11 @@ export class LoginService {
   public static loginGithub<ThrowOnError extends boolean = false>(
     options?: Options<LoginLoginGithubData, ThrowOnError>
   ) {
-    return (options?.client ?? client).get<LoginLoginGithubResponses, unknown, ThrowOnError>({
-      url: '/api/v1/login/github',
-      ...options,
-    });
+    return (options?.client ?? client).get<
+      LoginLoginGithubResponses,
+      LoginLoginGithubErrors,
+      ThrowOnError
+    >({ url: '/api/v1/login/github', ...options });
   }
 
   /**
@@ -311,9 +331,11 @@ export class LoginService {
   public static authGithubCallback<ThrowOnError extends boolean = false>(
     options?: Options<LoginAuthGithubCallbackData, ThrowOnError>
   ) {
-    return (options?.client ?? client).get<LoginAuthGithubCallbackResponses, unknown, ThrowOnError>(
-      { url: '/api/v1/auth/github/callback', ...options }
-    );
+    return (options?.client ?? client).get<
+      LoginAuthGithubCallbackResponses,
+      LoginAuthGithubCallbackErrors,
+      ThrowOnError
+    >({ url: '/api/v1/auth/github/callback', ...options });
   }
 }
 
@@ -348,7 +370,11 @@ export class UsersService {
   public static deleteUserMe<ThrowOnError extends boolean = false>(
     options?: Options<UsersDeleteUserMeData, ThrowOnError>
   ) {
-    return (options?.client ?? client).delete<UsersDeleteUserMeResponses, unknown, ThrowOnError>({
+    return (options?.client ?? client).delete<
+      UsersDeleteUserMeResponses,
+      UsersDeleteUserMeErrors,
+      ThrowOnError
+    >({
       security: [
         {
           in: 'cookie',
@@ -369,7 +395,11 @@ export class UsersService {
   public static readUserMe<ThrowOnError extends boolean = false>(
     options?: Options<UsersReadUserMeData, ThrowOnError>
   ) {
-    return (options?.client ?? client).get<UsersReadUserMeResponses, unknown, ThrowOnError>({
+    return (options?.client ?? client).get<
+      UsersReadUserMeResponses,
+      UsersReadUserMeErrors,
+      ThrowOnError
+    >({
       security: [
         {
           in: 'cookie',
@@ -609,6 +639,56 @@ export class ScenariosService {
         },
       ],
       url: '/api/v1/scenarios/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Export Scenarios
+   */
+  public static exportScenarios<ThrowOnError extends boolean = false>(
+    options?: Options<ScenariosExportScenariosData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ScenariosExportScenariosResponses,
+      ScenariosExportScenariosErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenarios/export',
+      ...options,
+    });
+  }
+
+  /**
+   * Import Scenarios
+   */
+  public static importScenarios<ThrowOnError extends boolean = false>(
+    options: Options<ScenariosImportScenariosData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      ScenariosImportScenariosResponses,
+      ScenariosImportScenariosErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/scenarios/import',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1156,6 +1236,31 @@ export class ScenarioResultsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+}
+
+export class ConfigService {
+  /**
+   * Get Config
+   */
+  public static getConfig<ThrowOnError extends boolean = false>(
+    options?: Options<ConfigGetConfigData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      ConfigGetConfigResponses,
+      ConfigGetConfigErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/config/',
+      ...options,
     });
   }
 }
