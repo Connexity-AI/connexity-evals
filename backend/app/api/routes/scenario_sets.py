@@ -15,6 +15,17 @@ from app.models import (
     ScenariosPublic,
 )
 
+
+def _to_public(session: SessionDep, scenario_set: ScenarioSet) -> ScenarioSetPublic:
+    """Convert a ScenarioSet ORM object to ScenarioSetPublic with scenario_count."""
+    count = crud.count_scenarios_in_set(
+        session=session, scenario_set_id=scenario_set.id
+    )
+    return ScenarioSetPublic.model_validate(
+        scenario_set, update={"scenario_count": count}
+    )
+
+
 router = APIRouter(
     prefix="/scenario-sets",
     tags=["scenario-sets"],
@@ -25,8 +36,14 @@ router = APIRouter(
 @router.post("/", response_model=ScenarioSetPublic)
 def create_scenario_set(
     session: SessionDep, scenario_set_in: ScenarioSetCreate
-) -> ScenarioSet:
-    return crud.create_scenario_set(session=session, scenario_set_in=scenario_set_in)
+) -> ScenarioSetPublic:
+    try:
+        scenario_set = crud.create_scenario_set(
+            session=session, scenario_set_in=scenario_set_in
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return _to_public(session, scenario_set)
 
 
 @router.get("/", response_model=ScenarioSetsPublic)
@@ -36,17 +53,28 @@ def list_scenario_sets(
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> ScenarioSetsPublic:
     items, count = crud.list_scenario_sets(session=session, skip=skip, limit=limit)
-    return ScenarioSetsPublic(data=items, count=count)  # type: ignore[arg-type]
+    counts = crud.count_scenarios_in_sets(
+        session=session, scenario_set_ids=[s.id for s in items]
+    )
+    public_items = [
+        ScenarioSetPublic.model_validate(
+            item, update={"scenario_count": counts.get(item.id, 0)}
+        )
+        for item in items
+    ]
+    return ScenarioSetsPublic(data=public_items, count=count)
 
 
 @router.get("/{scenario_set_id}", response_model=ScenarioSetPublic)
-def get_scenario_set(session: SessionDep, scenario_set_id: uuid.UUID) -> ScenarioSet:
+def get_scenario_set(
+    session: SessionDep, scenario_set_id: uuid.UUID
+) -> ScenarioSetPublic:
     scenario_set = crud.get_scenario_set(
         session=session, scenario_set_id=scenario_set_id
     )
     if not scenario_set:
         raise HTTPException(status_code=404, detail="Scenario set not found")
-    return scenario_set
+    return _to_public(session, scenario_set)
 
 
 @router.patch("/{scenario_set_id}", response_model=ScenarioSetPublic)
@@ -54,17 +82,18 @@ def update_scenario_set(
     session: SessionDep,
     scenario_set_id: uuid.UUID,
     scenario_set_in: ScenarioSetUpdate,
-) -> ScenarioSet:
+) -> ScenarioSetPublic:
     scenario_set = crud.get_scenario_set(
         session=session, scenario_set_id=scenario_set_id
     )
     if not scenario_set:
         raise HTTPException(status_code=404, detail="Scenario set not found")
-    return crud.update_scenario_set(
+    updated = crud.update_scenario_set(
         session=session,
         db_scenario_set=scenario_set,
         scenario_set_in=scenario_set_in,
     )
+    return _to_public(session, updated)
 
 
 @router.delete("/{scenario_set_id}", response_model=Message)
@@ -83,72 +112,82 @@ def delete_scenario_set(session: SessionDep, scenario_set_id: uuid.UUID) -> Mess
 
 @router.get("/{scenario_set_id}/scenarios", response_model=ScenariosPublic)
 def list_scenarios_in_set(
-    session: SessionDep, scenario_set_id: uuid.UUID
+    session: SessionDep,
+    scenario_set_id: uuid.UUID,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=1000),
 ) -> ScenariosPublic:
     scenario_set = crud.get_scenario_set(
         session=session, scenario_set_id=scenario_set_id
     )
     if not scenario_set:
         raise HTTPException(status_code=404, detail="Scenario set not found")
-    scenarios = crud.list_scenarios_in_set(
-        session=session, scenario_set_id=scenario_set_id
+    scenarios, count = crud.list_scenarios_in_set(
+        session=session, scenario_set_id=scenario_set_id, skip=skip, limit=limit
     )
-    return ScenariosPublic(data=scenarios, count=len(scenarios))  # type: ignore[arg-type]
+    return ScenariosPublic(data=scenarios, count=count)  # type: ignore[arg-type]
 
 
-@router.post("/{scenario_set_id}/scenarios", response_model=Message)
+@router.post("/{scenario_set_id}/scenarios", response_model=ScenarioSetPublic)
 def add_scenarios_to_set(
     session: SessionDep,
     scenario_set_id: uuid.UUID,
     body: ScenarioSetMembersUpdate,
-) -> Message:
+) -> ScenarioSetPublic:
     scenario_set = crud.get_scenario_set(
         session=session, scenario_set_id=scenario_set_id
     )
     if not scenario_set:
         raise HTTPException(status_code=404, detail="Scenario set not found")
-    for scenario_id in body.scenario_ids:
-        crud.add_scenario_to_set(
+    try:
+        updated = crud.add_scenarios_to_set(
             session=session,
-            scenario_set_id=scenario_set_id,
-            scenario_id=scenario_id,
+            db_scenario_set=scenario_set,
+            scenario_ids=body.scenario_ids,
         )
-    return Message(message="Scenarios added to set")
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return _to_public(session, updated)
 
 
-@router.put("/{scenario_set_id}/scenarios", response_model=Message)
+@router.put("/{scenario_set_id}/scenarios", response_model=ScenarioSetPublic)
 def replace_scenarios_in_set(
     session: SessionDep,
     scenario_set_id: uuid.UUID,
     body: ScenarioSetMembersUpdate,
-) -> Message:
+) -> ScenarioSetPublic:
     scenario_set = crud.get_scenario_set(
         session=session, scenario_set_id=scenario_set_id
     )
     if not scenario_set:
         raise HTTPException(status_code=404, detail="Scenario set not found")
-    crud.replace_scenarios_in_set(
-        session=session,
-        scenario_set_id=scenario_set_id,
-        scenario_ids=body.scenario_ids,
-    )
-    return Message(message="Scenarios replaced in set")
+    try:
+        updated = crud.replace_scenarios_in_set(
+            session=session,
+            db_scenario_set=scenario_set,
+            scenario_ids=body.scenario_ids,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+    return _to_public(session, updated)
 
 
-@router.delete("/{scenario_set_id}/scenarios/{scenario_id}", response_model=Message)
+@router.delete(
+    "/{scenario_set_id}/scenarios/{scenario_id}", response_model=ScenarioSetPublic
+)
 def remove_scenario_from_set(
     session: SessionDep,
     scenario_set_id: uuid.UUID,
     scenario_id: uuid.UUID,
-) -> Message:
+) -> ScenarioSetPublic:
     scenario_set = crud.get_scenario_set(
         session=session, scenario_set_id=scenario_set_id
     )
     if not scenario_set:
         raise HTTPException(status_code=404, detail="Scenario set not found")
-    crud.remove_scenario_from_set(
+    updated = crud.remove_scenario_from_set(
         session=session,
-        scenario_set_id=scenario_set_id,
+        db_scenario_set=scenario_set,
         scenario_id=scenario_id,
     )
-    return Message(message="Scenario removed from set")
+    return _to_public(session, updated)

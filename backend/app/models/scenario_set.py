@@ -70,7 +70,11 @@ class ScenarioSet(ScenarioSetBase, table=True):
     runs: list["Run"] = Relationship(back_populates="scenario_set")
 
 
-class ScenarioSetCreate(ScenarioSetBase):
+class ScenarioSetCreate(SQLModel):
+    name: str = Field(max_length=255, description="Human-readable set name")
+    description: str | None = Field(
+        default=None, description="What this scenario set covers"
+    )
     scenario_ids: list[uuid.UUID] | None = Field(
         default=None,
         description="Scenarios to include in the set on creation",
@@ -82,14 +86,11 @@ class ScenarioSetUpdate(SQLModel):
     description: str | None = Field(
         default=None, description="What this scenario set covers"
     )
-    version: int | None = Field(
-        default=None,
-        description="Monotonically increasing version for snapshot tracking",
-    )
 
 
 class ScenarioSetPublic(ScenarioSetBase):
     id: uuid.UUID = Field(description="Unique scenario set identifier")
+    scenario_count: int = 0
     created_at: datetime = Field(description="When the set was created")
     updated_at: datetime = Field(description="When the set was last updated")
 
