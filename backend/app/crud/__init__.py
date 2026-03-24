@@ -31,7 +31,9 @@ from app.crud.scenario_result import (  # noqa: F401
     update_scenario_result,
 )
 from app.crud.scenario_set import (  # noqa: F401
-    add_scenario_to_set,
+    add_scenarios_to_set,
+    count_scenarios_in_set,
+    count_scenarios_in_sets,
     create_scenario_set,
     delete_scenario_set,
     get_scenario_set,
@@ -40,6 +42,7 @@ from app.crud.scenario_set import (  # noqa: F401
     remove_scenario_from_set,
     replace_scenarios_in_set,
     update_scenario_set,
+    validate_scenario_ids,
 )
 from app.crud.user import (  # noqa: F401
     authenticate,
