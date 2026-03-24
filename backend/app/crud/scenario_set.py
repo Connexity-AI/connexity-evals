@@ -1,7 +1,8 @@
 import uuid
 
 from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlalchemy import update as sa_update
+from sqlmodel import Session, col, select
 
 from app.models import (
     Scenario,
@@ -10,6 +11,20 @@ from app.models import (
     ScenarioSetMember,
     ScenarioSetUpdate,
 )
+
+
+def validate_scenario_ids(
+    *, session: Session, scenario_ids: list[uuid.UUID]
+) -> list[uuid.UUID]:
+    """Return any scenario IDs that do not exist in the database."""
+    if not scenario_ids:
+        return []
+    existing_ids = set(
+        session.exec(
+            select(Scenario.id).where(col(Scenario.id).in_(scenario_ids))
+        ).all()
+    )
+    return [sid for sid in scenario_ids if sid not in existing_ids]
 
 
 def create_scenario_set(
@@ -21,6 +36,11 @@ def create_scenario_set(
     session.flush()  # generate id without committing — members use the same transaction
 
     if scenario_set_in.scenario_ids:
+        missing = validate_scenario_ids(
+            session=session, scenario_ids=scenario_set_in.scenario_ids
+        )
+        if missing:
+            raise ValueError(f"Scenarios not found: {missing}")
         for position, scenario_id in enumerate(scenario_set_in.scenario_ids):
             member = ScenarioSetMember(
                 scenario_set_id=db_obj.id,
@@ -67,9 +87,13 @@ def delete_scenario_set(*, session: Session, db_scenario_set: ScenarioSet) -> No
     session.commit()
 
 
-def _bump_version(*, scenario_set: ScenarioSet) -> None:
-    """Increment the version of a scenario set in place."""
-    scenario_set.version += 1
+def _bump_version(*, session: Session, scenario_set: ScenarioSet) -> None:
+    """Atomically increment the version at the SQL level to avoid race conditions."""
+    session.execute(
+        sa_update(ScenarioSet)
+        .where(ScenarioSet.id == scenario_set.id)
+        .values(version=ScenarioSet.version + 1)
+    )
 
 
 def _next_position(*, session: Session, scenario_set_id: uuid.UUID) -> int:
@@ -88,6 +112,9 @@ def add_scenarios_to_set(
     db_scenario_set: ScenarioSet,
     scenario_ids: list[uuid.UUID],
 ) -> ScenarioSet:
+    missing = validate_scenario_ids(session=session, scenario_ids=scenario_ids)
+    if missing:
+        raise ValueError(f"Scenarios not found: {missing}")
     next_pos = _next_position(session=session, scenario_set_id=db_scenario_set.id)
     for i, scenario_id in enumerate(scenario_ids):
         member = ScenarioSetMember(
@@ -96,7 +123,7 @@ def add_scenarios_to_set(
             position=next_pos + i,
         )
         session.add(member)
-    _bump_version(scenario_set=db_scenario_set)
+    _bump_version(session=session, scenario_set=db_scenario_set)
     session.commit()
     session.refresh(db_scenario_set)
     return db_scenario_set
@@ -116,7 +143,7 @@ def remove_scenario_from_set(
     ).first()
     if member:
         session.delete(member)
-        _bump_version(scenario_set=db_scenario_set)
+        _bump_version(session=session, scenario_set=db_scenario_set)
     session.commit()
     session.refresh(db_scenario_set)
     return db_scenario_set
@@ -128,6 +155,9 @@ def replace_scenarios_in_set(
     db_scenario_set: ScenarioSet,
     scenario_ids: list[uuid.UUID],
 ) -> ScenarioSet:
+    missing = validate_scenario_ids(session=session, scenario_ids=scenario_ids)
+    if missing:
+        raise ValueError(f"Scenarios not found: {missing}")
     # Delete existing members
     existing = session.exec(
         select(ScenarioSetMember).where(
@@ -147,7 +177,7 @@ def replace_scenarios_in_set(
         )
         session.add(member)
 
-    _bump_version(scenario_set=db_scenario_set)
+    _bump_version(session=session, scenario_set=db_scenario_set)
     session.commit()
     session.refresh(db_scenario_set)
     return db_scenario_set
@@ -159,13 +189,40 @@ def count_scenarios_in_set(*, session: Session, scenario_set_id: uuid.UUID) -> i
     ).one()
 
 
+def count_scenarios_in_sets(
+    *, session: Session, scenario_set_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, int]:
+    """Batch-fetch scenario counts for multiple sets in a single query."""
+    if not scenario_set_ids:
+        return {}
+    rows = session.exec(
+        select(ScenarioSetMember.scenario_set_id, func.count())
+        .where(col(ScenarioSetMember.scenario_set_id).in_(scenario_set_ids))
+        .group_by(ScenarioSetMember.scenario_set_id)
+    ).all()
+    return {row[0]: row[1] for row in rows}
+
+
 def list_scenarios_in_set(
-    *, session: Session, scenario_set_id: uuid.UUID
-) -> list[Scenario]:
-    statement = (
+    *,
+    session: Session,
+    scenario_set_id: uuid.UUID,
+    skip: int = 0,
+    limit: int = 100,
+) -> tuple[list[Scenario], int]:
+    base = (
         select(Scenario)
         .join(ScenarioSetMember, Scenario.id == ScenarioSetMember.scenario_id)
         .where(ScenarioSetMember.scenario_set_id == scenario_set_id)
-        .order_by(ScenarioSetMember.position)
     )
-    return list(session.exec(statement).all())
+    count = session.exec(
+        select(func.count())
+        .select_from(ScenarioSetMember)
+        .where(ScenarioSetMember.scenario_set_id == scenario_set_id)
+    ).one()
+    items = list(
+        session.exec(
+            base.order_by(ScenarioSetMember.position).offset(skip).limit(limit)
+        ).all()
+    )
+    return items, count
