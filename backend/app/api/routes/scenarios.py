@@ -42,6 +42,16 @@ def list_scenarios(
     tag: str | None = None,
     difficulty: Difficulty | None = None,
     status: ScenarioStatus | None = None,
+    search: str | None = Query(
+        default=None, description="Case-insensitive text search on name and description"
+    ),
+    sort_by: str = Query(
+        default="created_at",
+        description="Sort field: created_at, updated_at, name, difficulty, status",
+    ),
+    sort_order: str = Query(
+        default="desc", pattern="^(asc|desc)$", description="Sort direction"
+    ),
 ) -> ScenariosPublic:
     items, count = crud.list_scenarios(
         session=session,
@@ -50,6 +60,9 @@ def list_scenarios(
         tag=tag,
         difficulty=difficulty,
         status=status,
+        search=search,
+        sort_by=sort_by,
+        sort_order=sort_order,
     )
     return ScenariosPublic(data=items, count=count)  # type: ignore[arg-type]
 
@@ -108,7 +121,9 @@ async def generate_scenarios_endpoint(
     if request.persist:
         for sc in scenarios:
             db_obj = crud.create_scenario(session=session, scenario_in=sc)
-            persisted.append(ScenarioPublic.model_validate(db_obj, from_attributes=True))
+            persisted.append(
+                ScenarioPublic.model_validate(db_obj, from_attributes=True)
+            )
     else:
         # Return unsaved scenarios with placeholder values for required fields
         for sc in scenarios:

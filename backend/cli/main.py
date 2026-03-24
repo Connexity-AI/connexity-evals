@@ -101,7 +101,9 @@ def generate(
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
-    click.echo(f"Generated {len(generated)} scenarios using {model_used} ({latency_ms}ms)")
+    click.echo(
+        f"Generated {len(generated)} scenarios using {model_used} ({latency_ms}ms)"
+    )
 
     if output_file:
         output = [s.model_dump(mode="json") for s in generated]

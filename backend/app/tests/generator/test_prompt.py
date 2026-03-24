@@ -22,9 +22,7 @@ def test_build_system_prompt_contains_diversity_requirements() -> None:
 
 def test_build_user_prompt_includes_agent_prompt() -> None:
     agent_prompt = "You are a helpful customer support agent."
-    prompt = build_user_prompt(
-        agent_prompt=agent_prompt, tools=[], count=10
-    )
+    prompt = build_user_prompt(agent_prompt=agent_prompt, tools=[], count=10)
     assert agent_prompt in prompt
 
 
@@ -36,17 +34,13 @@ def test_build_user_prompt_includes_tools() -> None:
             parameters={"order_id": {"type": "string"}},
         )
     ]
-    prompt = build_user_prompt(
-        agent_prompt="Test agent", tools=tools, count=10
-    )
+    prompt = build_user_prompt(agent_prompt="Test agent", tools=tools, count=10)
     assert "lookup_order" in prompt
     assert "Look up order by ID" in prompt
 
 
 def test_build_user_prompt_no_tools() -> None:
-    prompt = build_user_prompt(
-        agent_prompt="Test agent", tools=[], count=5
-    )
+    prompt = build_user_prompt(agent_prompt="Test agent", tools=[], count=5)
     assert "No tools defined" in prompt
     assert "5" in prompt
 
@@ -64,14 +58,10 @@ def test_build_user_prompt_with_focus_tags() -> None:
 
 
 def test_build_user_prompt_without_focus_tags() -> None:
-    prompt = build_user_prompt(
-        agent_prompt="Test agent", tools=[], count=10
-    )
+    prompt = build_user_prompt(agent_prompt="Test agent", tools=[], count=10)
     assert "FOCUS" not in prompt
 
 
 def test_build_user_prompt_includes_count() -> None:
-    prompt = build_user_prompt(
-        agent_prompt="Test agent", tools=[], count=15
-    )
+    prompt = build_user_prompt(agent_prompt="Test agent", tools=[], count=15)
     assert "15" in prompt

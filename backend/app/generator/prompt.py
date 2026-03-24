@@ -50,9 +50,11 @@ def build_user_prompt(
     count: int,
     focus_tags: list[str] | None = None,
 ) -> str:
-    tools_json = json.dumps(
-        [t.model_dump(exclude_none=True) for t in tools], indent=2
-    ) if tools else "No tools defined."
+    tools_json = (
+        json.dumps([t.model_dump(exclude_none=True) for t in tools], indent=2)
+        if tools
+        else "No tools defined."
+    )
 
     parts = [
         f"Generate {count} diverse evaluation scenarios for the following agent.",

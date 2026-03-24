@@ -16,6 +16,7 @@ If the effective ``model`` is missing after merging defaults, raises
 
 from __future__ import annotations
 
+import logging
 import time
 from typing import Literal, Protocol
 
@@ -32,12 +33,15 @@ from litellm.exceptions import (
 from pydantic import BaseModel, ConfigDict, Field
 from tenacity import (
     AsyncRetrying,
+    RetryCallState,
     retry_if_exception,
     stop_after_attempt,
     wait_exponential,
 )
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 LLMExtraValue = str | int | float | bool | None
 
@@ -117,6 +121,19 @@ def _merge_effective_model_provider(
         raise ValueError(msg)
     resolved = resolve_litellm_model(model, provider)
     return resolved, provider
+
+
+def _log_retry(retry_state: RetryCallState) -> None:
+    exc = retry_state.outcome.exception() if retry_state.outcome else None
+    attempt = retry_state.attempt_number
+    wait = retry_state.next_action.sleep if retry_state.next_action else 0
+    logger.warning(
+        "LLM call failed (attempt %d), retrying in %.1fs: %s: %s",
+        attempt,
+        wait,
+        type(exc).__name__ if exc else "unknown",
+        exc,
+    )
 
 
 def _is_transient_llm_error(exc: BaseException) -> bool:
@@ -211,6 +228,7 @@ async def call_llm(
             max=app_settings.LLM_RETRY_MAX_WAIT_SECONDS,
         ),
         retry=retry_if_exception(_is_transient_llm_error),
+        before_sleep=_log_retry,
         reraise=True,
     ):
         with attempt:
