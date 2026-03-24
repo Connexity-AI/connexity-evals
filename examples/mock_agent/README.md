@@ -28,6 +28,6 @@ uvicorn main:app --reload --port 8001
 
 ## Behavior
 
-The agent has a customer-support system prompt and a `check_service_area` tool definition. When a user provides a postal code, the LLM will typically invoke the tool call. All responses include real token usage from the provider.
+The agent has a customer-support system prompt and a `check_service_area` tool definition. When a user provides a postal code, the LLM will typically invoke the tool; this service **executes the tool locally** (mock implementation), calls the model again with the tool result, and returns the full turn as multiple messages (assistant → tool → assistant, etc.) per the [agent contract](../../docs/agent-contract.md). Token usage is aggregated across internal LLM calls. Response bodies include `model`, `provider`, `usage`, and `metadata`.
 
 Point an `Agent` record's `endpoint_url` at `http://127.0.0.1:8001/agent/respond` when running evals.

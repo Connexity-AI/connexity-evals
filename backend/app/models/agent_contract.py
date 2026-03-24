@@ -6,7 +6,7 @@ from :mod:`app.models.schemas` so transcripts and wire payloads share one model.
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -63,15 +63,23 @@ class TokenUsage(BaseModel):
 
 
 class AgentResponse(BaseModel):
-    role: Literal["assistant"] = Field(
-        default="assistant", description="Always assistant for this contract"
+    messages: list[ChatMessage] = Field(
+        description=(
+            "All messages produced in this agent turn: assistant (with optional "
+            "tool_calls), tool results, and final assistant reply"
+        )
     )
-    content: str | None = Field(
-        default=None, description="Assistant text reply; may be null if only tool_calls"
+    model: str | None = Field(
+        default=None, description="Model identifier used for generation (e.g. gpt-4o)"
     )
-    tool_calls: list[ToolCall] | None = Field(
-        default=None, description="Optional function calls (OpenAI shape)"
+    provider: str | None = Field(
+        default=None,
+        description="Provider identifier (e.g. openai, anthropic)",
     )
     usage: TokenUsage | None = Field(
-        default=None, description="Optional token usage for cost tracking"
+        default=None, description="Optional aggregate token usage for cost tracking"
+    )
+    metadata: dict[str, Any] | None = Field(
+        default=None,
+        description="Optional agent-defined metadata echoed for observability",
     )

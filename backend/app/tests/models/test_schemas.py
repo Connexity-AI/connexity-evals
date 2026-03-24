@@ -1,5 +1,3 @@
-"""Pydantic round-trip serialization tests for all JSONB nested models."""
-
 from datetime import UTC, datetime
 
 from app.models.enums import ErrorCategory, TurnRole

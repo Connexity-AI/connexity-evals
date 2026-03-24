@@ -1,10 +1,10 @@
 # Agent integration examples
 
-Runnable adapters that match the [agent HTTP contract](../../docs/agent-contract.md). Both call real LLMs and return actual token usage.
+Runnable adapters that match the [agent HTTP contract](../../docs/agent-contract.md). Both call real LLMs, run an **internal tool loop** (execute tools on the agent side, then continue the model), and return a `messages` array plus `model`, `provider`, `usage`, and `metadata`.
 
 ## `raw_python_agent.py`
 
-Uses the OpenAI Python SDK directly. Sends the incoming messages to `gpt-4o-mini` and maps the completion response (including token usage) back to `AgentResponse`.
+Uses the OpenAI Python SDK directly. Loops: chat completion → if `tool_calls`, run `check_service_area` locally → append tool messages → call again until the model returns text only. Aggregates token usage across steps.
 
 ```bash
 cd examples/integrations
@@ -15,7 +15,7 @@ uvicorn raw_python_agent:app --reload --port 8002
 
 ## `langchain_agent.py`
 
-Converts platform messages to LangChain `BaseMessage` types, invokes `ChatOpenAI`, then maps the `AIMessage` back to `AgentResponse` — including `tool_calls` and `usage` extracted from `response_metadata`.
+Converts platform messages to LangChain `BaseMessage` types, uses `ChatOpenAI` with `bind_tools`, runs the same assistant/tool loop, and maps every step to the contract `messages` list. Usage is merged from `response_metadata` / `usage_metadata` when present.
 
 ```bash
 cd examples/integrations

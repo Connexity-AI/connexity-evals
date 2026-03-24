@@ -1,5 +1,3 @@
-"""Validate that all example scenario JSON files conform to the ScenarioCreate schema."""
-
 import json
 from pathlib import Path
 

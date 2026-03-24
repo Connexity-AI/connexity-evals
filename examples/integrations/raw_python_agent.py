@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Literal
+import json
+from typing import Any, Literal
 
 from fastapi import FastAPI
 from openai import AsyncOpenAI
@@ -8,6 +9,29 @@ from pydantic import BaseModel
 
 app = FastAPI(title="Raw Python agent (OpenAI SDK)", version="0.1.0")
 client = AsyncOpenAI()
+
+MODEL_NAME = "gpt-4o-mini"
+MAX_TOOL_ROUNDS = 10
+
+OPENAI_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "check_service_area",
+            "description": "Check whether we service a given postal/zip code area.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "zone": {
+                        "type": "string",
+                        "description": "Postal or zip code (whitespace stripped)",
+                    }
+                },
+                "required": ["zone"],
+            },
+        },
+    }
+]
 
 
 class ToolFn(BaseModel):
@@ -41,45 +65,123 @@ class TokenUsage(BaseModel):
 
 
 class AgentResponse(BaseModel):
-    role: Literal["assistant"] = "assistant"
-    content: str | None = None
-    tool_calls: list[ToolCall] | None = None
+    messages: list[ChatMessage]
+    model: str | None = None
+    provider: str | None = None
     usage: TokenUsage | None = None
+    metadata: dict[str, Any] | None = None
+
+
+def check_service_area(zone: str) -> dict[str, Any]:
+    z = zone.replace(" ", "").upper()
+    return {"serviced": True, "region": "Metro Vancouver", "zone": z}
+
+
+TOOL_REGISTRY: dict[str, Any] = {"check_service_area": check_service_area}
+
+
+def _run_tool(name: str, arguments_json: str) -> str:
+    fn = TOOL_REGISTRY.get(name)
+    if fn is None:
+        return json.dumps({"error": f"unknown tool: {name}"})
+    try:
+        args = json.loads(arguments_json) if arguments_json else {}
+    except json.JSONDecodeError:
+        return json.dumps({"error": "invalid JSON arguments"})
+    try:
+        out = fn(**args) if isinstance(args, dict) else fn(args)
+        return json.dumps(out) if not isinstance(out, str) else out
+    except TypeError:
+        return json.dumps({"error": "tool argument mismatch"})
+
+
+def _sum_tokens(a: int | None, b: int | None) -> int | None:
+    if a is None and b is None:
+        return None
+    return (a or 0) + (b or 0)
+
+
+def _merge_usage(acc: TokenUsage | None, usage: Any) -> TokenUsage | None:
+    if not usage:
+        return acc
+    pt = usage.prompt_tokens
+    ct = usage.completion_tokens
+    tt = usage.total_tokens
+    if acc is None:
+        if pt is None and ct is None and tt is None:
+            return None
+        return TokenUsage(prompt_tokens=pt, completion_tokens=ct, total_tokens=tt)
+    return TokenUsage(
+        prompt_tokens=_sum_tokens(acc.prompt_tokens, pt),
+        completion_tokens=_sum_tokens(acc.completion_tokens, ct),
+        total_tokens=_sum_tokens(acc.total_tokens, tt),
+    )
 
 
 @app.post("/agent/respond", response_model=AgentResponse)
 async def respond(request: AgentRequest) -> AgentResponse:
-    openai_messages = [m.model_dump(exclude_none=True) for m in request.messages]
+    openai_messages: list[dict[str, Any]] = [
+        m.model_dump(exclude_none=True) for m in request.messages
+    ]
+    turn_messages: list[ChatMessage] = []
+    usage_acc: TokenUsage | None = None
 
-    completion = await client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=openai_messages,
-        temperature=0,
-    )
-    choice = completion.choices[0].message
-
-    tool_calls_out: list[ToolCall] | None = None
-    if choice.tool_calls:
-        tool_calls_out = [
-            ToolCall(
-                id=tc.id,
-                function=ToolFn(name=tc.function.name, arguments=tc.function.arguments),
-            )
-            for tc in choice.tool_calls
-        ]
-
-    usage_out: TokenUsage | None = None
-    if completion.usage:
-        usage_out = TokenUsage(
-            prompt_tokens=completion.usage.prompt_tokens,
-            completion_tokens=completion.usage.completion_tokens,
-            total_tokens=completion.usage.total_tokens,
+    for _ in range(MAX_TOOL_ROUNDS):
+        completion = await client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=openai_messages,
+            tools=OPENAI_TOOLS,
+            temperature=0,
         )
+        usage_acc = _merge_usage(usage_acc, completion.usage)
+        choice = completion.choices[0].message
+
+        tool_calls_out: list[ToolCall] | None = None
+        if choice.tool_calls:
+            tool_calls_out = [
+                ToolCall(
+                    id=tc.id,
+                    function=ToolFn(name=tc.function.name, arguments=tc.function.arguments),
+                )
+                for tc in choice.tool_calls
+            ]
+
+        assistant_cm = ChatMessage(
+            role="assistant",
+            content=choice.content,
+            tool_calls=tool_calls_out,
+        )
+        turn_messages.append(assistant_cm)
+        openai_messages.append(choice.model_dump(exclude_none=True))
+
+        if not choice.tool_calls:
+            break
+
+        for tc in choice.tool_calls:
+            result_str = _run_tool(tc.function.name, tc.function.arguments)
+            openai_messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tc.id,
+                    "name": tc.function.name,
+                    "content": result_str,
+                }
+            )
+            turn_messages.append(
+                ChatMessage(
+                    role="tool",
+                    tool_call_id=tc.id,
+                    name=tc.function.name,
+                    content=result_str,
+                )
+            )
 
     return AgentResponse(
-        content=choice.content,
-        tool_calls=tool_calls_out,
-        usage=usage_out,
+        messages=turn_messages,
+        model=MODEL_NAME,
+        provider="openai",
+        usage=usage_acc,
+        metadata={},
     )
 
 

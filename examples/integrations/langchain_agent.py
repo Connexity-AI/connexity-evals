@@ -8,6 +8,9 @@ from pydantic import BaseModel
 
 app = FastAPI(title="LangChain agent adapter", version="0.1.0")
 
+MODEL_NAME = "gpt-4o-mini"
+MAX_TOOL_ROUNDS = 10
+
 
 class ToolFn(BaseModel):
     name: str
@@ -40,10 +43,11 @@ class TokenUsage(BaseModel):
 
 
 class AgentResponse(BaseModel):
-    role: Literal["assistant"] = "assistant"
-    content: str | None = None
-    tool_calls: list[ToolCall] | None = None
+    messages: list[ChatMessage]
+    model: str | None = None
+    provider: str | None = None
     usage: TokenUsage | None = None
+    metadata: dict[str, Any] | None = None
 
 
 def platform_to_langchain(messages: list[ChatMessage]) -> list[Any]:
@@ -85,10 +89,8 @@ def platform_to_langchain(messages: list[ChatMessage]) -> list[Any]:
     return out
 
 
-def langchain_to_response(msg: Any) -> AgentResponse:
-    """Map LangChain AIMessage → AgentResponse with tool_calls and usage."""
+def ai_message_to_contract(msg: Any) -> ChatMessage:
     content = msg.content if isinstance(msg.content, str) else None
-
     tool_calls_out: list[ToolCall] | None = None
     raw = getattr(msg, "tool_calls", None) or []
     if raw:
@@ -113,36 +115,103 @@ def langchain_to_response(msg: Any) -> AgentResponse:
                     ),
                 )
             )
+    return ChatMessage(role="assistant", content=content, tool_calls=tool_calls_out)
 
-    usage_out: TokenUsage | None = None
+
+def merge_usage(acc: TokenUsage | None, msg: Any) -> TokenUsage | None:
+    def _sum(a: int | None, b: int | None) -> int | None:
+        if a is None and b is None:
+            return None
+        return (a or 0) + (b or 0)
+
     meta = getattr(msg, "response_metadata", {}) or {}
     token_usage = meta.get("token_usage") or {}
-    if token_usage:
-        usage_out = TokenUsage(
-            prompt_tokens=token_usage.get("prompt_tokens"),
-            completion_tokens=token_usage.get("completion_tokens"),
-            total_tokens=token_usage.get("total_tokens"),
-        )
-    else:
+    pt = token_usage.get("prompt_tokens")
+    ct = token_usage.get("completion_tokens")
+    tt = token_usage.get("total_tokens")
+    if pt is None and ct is None and tt is None:
         usage_meta = getattr(msg, "usage_metadata", None)
         if usage_meta:
-            usage_out = TokenUsage(
-                prompt_tokens=getattr(usage_meta, "input_tokens", None),
-                completion_tokens=getattr(usage_meta, "output_tokens", None),
-                total_tokens=getattr(usage_meta, "total_tokens", None),
-            )
+            pt = getattr(usage_meta, "input_tokens", None)
+            ct = getattr(usage_meta, "output_tokens", None)
+            tt = getattr(usage_meta, "total_tokens", None)
 
-    return AgentResponse(content=content, tool_calls=tool_calls_out, usage=usage_out)
+    if pt is None and ct is None and tt is None:
+        return acc
+    if acc is None:
+        return TokenUsage(prompt_tokens=pt, completion_tokens=ct, total_tokens=tt)
+    return TokenUsage(
+        prompt_tokens=_sum(acc.prompt_tokens, pt),
+        completion_tokens=_sum(acc.completion_tokens, ct),
+        total_tokens=_sum(acc.total_tokens, tt),
+    )
 
 
 @app.post("/agent/respond", response_model=AgentResponse)
 async def respond(body: AgentRequest) -> AgentResponse:
+    from langchain_core.messages import ToolMessage
+    from langchain_core.tools import tool
     from langchain_openai import ChatOpenAI
 
+    @tool
+    def check_service_area(zone: str) -> str:
+        """Check whether we service a given postal/zip code area."""
+        z = zone.replace(" ", "").upper()
+        return json.dumps({"serviced": True, "region": "Metro Vancouver", "zone": z})
+
+    tools = [check_service_area]
+    tools_by_name = {t.name: t for t in tools}
+
     lc_messages = platform_to_langchain(body.messages)
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
-    ai_msg = await llm.ainvoke(lc_messages)
-    return langchain_to_response(ai_msg)
+    llm = ChatOpenAI(model=MODEL_NAME, temperature=0)
+    llm_with_tools = llm.bind_tools(tools)
+
+    contract_messages: list[ChatMessage] = []
+    usage_acc: TokenUsage | None = None
+
+    for _ in range(MAX_TOOL_ROUNDS):
+        ai_msg = await llm_with_tools.ainvoke(lc_messages)
+        lc_messages.append(ai_msg)
+        contract_messages.append(ai_message_to_contract(ai_msg))
+        usage_acc = merge_usage(usage_acc, ai_msg)
+
+        tool_calls = getattr(ai_msg, "tool_calls", None) or []
+        if not tool_calls:
+            break
+
+        for tc in tool_calls:
+            if isinstance(tc, dict):
+                name = tc.get("name", "")
+                tid = tc.get("id", "")
+                args = tc.get("args", {})
+            else:
+                name = getattr(tc, "name", "") or ""
+                tid = getattr(tc, "id", "") or ""
+                args = getattr(tc, "args", {}) or {}
+            tcallable = tools_by_name.get(name)
+            if tcallable is None:
+                out = json.dumps({"error": f"unknown tool: {name}"})
+            else:
+                invoked = tcallable.invoke(args)
+                out = invoked if isinstance(invoked, str) else str(invoked)
+            tm = ToolMessage(content=out, tool_call_id=tid, name=name)
+            lc_messages.append(tm)
+            contract_messages.append(
+                ChatMessage(
+                    role="tool",
+                    content=out,
+                    tool_call_id=tid,
+                    name=name,
+                )
+            )
+
+    return AgentResponse(
+        messages=contract_messages,
+        model=MODEL_NAME,
+        provider="openai",
+        usage=usage_acc,
+        metadata={},
+    )
 
 
 if __name__ == "__main__":
