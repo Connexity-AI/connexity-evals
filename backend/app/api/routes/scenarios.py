@@ -1,11 +1,15 @@
+import json
 import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
+from litellm.exceptions import APIError
 
 from app import crud
 from app.api.deps import SessionDep, get_current_user
+from app.generator.core import generate_scenarios
+from app.generator.schemas import GenerateRequest, GenerateResult
 from app.models import (
     Difficulty,
     Message,
@@ -97,6 +101,46 @@ def import_scenarios(
         raise HTTPException(status_code=400, detail="Maximum 1000 scenarios per import")
     return crud.bulk_import_scenarios(
         session=session, scenarios_in=scenarios_in, on_conflict=on_conflict
+    )
+
+
+@router.post("/generate", response_model=GenerateResult)
+async def generate_scenarios_endpoint(
+    session: SessionDep,
+    request: GenerateRequest,
+) -> GenerateResult:
+    try:
+        scenarios, model_used, latency_ms = await generate_scenarios(request)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=502, detail="LLM returned invalid JSON")
+    except ValueError as e:
+        raise HTTPException(status_code=502, detail=f"Generation failed: {e}")
+    except APIError as e:
+        raise HTTPException(status_code=502, detail=f"LLM call failed: {e}")
+
+    persisted: list[ScenarioPublic] = []
+    if request.persist:
+        for sc in scenarios:
+            db_obj = crud.create_scenario(session=session, scenario_in=sc)
+            persisted.append(
+                ScenarioPublic.model_validate(db_obj, from_attributes=True)
+            )
+    else:
+        # Return unsaved scenarios with placeholder values for required fields
+        for sc in scenarios:
+            pub = ScenarioPublic(
+                **sc.model_dump(),
+                id=uuid.uuid4(),
+                created_at=datetime.now(UTC),
+                updated_at=datetime.now(UTC),
+            )
+            persisted.append(pub)
+
+    return GenerateResult(
+        scenarios=persisted,
+        count=len(persisted),
+        model_used=model_used,
+        generation_time_ms=latency_ms,
     )
 
 
