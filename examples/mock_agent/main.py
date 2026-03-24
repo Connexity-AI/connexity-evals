@@ -8,6 +8,12 @@ import litellm
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+# ---------------------------------------------------------------------------
+# NOTE: Models below mirror app.models.agent_contract (canonical source).
+# They are duplicated here so this example stays self-contained / copy-paste
+# friendly.  See docs/agent-contract.md for the authoritative spec.
+# ---------------------------------------------------------------------------
+
 SYSTEM_PROMPT = (
     "You are a helpful customer support agent for a home services company. "
     "You help customers book duct cleaning, plumbing, and HVAC services. "
@@ -61,6 +67,8 @@ class ChatMessage(BaseModel):
 
 
 class AgentMetadata(BaseModel):
+    """Platform sends scenario_id + turn_index; see app.models.agent_contract.AgentRequestMetadata."""
+
     scenario_id: str | None = None
     turn_index: int | None = None
 
@@ -109,6 +117,8 @@ def _build_litellm_messages(messages: list[ChatMessage]) -> list[dict]:
         msg: dict = {"role": m.role}
         if m.content is not None:
             msg["content"] = m.content
+        elif m.tool_calls:
+            msg["content"] = ""  # some providers require content on tool-calling turns
         if m.tool_calls:
             msg["tool_calls"] = [
                 {
@@ -235,6 +245,14 @@ async def respond(body: AgentRequest) -> AgentResponse:
             turn_messages.append(tool_cm)
             llm_messages.append(tool_cm.model_dump())
 
+    if turn_messages and turn_messages[-1].tool_calls:
+        turn_messages.append(
+            ChatMessage(
+                role="assistant",
+                content="[Agent stopped: maximum tool rounds reached]",
+            )
+        )
+
     return AgentResponse(
         messages=turn_messages,
         model=MODEL,
@@ -242,3 +260,9 @@ async def respond(body: AgentRequest) -> AgentResponse:
         usage=usage_acc,
         metadata={},
     )
+
+
+if __name__ == "__main__":
+    import uvicorn
+
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)

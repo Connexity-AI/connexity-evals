@@ -6,6 +6,12 @@ from typing import Any, Literal
 from fastapi import FastAPI
 from pydantic import BaseModel
 
+# ---------------------------------------------------------------------------
+# NOTE: Models below mirror app.models.agent_contract (canonical source).
+# They are duplicated here so this example stays self-contained / copy-paste
+# friendly.  See docs/agent-contract.md for the authoritative spec.
+# ---------------------------------------------------------------------------
+
 app = FastAPI(title="LangChain agent adapter", version="0.1.0")
 
 MODEL_NAME = "gpt-4o-mini"
@@ -33,6 +39,8 @@ class ChatMessage(BaseModel):
 
 class AgentRequest(BaseModel):
     messages: list[ChatMessage]
+    # Platform sends {"scenario_id": "...", "turn_index": 0}
+    # We accept any dict here for simplicity; see app.models.agent_contract.AgentRequestMetadata
     metadata: dict[str, Any] | None = None
 
 
@@ -204,6 +212,14 @@ async def respond(body: AgentRequest) -> AgentResponse:
                     name=name,
                 )
             )
+
+    if contract_messages and contract_messages[-1].tool_calls:
+        contract_messages.append(
+            ChatMessage(
+                role="assistant",
+                content="[Agent stopped: maximum tool rounds reached]",
+            )
+        )
 
     return AgentResponse(
         messages=contract_messages,

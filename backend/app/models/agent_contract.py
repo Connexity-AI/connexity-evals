@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.enums import TurnRole
 from app.models.schemas import ToolCall
@@ -83,3 +83,11 @@ class AgentResponse(BaseModel):
         default=None,
         description="Optional agent-defined metadata echoed for observability",
     )
+
+    @model_validator(mode="after")
+    def _last_message_must_be_assistant(self) -> AgentResponse:
+        if self.messages and self.messages[-1].role != TurnRole.ASSISTANT:
+            raise ValueError(
+                "AgentResponse.messages must end with an assistant message"
+            )
+        return self

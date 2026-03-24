@@ -7,6 +7,12 @@ from fastapi import FastAPI
 from openai import AsyncOpenAI
 from pydantic import BaseModel
 
+# ---------------------------------------------------------------------------
+# NOTE: Models below mirror app.models.agent_contract (canonical source).
+# They are duplicated here so this example stays self-contained / copy-paste
+# friendly.  See docs/agent-contract.md for the authoritative spec.
+# ---------------------------------------------------------------------------
+
 app = FastAPI(title="Raw Python agent (OpenAI SDK)", version="0.1.0")
 client = AsyncOpenAI()
 
@@ -55,7 +61,9 @@ class ChatMessage(BaseModel):
 
 class AgentRequest(BaseModel):
     messages: list[ChatMessage]
-    metadata: dict[str, object] | None = None
+    # Platform sends {"scenario_id": "...", "turn_index": 0}
+    # We accept any dict here for simplicity; see app.models.agent_contract.AgentRequestMetadata
+    metadata: dict[str, Any] | None = None
 
 
 class TokenUsage(BaseModel):
@@ -175,6 +183,14 @@ async def respond(request: AgentRequest) -> AgentResponse:
                     content=result_str,
                 )
             )
+
+    if turn_messages and turn_messages[-1].tool_calls:
+        turn_messages.append(
+            ChatMessage(
+                role="assistant",
+                content="[Agent stopped: maximum tool rounds reached]",
+            )
+        )
 
     return AgentResponse(
         messages=turn_messages,

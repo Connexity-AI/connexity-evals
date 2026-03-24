@@ -1,5 +1,8 @@
 import json
 
+import pytest
+from pydantic import ValidationError
+
 from app.models.agent_contract import (
     AgentResponse,
     ChatMessage,
@@ -105,3 +108,18 @@ def test_agent_response_json_round_trip():
     restored = AgentResponse.model_validate(raw)
     assert restored.messages[0].content == "Refused."
     assert restored.provider == "openai"
+
+
+def test_agent_response_rejects_non_assistant_last_message():
+    with pytest.raises(ValidationError, match="must end with an assistant message"):
+        AgentResponse(
+            messages=[
+                ChatMessage(role=TurnRole.ASSISTANT, content="Checking…"),
+                ChatMessage(
+                    role=TurnRole.TOOL,
+                    tool_call_id="call_1",
+                    name="search",
+                    content="result",
+                ),
+            ],
+        )

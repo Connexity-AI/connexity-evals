@@ -26,6 +26,10 @@ uvicorn langchain_agent:app --reload --port 8003
 
 Swap `ChatOpenAI` for another LangChain chat model that supports tool calling if you use a different provider.
 
+## Note on model duplication
+
+Both examples intentionally define their own Pydantic request/response models so they stay self-contained and easy to copy. The canonical models live in `app.models.agent_contract` (`AgentRequest`, `AgentResponse`, `ChatMessage`, `TokenUsage`, etc.).
+
 ## Contract reference
 
 See [docs/agent-contract.md](../../docs/agent-contract.md) and the [mock agent](../mock_agent/) OpenAPI at `/docs`.
