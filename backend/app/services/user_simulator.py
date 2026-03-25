@@ -2,7 +2,6 @@
 
 import json
 from enum import StrEnum
-from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -58,8 +57,8 @@ class SimulatorResult(BaseModel):
 
 def _build_system_prompt(
     persona: Persona,
-    user_context: dict[str, Any] | None,
-    expected_outcomes: dict[str, Any] | None,
+    user_context: dict[str, object] | None,
+    expected_outcomes: dict[str, object] | None,
 ) -> str:
     """Build the simulator system prompt from persona and scenario context."""
     ctx_block = (
@@ -108,8 +107,8 @@ class UserSimulator:
         self,
         persona: Persona,
         initial_message: str,
-        user_context: dict[str, Any] | None,
-        expected_outcomes: dict[str, Any] | None,
+        user_context: dict[str, object] | None,
+        expected_outcomes: dict[str, object] | None,
         config: SimulatorConfig,
     ) -> None:
         self._persona = persona

@@ -3,7 +3,6 @@
 import logging
 import time
 from datetime import UTC, datetime
-from typing import Any
 
 import httpx
 from pydantic import ValidationError
@@ -135,15 +134,18 @@ async def call_agent(
     timeout_ms: int,
     *,
     metadata: AgentRequestMetadata | None = None,
+    client: httpx.AsyncClient | None = None,
 ) -> tuple[AgentResponse, int]:
     """POST :class:`AgentRequest` JSON to the agent; return response and latency ms."""
-    payload: dict[str, Any] = AgentRequest(
+    payload = AgentRequest(
         messages=messages,
         metadata=metadata,
     ).model_dump(mode="json")
     timeout = httpx.Timeout(timeout_ms / 1000.0)
+    owns_client = client is None
+    client = client or httpx.AsyncClient()
     started = time.perf_counter()
-    async with httpx.AsyncClient() as client:
+    try:
         try:
             resp = await client.post(endpoint_url, json=payload, timeout=timeout)
         except httpx.TimeoutException as e:
@@ -152,6 +154,9 @@ async def call_agent(
         except httpx.RequestError as e:
             msg = f"Agent request failed: {e}"
             raise AgentCallError(msg) from e
+    finally:
+        if owns_client:
+            await client.aclose()
     elapsed_ms = int((time.perf_counter() - started) * 1000)
     if resp.is_error:
         msg = f"Agent HTTP {resp.status_code}: {resp.text[:500]}"
@@ -236,76 +241,78 @@ async def run_scenario(
     started = time.perf_counter()
     timeout_ms = config.timeout_per_scenario_ms
 
-    while True:
-        elapsed_ms = int((time.perf_counter() - started) * 1000)
-        if elapsed_ms >= timeout_ms:
-            logger.warning(
-                "Scenario %s stopped: timeout %sms elapsed",
-                scenario.id,
-                timeout_ms,
+    async with httpx.AsyncClient() as client:
+        while True:
+            elapsed_ms = int((time.perf_counter() - started) * 1000)
+            if elapsed_ms >= timeout_ms:
+                logger.warning(
+                    "Scenario %s stopped: timeout %sms elapsed",
+                    scenario.id,
+                    timeout_ms,
+                )
+                transcript.append(
+                    build_conversation_turn(
+                        index=len(transcript),
+                        role=TurnRole.SYSTEM,
+                        content=f"[platform: scenario timeout after {timeout_ms}ms]",
+                        latency_ms=None,
+                    )
+                )
+                break
+
+            if max_agent_rounds is not None and agent_rounds >= max_agent_rounds:
+                break
+
+            agent_messages = transcript_to_agent_messages(transcript)
+            meta = AgentRequestMetadata(
+                scenario_id=str(scenario.id),
+                turn_index=len(transcript),
             )
+            remaining_ms = max(1, timeout_ms - elapsed_ms)
+            try:
+                response, round_latency = await call_agent(
+                    agent_endpoint_url,
+                    agent_messages,
+                    timeout_ms=remaining_ms,
+                    metadata=meta,
+                    client=client,
+                )
+            except AgentCallError as e:
+                logger.warning("Agent call failed for scenario %s: %s", scenario.id, e)
+                transcript.append(
+                    build_conversation_turn(
+                        index=len(transcript),
+                        role=TurnRole.SYSTEM,
+                        content=f"[agent_error] {e!s}",
+                        latency_ms=None,
+                    )
+                )
+                break
+
+            agent_rounds += 1
+            _append_agent_response(transcript, response, round_latency)
+
+            if sim_cfg.mode == SimulatorMode.SCRIPTED and simulator.is_exhausted:
+                break
+
+            try:
+                sim_messages = transcript_to_simulator_messages(transcript)
+                sim_result = await simulator.generate_message(sim_messages)
+            except RuntimeError as e:
+                logger.warning("Simulator exhausted or failed: %s", e)
+                break
+
             transcript.append(
                 build_conversation_turn(
                     index=len(transcript),
-                    role=TurnRole.ASSISTANT,
-                    content=f"[platform: scenario timeout after {timeout_ms}ms]",
-                    latency_ms=None,
+                    role=TurnRole.USER,
+                    content=sim_result.content,
+                    latency_ms=sim_result.latency_ms,
+                    token_count=None,
                 )
             )
-            break
 
-        if max_agent_rounds is not None and agent_rounds >= max_agent_rounds:
-            break
-
-        agent_messages = transcript_to_agent_messages(transcript)
-        meta = AgentRequestMetadata(
-            scenario_id=str(scenario.id),
-            turn_index=len(transcript),
-        )
-        remaining_ms = max(1, timeout_ms - elapsed_ms)
-        try:
-            response, round_latency = await call_agent(
-                agent_endpoint_url,
-                agent_messages,
-                timeout_ms=remaining_ms,
-                metadata=meta,
-            )
-        except AgentCallError as e:
-            logger.warning("Agent call failed for scenario %s: %s", scenario.id, e)
-            transcript.append(
-                build_conversation_turn(
-                    index=len(transcript),
-                    role=TurnRole.ASSISTANT,
-                    content=f"[agent_error] {e!s}",
-                    latency_ms=None,
-                )
-            )
-            break
-
-        agent_rounds += 1
-        _append_agent_response(transcript, response, round_latency)
-
-        if sim_cfg.mode == SimulatorMode.SCRIPTED and simulator.is_exhausted:
-            break
-
-        try:
-            sim_messages = transcript_to_simulator_messages(transcript)
-            sim_result = await simulator.generate_message(sim_messages)
-        except RuntimeError as e:
-            logger.warning("Simulator exhausted or failed: %s", e)
-            break
-
-        transcript.append(
-            build_conversation_turn(
-                index=len(transcript),
-                role=TurnRole.USER,
-                content=sim_result.content,
-                latency_ms=sim_result.latency_ms,
-                token_count=None,
-            )
-        )
-
-        if sim_cfg.mode == SimulatorMode.SCRIPTED and simulator.is_exhausted:
-            break
+            if sim_cfg.mode == SimulatorMode.SCRIPTED and simulator.is_exhausted:
+                break
 
     return transcript

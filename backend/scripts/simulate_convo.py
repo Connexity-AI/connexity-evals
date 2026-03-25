@@ -23,8 +23,6 @@ LLM user simulator (needs ``LITELLM_*`` / provider keys as for the rest of the a
     uv run python scripts/simulate_convo.py --agent-url ... --scenario ... --llm-user
 """
 
-from __future__ import annotations
-
 import argparse
 import asyncio
 import json
