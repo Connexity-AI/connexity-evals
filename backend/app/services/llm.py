@@ -14,8 +14,6 @@ If the effective ``model`` is missing after merging defaults, raises
 ``ValueError``.
 """
 
-from __future__ import annotations
-
 import logging
 import time
 from typing import Literal, Protocol
@@ -30,7 +28,7 @@ from litellm.exceptions import (
     ServiceUnavailableError,
     Timeout,
 )
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 from tenacity import (
     AsyncRetrying,
     RetryCallState,
@@ -75,8 +73,6 @@ class LLMCallConfig(BaseModel):
 
 
 class LLMResponse(BaseModel):
-    model_config = ConfigDict(protected_namespaces=())
-
     content: str
     model: str
     usage: dict[str, int] = Field(default_factory=dict)

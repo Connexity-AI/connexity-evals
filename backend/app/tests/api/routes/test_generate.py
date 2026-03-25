@@ -3,12 +3,12 @@ from unittest.mock import AsyncMock, patch
 from fastapi.testclient import TestClient
 
 from app.core.config import settings
-from app.tests.generator.conftest import MOCK_LLM_RESPONSE
+from app.tests.services.scenario_generator.conftest import MOCK_LLM_RESPONSE
 
 
 async def _mock_generate(request):  # type: ignore[no-untyped-def]
     """Return pre-built ScenarioCreate objects from mock data."""
-    from app.generator.core import _parse_scenarios
+    from app.services.scenario_generator.core import _parse_scenarios
 
     scenarios = _parse_scenarios(MOCK_LLM_RESPONSE, expected_count=request.count)
     return scenarios, "gpt-4o", 1500

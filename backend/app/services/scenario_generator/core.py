@@ -3,10 +3,13 @@ import logging
 import re
 
 from app.core.config import settings
-from app.generator.prompt import build_system_prompt, build_user_prompt
-from app.generator.schemas import GenerateRequest
 from app.models.scenario import ScenarioCreate
 from app.services.llm import LLMCallConfig, LLMMessage, LLMResponse, call_llm
+from app.services.scenario_generator.prompt import (
+    build_system_prompt,
+    build_user_prompt,
+)
+from app.services.scenario_generator.schemas import GenerateRequest
 
 logger = logging.getLogger(__name__)
 

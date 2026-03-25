@@ -8,8 +8,6 @@ from litellm.exceptions import APIError
 
 from app import crud
 from app.api.deps import SessionDep, get_current_user
-from app.generator.core import generate_scenarios
-from app.generator.schemas import GenerateRequest, GenerateResult
 from app.models import (
     Difficulty,
     Message,
@@ -24,6 +22,8 @@ from app.models import (
     ScenarioStatus,
     ScenarioUpdate,
 )
+from app.services.scenario_generator.core import generate_scenarios
+from app.services.scenario_generator.schemas import GenerateRequest, GenerateResult
 
 router = APIRouter(
     prefix="/scenarios", tags=["scenarios"], dependencies=[Depends(get_current_user)]

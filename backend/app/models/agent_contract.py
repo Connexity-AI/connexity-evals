@@ -4,9 +4,7 @@ OpenAI-compatible chat message and tool-call shapes. Reuses :class:`ToolCall`
 from :mod:`app.models.schemas` so transcripts and wire payloads share one model.
 """
 
-from __future__ import annotations
-
-from typing import Any
+from typing import Self
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -79,13 +77,13 @@ class AgentResponse(BaseModel):
     usage: TokenUsage | None = Field(
         default=None, description="Optional aggregate token usage for cost tracking"
     )
-    metadata: dict[str, Any] | None = Field(
+    metadata: dict[str, object] | None = Field(
         default=None,
         description="Optional agent-defined metadata echoed for observability",
     )
 
     @model_validator(mode="after")
-    def _last_message_must_be_assistant(self) -> AgentResponse:
+    def _last_message_must_be_assistant(self) -> Self:
         if self.messages and self.messages[-1].role != TurnRole.ASSISTANT:
             raise ValueError(
                 "AgentResponse.messages must end with an assistant message"

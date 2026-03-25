@@ -1,7 +1,7 @@
 import json
 
-from app.generator.schemas import ToolDefinition
 from app.models.scenario import ScenarioCreate
+from app.services.scenario_generator.schemas import ToolDefinition
 
 _SCENARIO_SCHEMA = json.dumps(ScenarioCreate.model_json_schema(), indent=2)
 
