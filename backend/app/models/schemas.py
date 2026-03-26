@@ -31,6 +31,33 @@ class ExpectedToolCall(BaseModel):
 # ── Run nested types ───────────────────────────────────────────────
 
 
+class MetricSelection(BaseModel):
+    metric: str = Field(description="Metric id from the platform registry (snake_case)")
+    weight: float | None = Field(
+        default=None,
+        description="Override weight before renormalization; None = metric default",
+    )
+
+
+class EvaluationConfig(BaseModel):
+    metrics: list[MetricSelection] | None = Field(
+        default=None,
+        description="Selected metrics; null = platform default scored metric set",
+    )
+    pass_threshold: float = Field(
+        default=75.0,
+        ge=0.0,
+        le=100.0,
+        description="Minimum overall score (0-100) to pass",
+    )
+    critical_failure_threshold: int = Field(
+        default=1,
+        ge=0,
+        le=5,
+        description="Execution-tier scored metric at or below this value triggers critical failure",
+    )
+
+
 class RunConfig(BaseModel):
     judge_model: str | None = Field(
         default=None, description="Model ID for the judge LLM"
@@ -48,6 +75,10 @@ class RunConfig(BaseModel):
     timeout_per_scenario_ms: int = Field(
         default=120_000,
         description="Timeout per scenario in milliseconds before forced stop",
+    )
+    evaluation: EvaluationConfig | None = Field(
+        default=None,
+        description="Judge metric selection, weights, and pass threshold",
     )
 
 
@@ -103,29 +134,47 @@ class ConversationTurn(BaseModel):
 # ── Judge nested types ─────────────────────────────────────────────
 
 
-class CriterionScore(BaseModel):
-    criterion: str = Field(description="Name of the evaluated criterion")
-    score: float = Field(description="Score from 1.0 to 5.0")
-    label: str = Field(
-        description="Human-readable label (fail, poor, acceptable, good, excellent)"
+class MetricScore(BaseModel):
+    metric: str = Field(description="Metric id from the registry (snake_case)")
+    score: int = Field(
+        description="0-5 for scored metrics; 0 or 5 for binary (fail/pass)"
     )
-    weight: float = Field(default=1.0, description="Relative weight of this criterion")
+    label: str = Field(
+        description=(
+            "Scored: critical_fail, fail, poor, acceptable, good, excellent. "
+            "Binary: pass or fail"
+        )
+    )
+    weight: float = Field(default=1.0, description="Relative weight of this metric")
     justification: str = Field(description="Judge's reasoning for the assigned score")
+    is_binary: bool = Field(
+        default=False,
+        description="True if this metric uses pass/fail instead of 0-5",
+    )
+    tier: str | None = Field(
+        default=None,
+        description="Metric tier: execution, knowledge, process, delivery",
+    )
 
 
 class JudgeVerdict(BaseModel):
     passed: bool = Field(description="Whether the scenario passed overall")
     overall_score: float = Field(
-        description="Weighted overall score across all criteria"
+        description="Weighted overall score across all criteria (0-100)"
     )
-    criterion_scores: list[CriterionScore] = Field(
-        description="Per-criterion score breakdown"
+    critical_failure: bool = Field(
+        default=False,
+        description="True if an execution-tier scored metric is at or below the critical threshold",
     )
+    metric_scores: list[MetricScore] = Field(description="Per-metric score breakdown")
     error_category: ErrorCategory = Field(
         default=ErrorCategory.NONE,
-        description="Classified error category if failed",
+        description="Derived from the lowest-scoring metric when failed",
     )
-    summary: str = Field(description="Judge's overall reasoning summary")
+    summary: str | None = Field(
+        default=None,
+        description="Optional summary; not produced by the judge LLM in the current pipeline",
+    )
     raw_judge_output: str | None = Field(
         default=None, description="Raw unprocessed judge LLM output"
     )

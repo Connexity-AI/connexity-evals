@@ -89,10 +89,12 @@ from app.models.scenario_set import (  # noqa: F401
 from app.models.schemas import (  # noqa: F401
     AggregateMetrics,
     ConversationTurn,
-    CriterionScore,
     ErrorCategoryCount,
+    EvaluationConfig,
     ExpectedToolCall,
     JudgeVerdict,
+    MetricScore,
+    MetricSelection,
     Persona,
     RunConfig,
     ToolCall,

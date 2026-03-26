@@ -3,6 +3,7 @@
 import logging
 import time
 from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 from pydantic import ValidationError
@@ -15,7 +16,14 @@ from app.models.agent_contract import (
 )
 from app.models.enums import TurnRole
 from app.models.scenario import Scenario
-from app.models.schemas import ConversationTurn, Persona, RunConfig, ToolCall
+from app.models.schemas import (
+    ConversationTurn,
+    JudgeVerdict,
+    Persona,
+    RunConfig,
+    ToolCall,
+)
+from app.services.judge import JudgeInput, evaluate_transcript
 from app.services.llm import LLMMessage
 from app.services.user_simulator import SimulatorConfig, SimulatorMode, UserSimulator
 
@@ -316,3 +324,39 @@ async def run_scenario(
                 break
 
     return transcript
+
+
+async def run_scenario_with_evaluation(
+    scenario: Scenario,
+    agent_endpoint_url: str,
+    config: RunConfig,
+    *,
+    agent_system_prompt: str | None = None,
+    agent_tools: list[dict[str, Any]] | None = None,
+    simulator_config: SimulatorConfig | None = None,
+) -> tuple[list[ConversationTurn], JudgeVerdict | None]:
+    """Run simulation then judge the transcript; returns ``(transcript, verdict)``.
+
+    If the transcript is empty, ``verdict`` is ``None``.
+    """
+    transcript = await run_scenario(
+        scenario,
+        agent_endpoint_url,
+        config,
+        simulator_config=simulator_config,
+    )
+    if not transcript:
+        return transcript, None
+
+    verdict = await evaluate_transcript(
+        JudgeInput(
+            transcript=transcript,
+            scenario=scenario,
+            agent_system_prompt=agent_system_prompt,
+            agent_tools=agent_tools,
+            evaluation_config=config.evaluation,
+            judge_model=config.judge_model,
+            judge_provider=config.judge_provider,
+        )
+    )
+    return transcript, verdict
