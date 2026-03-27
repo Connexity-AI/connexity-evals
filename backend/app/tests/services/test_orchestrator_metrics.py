@@ -1,0 +1,145 @@
+"""Tests for compute_aggregate_metrics — pure function, no DB or async required."""
+
+import uuid
+
+from app.models.enums import ErrorCategory
+from app.models.scenario_result import ScenarioResult
+from app.services.orchestrator import compute_aggregate_metrics
+
+
+def _make_result(
+    *,
+    passed: bool | None = None,
+    error_category: ErrorCategory = ErrorCategory.NONE,
+    agent_latency_p50_ms: int | None = None,
+    verdict: dict | None = None,
+) -> ScenarioResult:
+    return ScenarioResult(
+        id=uuid.uuid4(),
+        run_id=uuid.uuid4(),
+        scenario_id=uuid.uuid4(),
+        passed=passed,
+        error_category=error_category,
+        agent_latency_p50_ms=agent_latency_p50_ms,
+        verdict=verdict,
+    )
+
+
+def test_empty_results() -> None:
+    metrics = compute_aggregate_metrics([])
+    assert metrics.total_scenarios == 0
+    assert metrics.passed_count == 0
+    assert metrics.failed_count == 0
+    assert metrics.error_count == 0
+    assert metrics.pass_rate == 0.0
+
+
+def test_all_passed() -> None:
+    results = [
+        _make_result(passed=True, agent_latency_p50_ms=100),
+        _make_result(passed=True, agent_latency_p50_ms=200),
+        _make_result(passed=True, agent_latency_p50_ms=300),
+    ]
+    metrics = compute_aggregate_metrics(results)
+    assert metrics.total_scenarios == 3
+    assert metrics.passed_count == 3
+    assert metrics.failed_count == 0
+    assert metrics.error_count == 0
+    assert metrics.pass_rate == 1.0
+
+
+def test_all_failed() -> None:
+    results = [
+        _make_result(passed=False),
+        _make_result(passed=False),
+    ]
+    metrics = compute_aggregate_metrics(results)
+    assert metrics.total_scenarios == 2
+    assert metrics.passed_count == 0
+    assert metrics.failed_count == 2
+    assert metrics.pass_rate == 0.0
+
+
+def test_mixed_results() -> None:
+    results = [
+        _make_result(passed=True, agent_latency_p50_ms=100),
+        _make_result(passed=False),
+        _make_result(
+            passed=False,
+            error_category=ErrorCategory.HALLUCINATION,
+        ),
+    ]
+    metrics = compute_aggregate_metrics(results)
+    assert metrics.total_scenarios == 3
+    assert metrics.passed_count == 1
+    assert metrics.failed_count == 1
+    assert metrics.error_count == 1
+    assert abs(metrics.pass_rate - 1.0 / 3.0) < 1e-9
+
+
+def test_error_category_distribution() -> None:
+    results = [
+        _make_result(passed=False, error_category=ErrorCategory.HALLUCINATION),
+        _make_result(passed=False, error_category=ErrorCategory.HALLUCINATION),
+        _make_result(passed=False, error_category=ErrorCategory.TOOL_MISUSE),
+        _make_result(passed=False, error_category=ErrorCategory.AGENT_ERROR),
+    ]
+    metrics = compute_aggregate_metrics(results)
+    assert metrics.error_count == 4
+    dist = {d.category: d.count for d in metrics.error_category_distribution}
+    assert dist[ErrorCategory.HALLUCINATION] == 2
+    assert dist[ErrorCategory.TOOL_MISUSE] == 1
+    assert dist[ErrorCategory.AGENT_ERROR] == 1
+
+
+def test_latency_stats_with_data() -> None:
+    results = [
+        _make_result(passed=True, agent_latency_p50_ms=100),
+        _make_result(passed=True, agent_latency_p50_ms=200),
+        _make_result(passed=True, agent_latency_p50_ms=300),
+    ]
+    metrics = compute_aggregate_metrics(results)
+    assert metrics.latency_p50_ms == 200.0
+    assert metrics.latency_max_ms == 300
+    assert metrics.latency_avg_ms is not None
+    assert abs(metrics.latency_avg_ms - 200.0) < 1e-9
+
+
+def test_latency_stats_without_data() -> None:
+    results = [_make_result(passed=True)]
+    metrics = compute_aggregate_metrics(results)
+    assert metrics.latency_p50_ms is None
+    assert metrics.latency_max_ms is None
+    assert metrics.latency_avg_ms is None
+    assert metrics.latency_p95_ms is None
+
+
+def test_avg_overall_score() -> None:
+    results = [
+        _make_result(passed=True, verdict={"overall_score": 0.8}),
+        _make_result(passed=True, verdict={"overall_score": 0.6}),
+        _make_result(passed=True, verdict={"overall_score": 1.0}),
+    ]
+    metrics = compute_aggregate_metrics(results)
+    assert metrics.avg_overall_score is not None
+    assert abs(metrics.avg_overall_score - 0.8) < 1e-9
+
+
+def test_avg_overall_score_skips_none() -> None:
+    results = [
+        _make_result(passed=True, verdict={"overall_score": 0.5}),
+        _make_result(passed=True, verdict=None),
+        _make_result(passed=True, verdict={"overall_score": None}),
+    ]
+    metrics = compute_aggregate_metrics(results)
+    assert metrics.avg_overall_score is not None
+    assert abs(metrics.avg_overall_score - 0.5) < 1e-9
+
+
+def test_avg_overall_score_all_none() -> None:
+    results = [
+        _make_result(passed=True, verdict=None),
+        _make_result(passed=True, verdict={"other_field": 1}),
+    ]
+    metrics = compute_aggregate_metrics(results)
+    assert metrics.avg_overall_score is None
