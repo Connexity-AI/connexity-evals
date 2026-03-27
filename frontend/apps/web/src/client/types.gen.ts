@@ -575,30 +575,6 @@ export type ErrorResponse = {
 };
 
 /**
- * EvaluationConfig
- */
-export type EvaluationConfig = {
-  /**
-   * Metrics
-   *
-   * Selected metrics; null = platform default scored metric set
-   */
-  metrics?: Array<MetricSelection> | null;
-  /**
-   * Pass Threshold
-   *
-   * Minimum overall score (0-100) to pass
-   */
-  pass_threshold?: number;
-  /**
-   * Critical Failure Threshold
-   *
-   * Execution-tier scored metric at or below this value triggers critical failure
-   */
-  critical_failure_threshold?: number;
-};
-
-/**
  * ExpectedToolCall
  */
 export type ExpectedToolCall = {
@@ -676,6 +652,44 @@ export type GenerateResult = {
    * Generation Time Ms
    */
   generation_time_ms: number;
+};
+
+/**
+ * JudgeConfig
+ *
+ * Judge behavior and LLM overrides.
+ */
+export type JudgeConfig = {
+  /**
+   * Metrics
+   *
+   * Selected metrics; null = platform default scored metric set
+   */
+  metrics?: Array<MetricSelection> | null;
+  /**
+   * Pass Threshold
+   *
+   * Minimum overall score (0-100) to pass
+   */
+  pass_threshold?: number;
+  /**
+   * Critical Failure Threshold
+   *
+   * Execution-tier scored metric at or below this value triggers critical failure
+   */
+  critical_failure_threshold?: number;
+  /**
+   * Model
+   *
+   * Judge LLM model override
+   */
+  model?: string | null;
+  /**
+   * Provider
+   *
+   * Judge LLM provider override
+   */
+  provider?: string | null;
 };
 
 /**
@@ -948,30 +962,6 @@ export type Persona = {
  */
 export type RunConfigInput = {
   /**
-   * Judge Model
-   *
-   * Model ID for the judge LLM
-   */
-  judge_model?: string | null;
-  /**
-   * Judge Provider
-   *
-   * Provider for the judge LLM (e.g. anthropic, openai)
-   */
-  judge_provider?: string | null;
-  /**
-   * Simulator Model
-   *
-   * Model ID for the user simulator LLM
-   */
-  simulator_model?: string | null;
-  /**
-   * Simulator Provider
-   *
-   * Provider for the simulator LLM
-   */
-  simulator_provider?: string | null;
-  /**
    * Concurrency
    *
    * Max parallel scenario executions
@@ -984,9 +974,13 @@ export type RunConfigInput = {
    */
   timeout_per_scenario_ms?: number;
   /**
-   * Judge metric selection, weights, and pass threshold
+   * Judge metric selection, weights, pass threshold, and model overrides
    */
-  evaluation?: EvaluationConfig | null;
+  judge?: JudgeConfig | null;
+  /**
+   * User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.
+   */
+  simulator?: SimulatorConfig | null;
 };
 
 /**
@@ -994,30 +988,6 @@ export type RunConfigInput = {
  */
 export type RunConfigOutput = {
   /**
-   * Judge Model
-   *
-   * Model ID for the judge LLM
-   */
-  judge_model?: string | null;
-  /**
-   * Judge Provider
-   *
-   * Provider for the judge LLM (e.g. anthropic, openai)
-   */
-  judge_provider?: string | null;
-  /**
-   * Simulator Model
-   *
-   * Model ID for the user simulator LLM
-   */
-  simulator_model?: string | null;
-  /**
-   * Simulator Provider
-   *
-   * Provider for the simulator LLM
-   */
-  simulator_provider?: string | null;
-  /**
    * Concurrency
    *
    * Max parallel scenario executions
@@ -1030,9 +1000,13 @@ export type RunConfigOutput = {
    */
   timeout_per_scenario_ms?: number;
   /**
-   * Judge metric selection, weights, and pass threshold
+   * Judge metric selection, weights, pass threshold, and model overrides
    */
-  evaluation?: EvaluationConfig | null;
+  judge?: JudgeConfig | null;
+  /**
+   * User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.
+   */
+  simulator?: SimulatorConfig | null;
 };
 
 /**
@@ -2048,6 +2022,52 @@ export const ScoreType = { SCORED: 'scored', BINARY: 'binary' } as const;
  * ScoreType
  */
 export type ScoreType = (typeof ScoreType)[keyof typeof ScoreType];
+
+/**
+ * SimulatorConfig
+ *
+ * User simulator behavior (LLM persona vs scripted replay) and LLM overrides.
+ */
+export type SimulatorConfig = {
+  /**
+   * llm: generate via LLM; scripted: replay fixed messages
+   */
+  mode?: SimulatorMode;
+  /**
+   * Scripted Messages
+   *
+   * User lines after initial_message, in order (scripted mode only)
+   */
+  scripted_messages?: Array<string>;
+  /**
+   * Model
+   *
+   * Simulator LLM model override
+   */
+  model?: string | null;
+  /**
+   * Provider
+   *
+   * Simulator LLM provider override
+   */
+  provider?: string | null;
+  /**
+   * Temperature
+   *
+   * Sampling temperature for simulator LLM
+   */
+  temperature?: number | null;
+};
+
+/**
+ * SimulatorMode
+ */
+export const SimulatorMode = { LLM: 'llm', SCRIPTED: 'scripted' } as const;
+
+/**
+ * SimulatorMode
+ */
+export type SimulatorMode = (typeof SimulatorMode)[keyof typeof SimulatorMode];
 
 /**
  * Token

@@ -1,7 +1,7 @@
 """Judge metric definitions, rubrics, and selection/weight resolution.
 
 The default set is eight scored metrics. Opt-in-only metrics are included only
-when listed in :class:`~app.models.schemas.EvaluationConfig`.
+when listed in :class:`~app.models.schemas.JudgeConfig`.
 """
 
 from enum import StrEnum
@@ -9,7 +9,7 @@ from enum import StrEnum
 from pydantic import BaseModel, Field
 
 from app.models.enums import ErrorCategory
-from app.models.schemas import EvaluationConfig, MetricSelection
+from app.models.schemas import JudgeConfig, MetricSelection
 
 
 class ScoreType(StrEnum):
@@ -309,15 +309,15 @@ def _normalize_weights(
 
 
 def resolve_metrics(
-    evaluation: EvaluationConfig | None,
+    judge_config: JudgeConfig | None,
 ) -> list[tuple[MetricDefinition, float]]:
     """Resolve selected metrics and weights; weights renormalized to sum to 1.0."""
-    if evaluation is None or evaluation.metrics is None:
+    if judge_config is None or judge_config.metrics is None:
         defaults = get_default_metrics()
         pairs = [(m, m.default_weight) for m in defaults]
         return _normalize_weights(pairs)
 
-    selections: list[MetricSelection] = evaluation.metrics
+    selections: list[MetricSelection] = judge_config.metrics
     if not selections:
         defaults = get_default_metrics()
         pairs = [(m, m.default_weight) for m in defaults]

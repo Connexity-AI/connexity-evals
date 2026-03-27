@@ -810,44 +810,6 @@ export const ErrorResponseSchema = {
   title: 'ErrorResponse',
 } as const;
 
-export const EvaluationConfigSchema = {
-  properties: {
-    metrics: {
-      anyOf: [
-        {
-          items: {
-            $ref: '#/components/schemas/MetricSelection',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Metrics',
-      description: 'Selected metrics; null = platform default scored metric set',
-    },
-    pass_threshold: {
-      type: 'number',
-      maximum: 100,
-      minimum: 0,
-      title: 'Pass Threshold',
-      description: 'Minimum overall score (0-100) to pass',
-      default: 75,
-    },
-    critical_failure_threshold: {
-      type: 'integer',
-      maximum: 5,
-      minimum: 0,
-      title: 'Critical Failure Threshold',
-      description: 'Execution-tier scored metric at or below this value triggers critical failure',
-      default: 1,
-    },
-  },
-  type: 'object',
-  title: 'EvaluationConfig',
-} as const;
-
 export const ExpectedToolCallSchema = {
   properties: {
     tool: {
@@ -964,6 +926,69 @@ export const GenerateResultSchema = {
   required: ['scenarios', 'count', 'model_used', 'generation_time_ms'],
   title: 'GenerateResult',
   description: 'Output from scenario generation.',
+} as const;
+
+export const JudgeConfigSchema = {
+  properties: {
+    metrics: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/MetricSelection',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Metrics',
+      description: 'Selected metrics; null = platform default scored metric set',
+    },
+    pass_threshold: {
+      type: 'number',
+      maximum: 100,
+      minimum: 0,
+      title: 'Pass Threshold',
+      description: 'Minimum overall score (0-100) to pass',
+      default: 75,
+    },
+    critical_failure_threshold: {
+      type: 'integer',
+      maximum: 5,
+      minimum: 0,
+      title: 'Critical Failure Threshold',
+      description: 'Execution-tier scored metric at or below this value triggers critical failure',
+      default: 1,
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description: 'Judge LLM model override',
+    },
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+      description: 'Judge LLM provider override',
+    },
+  },
+  type: 'object',
+  title: 'JudgeConfig',
+  description: 'Judge behavior and LLM overrides.',
 } as const;
 
 export const JudgeVerdictSchema = {
@@ -1274,54 +1299,6 @@ export const PersonaSchema = {
 
 export const RunConfig_InputSchema = {
   properties: {
-    judge_model: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Judge Model',
-      description: 'Model ID for the judge LLM',
-    },
-    judge_provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Judge Provider',
-      description: 'Provider for the judge LLM (e.g. anthropic, openai)',
-    },
-    simulator_model: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Simulator Model',
-      description: 'Model ID for the user simulator LLM',
-    },
-    simulator_provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Simulator Provider',
-      description: 'Provider for the simulator LLM',
-    },
     concurrency: {
       type: 'integer',
       title: 'Concurrency',
@@ -1334,16 +1311,28 @@ export const RunConfig_InputSchema = {
       description: 'Timeout per scenario in milliseconds before forced stop',
       default: 120000,
     },
-    evaluation: {
+    judge: {
       anyOf: [
         {
-          $ref: '#/components/schemas/EvaluationConfig',
+          $ref: '#/components/schemas/JudgeConfig',
         },
         {
           type: 'null',
         },
       ],
-      description: 'Judge metric selection, weights, and pass threshold',
+      description: 'Judge metric selection, weights, pass threshold, and model overrides',
+    },
+    simulator: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SimulatorConfig',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        'User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.',
     },
   },
   type: 'object',
@@ -1352,54 +1341,6 @@ export const RunConfig_InputSchema = {
 
 export const RunConfig_OutputSchema = {
   properties: {
-    judge_model: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Judge Model',
-      description: 'Model ID for the judge LLM',
-    },
-    judge_provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Judge Provider',
-      description: 'Provider for the judge LLM (e.g. anthropic, openai)',
-    },
-    simulator_model: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Simulator Model',
-      description: 'Model ID for the user simulator LLM',
-    },
-    simulator_provider: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Simulator Provider',
-      description: 'Provider for the simulator LLM',
-    },
     concurrency: {
       type: 'integer',
       title: 'Concurrency',
@@ -1412,16 +1353,28 @@ export const RunConfig_OutputSchema = {
       description: 'Timeout per scenario in milliseconds before forced stop',
       default: 120000,
     },
-    evaluation: {
+    judge: {
       anyOf: [
         {
-          $ref: '#/components/schemas/EvaluationConfig',
+          $ref: '#/components/schemas/JudgeConfig',
         },
         {
           type: 'null',
         },
       ],
-      description: 'Judge metric selection, weights, and pass threshold',
+      description: 'Judge metric selection, weights, pass threshold, and model overrides',
+    },
+    simulator: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/SimulatorConfig',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description:
+        'User simulator: LLM vs scripted replay, model/provider overrides, temperature. Omitted fields use app LLM defaults.',
     },
   },
   type: 'object',
@@ -3107,6 +3060,71 @@ export const ScoreTypeSchema = {
   type: 'string',
   enum: ['scored', 'binary'],
   title: 'ScoreType',
+} as const;
+
+export const SimulatorConfigSchema = {
+  properties: {
+    mode: {
+      $ref: '#/components/schemas/SimulatorMode',
+      description: 'llm: generate via LLM; scripted: replay fixed messages',
+      default: 'llm',
+    },
+    scripted_messages: {
+      items: {
+        type: 'string',
+      },
+      type: 'array',
+      title: 'Scripted Messages',
+      description: 'User lines after initial_message, in order (scripted mode only)',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description: 'Simulator LLM model override',
+    },
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+      description: 'Simulator LLM provider override',
+    },
+    temperature: {
+      anyOf: [
+        {
+          type: 'number',
+          maximum: 2,
+          minimum: 0,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Temperature',
+      description: 'Sampling temperature for simulator LLM',
+    },
+  },
+  type: 'object',
+  title: 'SimulatorConfig',
+  description: 'User simulator behavior (LLM persona vs scripted replay) and LLM overrides.',
+} as const;
+
+export const SimulatorModeSchema = {
+  type: 'string',
+  enum: ['llm', 'scripted'],
+  title: 'SimulatorMode',
 } as const;
 
 export const TokenSchema = {

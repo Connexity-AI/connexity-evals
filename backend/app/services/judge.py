@@ -10,7 +10,7 @@ from app.models.enums import ErrorCategory, TurnRole
 from app.models.scenario import Scenario
 from app.models.schemas import (
     ConversationTurn,
-    EvaluationConfig,
+    JudgeConfig,
     JudgeVerdict,
     MetricScore,
     ToolCall,
@@ -42,9 +42,7 @@ class JudgeInput:
     scenario: Scenario
     agent_system_prompt: str | None
     agent_tools: list[dict[str, Any]] | None
-    evaluation_config: EvaluationConfig | None
-    judge_model: str | None
-    judge_provider: str | None
+    judge_config: JudgeConfig | None
 
 
 def _pretty_json_oneline(raw: str | Any) -> str:
@@ -300,8 +298,8 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
         msg = "Cannot evaluate an empty transcript"
         raise ValueError(msg)
 
-    eval_cfg = inp.evaluation_config
-    resolved = resolve_metrics(eval_cfg)
+    judge_cfg = inp.judge_config
+    resolved = resolve_metrics(judge_cfg)
     metric_defs = [m for m, _ in resolved]
 
     metric_names = [m.name for m in metric_defs]
@@ -310,8 +308,8 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
     response_format = build_judge_response_format(metric_defs)
 
     llm_cfg = LLMCallConfig(
-        model=inp.judge_model,
-        provider=inp.judge_provider,
+        model=judge_cfg.model if judge_cfg else None,
+        provider=judge_cfg.provider if judge_cfg else None,
         temperature=settings.JUDGE_TEMPERATURE,
         max_tokens=settings.JUDGE_MAX_TOKENS,
         response_format=response_format,
@@ -331,9 +329,9 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
         msg = "Judge model did not return valid JSON"
         raise ValueError(msg) from e
 
-    effective_eval = eval_cfg or EvaluationConfig()
-    pass_threshold = effective_eval.pass_threshold
-    critical_threshold = effective_eval.critical_failure_threshold
+    effective_judge = judge_cfg or JudgeConfig()
+    pass_threshold = effective_judge.pass_threshold
+    critical_threshold = effective_judge.critical_failure_threshold
 
     metric_scores: list[MetricScore] = []
     overall_accum = 0.0
@@ -399,7 +397,11 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
     )
     passed = tentative_pass
 
-    judge_provider = inp.judge_provider or settings.LLM_DEFAULT_PROVIDER or "openai"
+    judge_provider = (
+        (judge_cfg.provider if judge_cfg else None)
+        or settings.LLM_DEFAULT_PROVIDER
+        or "openai"
+    )
 
     return JudgeVerdict(
         passed=passed,

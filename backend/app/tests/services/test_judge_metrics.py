@@ -1,6 +1,6 @@
 import pytest
 
-from app.models.schemas import EvaluationConfig, MetricSelection
+from app.models.schemas import JudgeConfig, MetricSelection
 from app.services.judge import build_judge_response_format
 from app.services.judge_metrics import (
     METRIC_REGISTRY,
@@ -25,7 +25,7 @@ def test_resolve_metrics_defaults_sum_to_one() -> None:
 
 
 def test_resolve_metrics_custom_list_renormalizes() -> None:
-    cfg = EvaluationConfig(
+    cfg = JudgeConfig(
         metrics=[
             MetricSelection(metric="tool_routing", weight=1.0),
             MetricSelection(metric="response_delivery", weight=1.0),
@@ -37,9 +37,7 @@ def test_resolve_metrics_custom_list_renormalizes() -> None:
 
 
 def test_task_completion_requires_explicit_weight() -> None:
-    cfg = EvaluationConfig(
-        metrics=[MetricSelection(metric="task_completion", weight=None)]
-    )
+    cfg = JudgeConfig(metrics=[MetricSelection(metric="task_completion", weight=None)])
     with pytest.raises(ValueError, match="task_completion requires"):
         resolve_metrics(cfg)
 

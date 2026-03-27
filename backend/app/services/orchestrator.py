@@ -14,18 +14,19 @@ from app.models.agent_contract import (
     AgentResponse,
     ChatMessage,
 )
-from app.models.enums import TurnRole
+from app.models.enums import SimulatorMode, TurnRole
 from app.models.scenario import Scenario
 from app.models.schemas import (
     ConversationTurn,
     JudgeVerdict,
     Persona,
     RunConfig,
+    SimulatorConfig,
     ToolCall,
 )
 from app.services.judge import JudgeInput, evaluate_transcript
 from app.services.llm import LLMMessage
-from app.services.user_simulator import SimulatorConfig, SimulatorMode, UserSimulator
+from app.services.user_simulator import UserSimulator
 
 logger = logging.getLogger(__name__)
 
@@ -186,8 +187,6 @@ async def run_scenario(
     scenario: Scenario,
     agent_endpoint_url: str,
     config: RunConfig,
-    *,
-    simulator_config: SimulatorConfig | None = None,
 ) -> list[ConversationTurn]:
     """Execute one scenario: initial user message, then agent / simulator turns.
 
@@ -198,11 +197,7 @@ async def run_scenario(
     Stops when ``scenario.max_turns`` agent rounds are done, scripted lines are
     exhausted, timeout is hit, or the agent call fails.
     """
-    sim_cfg = simulator_config or SimulatorConfig(
-        mode=SimulatorMode.LLM,
-        model=config.simulator_model,
-        provider=config.simulator_provider,
-    )
+    sim_cfg = config.simulator or SimulatorConfig()
     persona = _persona_from_scenario(scenario)
     initial = scenario.initial_message or ""
     simulator = UserSimulator(
@@ -333,7 +328,6 @@ async def run_scenario_with_evaluation(
     *,
     agent_system_prompt: str | None = None,
     agent_tools: list[dict[str, Any]] | None = None,
-    simulator_config: SimulatorConfig | None = None,
 ) -> tuple[list[ConversationTurn], JudgeVerdict | None]:
     """Run simulation then judge the transcript; returns ``(transcript, verdict)``.
 
@@ -343,7 +337,6 @@ async def run_scenario_with_evaluation(
         scenario,
         agent_endpoint_url,
         config,
-        simulator_config=simulator_config,
     )
     if not transcript:
         return transcript, None
@@ -354,9 +347,7 @@ async def run_scenario_with_evaluation(
             scenario=scenario,
             agent_system_prompt=agent_system_prompt,
             agent_tools=agent_tools,
-            evaluation_config=config.evaluation,
-            judge_model=config.judge_model,
-            judge_provider=config.judge_provider,
+            judge_config=config.judge,
         )
     )
     return transcript, verdict

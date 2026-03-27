@@ -1,17 +1,18 @@
 from datetime import UTC, datetime
 
-from app.models.enums import ErrorCategory, TurnRole
+from app.models.enums import ErrorCategory, SimulatorMode, TurnRole
 from app.models.schemas import (
     AggregateMetrics,
     ConversationTurn,
     ErrorCategoryCount,
-    EvaluationConfig,
     ExpectedToolCall,
+    JudgeConfig,
     JudgeVerdict,
     MetricScore,
     MetricSelection,
     Persona,
     RunConfig,
+    SimulatorConfig,
     ToolCall,
     ToolCallFunction,
 )
@@ -241,27 +242,56 @@ def test_run_config_defaults():
     restored = _round_trip(RunConfig, config)
     assert restored.concurrency == 5
     assert restored.timeout_per_scenario_ms == 120_000
-    assert restored.judge_model is None
+    assert restored.judge is None
 
 
 def test_run_config_full():
     config = RunConfig(
-        judge_model="claude-sonnet-4-5-20250514",
-        judge_provider="anthropic",
-        simulator_model="gpt-4o",
-        simulator_provider="openai",
         concurrency=10,
         timeout_per_scenario_ms=60_000,
-        evaluation=EvaluationConfig(
+        judge=JudgeConfig(
+            model="claude-sonnet-4-5-20250514",
+            provider="anthropic",
             metrics=[MetricSelection(metric="tool_routing", weight=0.5)],
             pass_threshold=80.0,
         ),
+        simulator=SimulatorConfig(model="gpt-4o", provider="openai"),
     )
     restored = _round_trip(RunConfig, config)
     assert restored.concurrency == 10
-    assert restored.evaluation is not None
-    assert restored.evaluation.metrics is not None
-    assert restored.evaluation.metrics[0].metric == "tool_routing"
+    assert restored.judge is not None
+    assert restored.judge.metrics is not None
+    assert restored.judge.metrics[0].metric == "tool_routing"
+    assert restored.judge.model == "claude-sonnet-4-5-20250514"
+    assert restored.simulator is not None
+    assert restored.simulator.model == "gpt-4o"
+
+
+def test_simulator_config_round_trip():
+    cfg = SimulatorConfig(
+        mode=SimulatorMode.SCRIPTED,
+        scripted_messages=["hi", "thanks"],
+        model="gpt-4o-mini",
+        provider="openai",
+        temperature=0.2,
+    )
+    restored = _round_trip(SimulatorConfig, cfg)
+    assert restored.scripted_messages == ["hi", "thanks"]
+
+
+def test_run_config_with_simulator_round_trip():
+    config = RunConfig(
+        simulator=SimulatorConfig(
+            mode=SimulatorMode.SCRIPTED,
+            scripted_messages=["a"],
+            model="base-model",
+            provider="openai",
+            temperature=0.5,
+        ),
+    )
+    restored = _round_trip(RunConfig, config)
+    assert restored.simulator is not None
+    assert restored.simulator.mode == SimulatorMode.SCRIPTED
 
 
 # ── ErrorCategoryCount ─────────────────────────────────────────────

@@ -29,11 +29,16 @@ import json
 import uuid
 from pathlib import Path
 
-from app.models.enums import TurnRole
+from app.models.enums import SimulatorMode, TurnRole
 from app.models.scenario import Scenario
-from app.models.schemas import ConversationTurn, JudgeVerdict, RunConfig
+from app.models.schemas import (
+    ConversationTurn,
+    JudgeConfig,
+    JudgeVerdict,
+    RunConfig,
+    SimulatorConfig,
+)
 from app.services.orchestrator import run_scenario, run_scenario_with_evaluation
-from app.services.user_simulator import SimulatorConfig, SimulatorMode
 
 
 def _load_scenario(path: Path) -> Scenario:
@@ -62,16 +67,8 @@ async def _run(args: argparse.Namespace) -> int:
     scenario_path = Path(args.scenario).resolve()
     scenario = _load_scenario(scenario_path)
 
-    run_cfg = RunConfig(
-        timeout_per_scenario_ms=args.timeout_ms,
-        simulator_model=args.simulator_model,
-        simulator_provider=args.simulator_provider,
-        judge_model=args.judge_model,
-        judge_provider=args.judge_provider,
-    )
-
     if args.llm_user:
-        sim_cfg = SimulatorConfig(
+        simulator = SimulatorConfig(
             mode=SimulatorMode.LLM,
             model=args.simulator_model,
             provider=args.simulator_provider,
@@ -79,10 +76,19 @@ async def _run(args: argparse.Namespace) -> int:
         )
     else:
         scripted = [s.strip() for s in args.scripted_user.split("|") if s.strip()]
-        sim_cfg = SimulatorConfig(
+        simulator = SimulatorConfig(
             mode=SimulatorMode.SCRIPTED,
             scripted_messages=scripted,
         )
+
+    run_cfg = RunConfig(
+        timeout_per_scenario_ms=args.timeout_ms,
+        judge=JudgeConfig(
+            model=args.judge_model,
+            provider=args.judge_provider,
+        ),
+        simulator=simulator,
+    )
 
     if args.judge:
         transcript, verdict = await run_scenario_with_evaluation(
@@ -91,14 +97,12 @@ async def _run(args: argparse.Namespace) -> int:
             run_cfg,
             agent_system_prompt=None,
             agent_tools=None,
-            simulator_config=sim_cfg,
         )
     else:
         transcript = await run_scenario(
             scenario,
             args.agent_url,
             run_cfg,
-            simulator_config=sim_cfg,
         )
         verdict = None
 
@@ -158,7 +162,7 @@ def main() -> None:
     parser.add_argument(
         "--simulator-model",
         default=None,
-        help="Simulator LLM model (LLM user mode; also passed in RunConfig)",
+        help="Simulator LLM model (LLM user mode; becomes RunConfig.simulator.model)",
     )
     parser.add_argument(
         "--simulator-provider",

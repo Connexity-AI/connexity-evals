@@ -1,7 +1,9 @@
 """Pure Pydantic v2 models for JSONB nested entities.
 
 These are NOT database tables — they serialize into JSONB columns
-on the ORM table models (Run, ScenarioResult, Scenario).
+on the ORM table models (Run, ScenarioResult, Scenario). Run execution
+helpers (:class:`RunConfig`, :class:`SimulatorConfig`, :class:`JudgeConfig`)
+live here so API and services share one definition.
 """
 
 from datetime import datetime
@@ -9,7 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import ErrorCategory, TurnRole
+from app.models.enums import ErrorCategory, SimulatorMode, TurnRole
 
 # ── Scenario nested types ──────────────────────────────────────────
 
@@ -39,7 +41,9 @@ class MetricSelection(BaseModel):
     )
 
 
-class EvaluationConfig(BaseModel):
+class JudgeConfig(BaseModel):
+    """Judge behavior and LLM overrides."""
+
     metrics: list[MetricSelection] | None = Field(
         default=None,
         description="Selected metrics; null = platform default scored metric set",
@@ -56,29 +60,59 @@ class EvaluationConfig(BaseModel):
         le=5,
         description="Execution-tier scored metric at or below this value triggers critical failure",
     )
+    model: str | None = Field(
+        default=None,
+        description="Judge LLM model override",
+    )
+    provider: str | None = Field(
+        default=None,
+        description="Judge LLM provider override",
+    )
+
+
+class SimulatorConfig(BaseModel):
+    """User simulator behavior (LLM persona vs scripted replay) and LLM overrides."""
+
+    mode: SimulatorMode = Field(
+        default=SimulatorMode.LLM,
+        description="llm: generate via LLM; scripted: replay fixed messages",
+    )
+    scripted_messages: list[str] = Field(
+        default_factory=list,
+        description="User lines after initial_message, in order (scripted mode only)",
+    )
+    model: str | None = Field(
+        default=None,
+        description="Simulator LLM model override",
+    )
+    provider: str | None = Field(
+        default=None,
+        description="Simulator LLM provider override",
+    )
+    temperature: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=2.0,
+        description="Sampling temperature for simulator LLM",
+    )
 
 
 class RunConfig(BaseModel):
-    judge_model: str | None = Field(
-        default=None, description="Model ID for the judge LLM"
-    )
-    judge_provider: str | None = Field(
-        default=None, description="Provider for the judge LLM (e.g. anthropic, openai)"
-    )
-    simulator_model: str | None = Field(
-        default=None, description="Model ID for the user simulator LLM"
-    )
-    simulator_provider: str | None = Field(
-        default=None, description="Provider for the simulator LLM"
-    )
     concurrency: int = Field(default=5, description="Max parallel scenario executions")
     timeout_per_scenario_ms: int = Field(
         default=120_000,
         description="Timeout per scenario in milliseconds before forced stop",
     )
-    evaluation: EvaluationConfig | None = Field(
+    judge: JudgeConfig | None = Field(
         default=None,
-        description="Judge metric selection, weights, and pass threshold",
+        description="Judge metric selection, weights, pass threshold, and model overrides",
+    )
+    simulator: SimulatorConfig | None = Field(
+        default=None,
+        description=(
+            "User simulator: LLM vs scripted replay, model/provider overrides, temperature. "
+            "Omitted fields use app LLM defaults."
+        ),
     )
 
 
