@@ -1,9 +1,12 @@
 import uuid
+from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
+from app import crud
 from app.core.config import settings
+from app.models import RunStatus, RunUpdate
 from app.tests.utils.eval import (
     create_test_agent,
     create_test_run,
@@ -17,6 +20,9 @@ def _setup(db: Session) -> tuple:
     scenario = create_test_scenario(db)
     scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
     return agent, scenario_set
+
+
+# ── Basic CRUD endpoints ──────────────────────────────────────────
 
 
 def test_create_run(
@@ -126,3 +132,206 @@ def test_delete_run(
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
+
+
+# ── POST /runs/{run_id}/execute ────────────────────────────────────
+
+
+@patch(
+    "app.api.routes.runs.execute_run",
+    new_callable=AsyncMock,
+)
+def test_execute_pending_run(
+    _mock_exec: AsyncMock,
+    client: TestClient,
+    superuser_auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, scenario_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/{run.id}/execute",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 202
+    assert r.json()["id"] == str(run.id)
+
+
+@patch(
+    "app.api.routes.runs.execute_run",
+    new_callable=AsyncMock,
+)
+def test_execute_failed_run(
+    _mock_exec: AsyncMock,
+    client: TestClient,
+    superuser_auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, scenario_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    crud.update_run(session=db, db_run=run, run_in=RunUpdate(status=RunStatus.FAILED))
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/{run.id}/execute",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 202
+
+
+def test_execute_running_run_fails(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent, scenario_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    crud.update_run(session=db, db_run=run, run_in=RunUpdate(status=RunStatus.RUNNING))
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/{run.id}/execute",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 400
+
+
+def test_execute_completed_run_fails(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent, scenario_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    crud.update_run(
+        session=db, db_run=run, run_in=RunUpdate(status=RunStatus.COMPLETED)
+    )
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/{run.id}/execute",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 400
+
+
+def test_execute_not_found(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/{uuid.uuid4()}/execute",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 404
+
+
+# ── POST /runs/{run_id}/cancel ─────────────────────────────────────
+
+
+def test_cancel_pending_run(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent, scenario_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/{run.id}/cancel",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+
+
+def test_cancel_running_run_without_active_task(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    """A run in RUNNING status but not tracked by RunManager (e.g. orphaned)."""
+    agent, scenario_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    crud.update_run(session=db, db_run=run, run_in=RunUpdate(status=RunStatus.RUNNING))
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/{run.id}/cancel",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    assert r.json()["status"] == "cancelled"
+
+
+def test_cancel_not_found(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/{uuid.uuid4()}/cancel",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 404
+
+
+# ── GET /runs/{run_id}/stream ──────────────────────────────────────
+
+
+def test_stream_finished_run(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    """A completed run returns a snapshot event then closes."""
+    agent, scenario_set = _setup(db)
+    run = create_test_run(db, agent_id=agent.id, scenario_set_id=scenario_set.id)
+    crud.update_run(
+        session=db, db_run=run, run_in=RunUpdate(status=RunStatus.COMPLETED)
+    )
+    r = client.get(
+        f"{settings.API_V1_STR}/runs/{run.id}/stream",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/event-stream")
+    body = r.text
+    assert "event: snapshot" in body
+    assert "event: stream_closed" in body
+
+
+def test_stream_not_found(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.get(
+        f"{settings.API_V1_STR}/runs/{uuid.uuid4()}/stream",
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 404
+
+
+# ── POST /runs/ with auto_execute ──────────────────────────────────
+
+
+@patch(
+    "app.api.routes.runs.execute_run",
+    new_callable=AsyncMock,
+)
+def test_create_run_with_auto_execute(
+    _mock_exec: AsyncMock,
+    client: TestClient,
+    superuser_auth_cookies: dict[str, str],
+    db: Session,
+) -> None:
+    agent, scenario_set = _setup(db)
+    data = {
+        "agent_id": str(agent.id),
+        "agent_endpoint_url": "http://localhost:8080/agent",
+        "scenario_set_id": str(scenario_set.id),
+    }
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/",
+        json=data,
+        params={"auto_execute": True},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    result = r.json()
+    assert result["agent_id"] == str(agent.id)
+
+
+def test_create_run_without_auto_execute(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent, scenario_set = _setup(db)
+    data = {
+        "agent_id": str(agent.id),
+        "agent_endpoint_url": "http://localhost:8080/agent",
+        "scenario_set_id": str(scenario_set.id),
+    }
+    r = client.post(
+        f"{settings.API_V1_STR}/runs/",
+        json=data,
+        params={"auto_execute": False},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    assert r.json()["status"] == "pending"
