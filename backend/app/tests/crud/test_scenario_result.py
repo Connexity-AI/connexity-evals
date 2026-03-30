@@ -1,7 +1,7 @@
 from sqlmodel import Session
 
 from app import crud
-from app.models import ErrorCategory, ScenarioResultUpdate
+from app.models import ScenarioResultUpdate
 from app.tests.utils.eval import (
     create_test_agent,
     create_test_run,
@@ -26,7 +26,7 @@ def test_create_scenario_result(db: Session) -> None:
     assert result.id is not None
     assert result.run_id == run.id
     assert result.scenario_id == scenario.id
-    assert result.error_category == ErrorCategory.NONE
+    assert result.error_message is None
 
 
 def test_get_scenario_result(db: Session) -> None:
@@ -70,7 +70,6 @@ def test_update_scenario_result(db: Session) -> None:
             passed=True,
             turn_count=5,
             total_latency_ms=1234,
-            error_category=ErrorCategory.NONE,
         ),
     )
     assert updated.passed is True

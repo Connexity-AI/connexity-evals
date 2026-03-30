@@ -2,7 +2,6 @@
 
 import uuid
 
-from app.models.enums import ErrorCategory
 from app.models.scenario_result import ScenarioResult
 from app.services.orchestrator import compute_aggregate_metrics
 
@@ -10,7 +9,7 @@ from app.services.orchestrator import compute_aggregate_metrics
 def _make_result(
     *,
     passed: bool | None = None,
-    error_category: ErrorCategory = ErrorCategory.NONE,
+    error_message: str | None = None,
     agent_latency_p50_ms: int | None = None,
     verdict: dict | None = None,
 ) -> ScenarioResult:
@@ -19,7 +18,7 @@ def _make_result(
         run_id=uuid.uuid4(),
         scenario_id=uuid.uuid4(),
         passed=passed,
-        error_category=error_category,
+        error_message=error_message,
         agent_latency_p50_ms=agent_latency_p50_ms,
         verdict=verdict,
     )
@@ -66,7 +65,7 @@ def test_mixed_results() -> None:
         _make_result(passed=False),
         _make_result(
             passed=False,
-            error_category=ErrorCategory.HALLUCINATION,
+            error_message="Agent timed out",
         ),
     ]
     metrics = compute_aggregate_metrics(results)
@@ -75,21 +74,6 @@ def test_mixed_results() -> None:
     assert metrics.failed_count == 1
     assert metrics.error_count == 1
     assert abs(metrics.pass_rate - 1.0 / 3.0) < 1e-9
-
-
-def test_error_category_distribution() -> None:
-    results = [
-        _make_result(passed=False, error_category=ErrorCategory.HALLUCINATION),
-        _make_result(passed=False, error_category=ErrorCategory.HALLUCINATION),
-        _make_result(passed=False, error_category=ErrorCategory.TOOL_MISUSE),
-        _make_result(passed=False, error_category=ErrorCategory.AGENT_ERROR),
-    ]
-    metrics = compute_aggregate_metrics(results)
-    assert metrics.error_count == 4
-    dist = {d.category: d.count for d in metrics.error_category_distribution}
-    assert dist[ErrorCategory.HALLUCINATION] == 2
-    assert dist[ErrorCategory.TOOL_MISUSE] == 1
-    assert dist[ErrorCategory.AGENT_ERROR] == 1
 
 
 def test_latency_stats_with_data() -> None:

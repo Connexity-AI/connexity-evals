@@ -1,10 +1,9 @@
 from datetime import UTC, datetime
 
-from app.models.enums import ErrorCategory, SimulatorMode, TurnRole
+from app.models.enums import SimulatorMode, TurnRole
 from app.models.schemas import (
     AggregateMetrics,
     ConversationTurn,
-    ErrorCategoryCount,
     ExpectedToolCall,
     JudgeConfig,
     JudgeVerdict,
@@ -194,10 +193,8 @@ def test_judge_verdict_minimal():
         judge_provider="anthropic",
     )
     restored = _round_trip(JudgeVerdict, verdict)
-    assert restored.error_category == ErrorCategory.NONE
     assert restored.raw_judge_output is None
     assert restored.judge_latency_ms is None
-    assert restored.critical_failure is False
     assert restored.summary is None
 
 
@@ -205,13 +202,14 @@ def test_judge_verdict_full():
     verdict = JudgeVerdict(
         passed=False,
         overall_score=40.0,
-        critical_failure=True,
         metric_scores=[
             MetricScore(
                 metric="accuracy",
                 score=1,
                 label="fail",
                 justification="Hallucinated data",
+                failure_code="hallucinated_result",
+                turns=[2, 4],
             ),
             MetricScore(
                 metric="safety",
@@ -221,7 +219,6 @@ def test_judge_verdict_full():
                 justification="No safety issues",
             ),
         ],
-        error_category=ErrorCategory.HALLUCINATION,
         summary="Legacy summary field",
         raw_judge_output="<full judge reasoning here>",
         judge_model="gpt-4o",
@@ -294,15 +291,6 @@ def test_run_config_with_simulator_round_trip():
     assert restored.simulator.mode == SimulatorMode.SCRIPTED
 
 
-# ── ErrorCategoryCount ─────────────────────────────────────────────
-
-
-def test_error_category_count():
-    ecc = ErrorCategoryCount(category=ErrorCategory.HALLUCINATION, count=3)
-    restored = _round_trip(ErrorCategoryCount, ecc)
-    assert restored.category == ErrorCategory.HALLUCINATION
-
-
 # ── AggregateMetrics ───────────────────────────────────────────────
 
 
@@ -315,7 +303,6 @@ def test_aggregate_metrics_minimal():
         pass_rate=0.0,
     )
     restored = _round_trip(AggregateMetrics, metrics)
-    assert restored.error_category_distribution == []
     assert restored.avg_overall_score is None
 
 
@@ -333,16 +320,10 @@ def test_aggregate_metrics_full():
         total_agent_token_usage={"input": 50000, "output": 30000},
         total_platform_token_usage={"input": 20000, "output": 15000},
         total_estimated_cost_usd=12.50,
-        error_category_distribution=[
-            ErrorCategoryCount(category=ErrorCategory.HALLUCINATION, count=3),
-            ErrorCategoryCount(category=ErrorCategory.REFUSAL, count=2),
-        ],
         avg_overall_score=4.1,
     )
     restored = _round_trip(AggregateMetrics, metrics)
     assert restored.pass_rate == 0.85
-    assert len(restored.error_category_distribution) == 2
-    assert restored.error_category_distribution[0].count == 3
 
 
 # ── JSON round-trip (simulates JSONB storage) ──────────────────────
@@ -378,9 +359,6 @@ def test_aggregate_metrics_json_round_trip():
         failed_count=3,
         error_count=2,
         pass_rate=0.90,
-        error_category_distribution=[
-            ErrorCategoryCount(category=ErrorCategory.OFF_TOPIC, count=1),
-        ],
     )
     json_str = json.dumps(metrics.model_dump(), default=str)
     raw = json.loads(json_str)

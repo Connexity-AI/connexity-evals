@@ -33,7 +33,6 @@ from app.models.common import ConfigPublic, ErrorResponse  # noqa: F401
 # ── Enums ──────────────────────────────────────────────────────────
 from app.models.enums import (  # noqa: F401
     Difficulty,
-    ErrorCategory,
     RunStatus,
     ScenarioStatus,
     SimulatorMode,
@@ -90,7 +89,6 @@ from app.models.scenario_set import (  # noqa: F401
 from app.models.schemas import (  # noqa: F401
     AggregateMetrics,
     ConversationTurn,
-    ErrorCategoryCount,
     ExpectedToolCall,
     JudgeConfig,
     JudgeVerdict,

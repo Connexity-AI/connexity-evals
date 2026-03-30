@@ -118,14 +118,14 @@ def _print_verdict(verdict: JudgeVerdict) -> None:
     print("\n--- Judge verdict ---")
     print(f"Passed: {verdict.passed}")
     print(f"Overall score: {verdict.overall_score}")
-    print(f"Critical failure: {verdict.critical_failure}")
-    print(f"Error category: {verdict.error_category.value}")
     for ms in verdict.metric_scores:
         kind = "binary" if ms.is_binary else "scored"
         j = ms.justification
+        fc = f" failure_code={ms.failure_code}" if ms.failure_code else ""
+        turns = f" turns={ms.turns}" if ms.turns else ""
         print(
             f"  - {ms.metric} ({kind}): {ms.score} ({ms.label}) "
-            f"weight={ms.weight:.4f} — {j}"
+            f"weight={ms.weight:.4f}{fc}{turns} — {j}"
         )
     print()
 

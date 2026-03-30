@@ -17,7 +17,7 @@ from app.models.agent_contract import (
     AgentResponse,
     ChatMessage,
 )
-from app.models.enums import ErrorCategory, SimulatorMode, TurnRole
+from app.models.enums import SimulatorMode, TurnRole
 from app.models.scenario import Scenario
 from app.models.scenario_result import ScenarioResult
 from app.models.schemas import (
@@ -377,8 +377,6 @@ async def run_scenario_with_evaluation(
 def compute_aggregate_metrics(
     results: list[ScenarioResult],
 ) -> AggregateMetrics:
-    from app.models.schemas import ErrorCategoryCount
-
     total = len(results)
     if total == 0:
         return AggregateMetrics(
@@ -390,23 +388,12 @@ def compute_aggregate_metrics(
         )
 
     passed = sum(1 for r in results if r.passed is True)
-    failed = sum(
-        1
-        for r in results
-        if r.passed is False and r.error_category == ErrorCategory.NONE
-    )
-    errors = sum(1 for r in results if r.error_category != ErrorCategory.NONE)
+    errored = sum(1 for r in results if r.error_message is not None)
+    failed = sum(1 for r in results if r.passed is False and r.error_message is None)
 
     latencies = [
         r.agent_latency_p50_ms for r in results if r.agent_latency_p50_ms is not None
     ]
-
-    cat_counts = {}
-    for r in results:
-        if r.error_category != ErrorCategory.NONE:
-            cat_counts[r.error_category] = cat_counts.get(r.error_category, 0) + 1
-
-    dist = [ErrorCategoryCount(category=k, count=v) for k, v in cat_counts.items()]
 
     scores = [
         r.verdict.get("overall_score")
@@ -418,7 +405,7 @@ def compute_aggregate_metrics(
         total_scenarios=total,
         passed_count=passed,
         failed_count=failed,
-        error_count=errors,
+        error_count=errored,
         pass_rate=passed / total if total > 0 else 0.0,
         latency_p50_ms=statistics.median(latencies) if latencies else None,
         latency_p95_ms=statistics.quantiles(latencies, n=20)[18]
@@ -426,7 +413,6 @@ def compute_aggregate_metrics(
         else None,
         latency_max_ms=max(latencies) if latencies else None,
         latency_avg_ms=statistics.mean(latencies) if latencies else None,
-        error_category_distribution=dist,
         avg_overall_score=statistics.mean(scores) if scores else None,
     )
 
@@ -507,9 +493,6 @@ async def _execute_single_scenario(
                 agent_latency_p95_ms=p95,
                 agent_latency_max_ms=max_lat,
                 passed=verdict.passed if verdict else False,
-                error_category=verdict.error_category
-                if verdict
-                else ErrorCategory.NONE,
                 started_at=started_at,
                 completed_at=completed_at,
             )
@@ -519,7 +502,6 @@ async def _execute_single_scenario(
             completed_at = datetime.now(UTC)
             update_data = ScenarioResultUpdate(
                 passed=False,
-                error_category=ErrorCategory.OTHER,
                 error_message=str(e),
                 started_at=started_at,
                 completed_at=completed_at,
@@ -564,7 +546,6 @@ async def _execute_single_scenario(
                                 db_result=db_result,
                                 result_in=ScenarioResultUpdate(
                                     passed=False,
-                                    error_category=ErrorCategory.OTHER,
                                     error_message="DB persistence failed for scenario result",
                                     started_at=started_at,
                                     completed_at=datetime.now(UTC),
@@ -592,7 +573,7 @@ async def _execute_single_scenario(
                         progress.error_count += 1
                     elif updated_result.passed:
                         progress.passed_count += 1
-                    elif updated_result.error_category != ErrorCategory.NONE:
+                    elif updated_result.error_message is not None:
                         progress.error_count += 1
                     else:
                         progress.failed_count += 1

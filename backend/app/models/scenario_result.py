@@ -6,7 +6,6 @@ from sqlalchemy import Column, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.enums import ErrorCategory
 from app.models.schemas import ConversationTurn, JudgeVerdict
 
 if TYPE_CHECKING:
@@ -71,11 +70,6 @@ class ScenarioResultBase(SQLModel):
     # Status
     passed: bool | None = Field(
         default=None, index=True, description="Whether the scenario passed evaluation"
-    )
-    error_category: ErrorCategory = Field(
-        default=ErrorCategory.NONE,
-        index=True,
-        description="Classified error category if the scenario failed",
     )
     error_message: str | None = Field(
         default=None, description="Human-readable error message if applicable"
@@ -155,10 +149,6 @@ class ScenarioResultUpdate(SQLModel):
     passed: bool | None = Field(
         default=None, description="Whether the scenario passed evaluation"
     )
-    error_category: ErrorCategory | None = Field(
-        default=None,
-        description="Classified error category if the scenario failed",
-    )
     error_message: str | None = Field(
         default=None, description="Human-readable error message if applicable"
     )
@@ -207,9 +197,6 @@ class ScenarioResultPublic(SQLModel):
         description="Estimated total cost in USD for this scenario"
     )
     passed: bool | None = Field(description="Whether the scenario passed evaluation")
-    error_category: ErrorCategory = Field(
-        description="Classified error category if the scenario failed"
-    )
     error_message: str | None = Field(
         description="Human-readable error message if applicable"
     )
