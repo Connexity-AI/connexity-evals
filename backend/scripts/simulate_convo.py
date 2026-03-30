@@ -91,19 +91,21 @@ async def _run(args: argparse.Namespace) -> int:
     )
 
     if args.judge:
-        transcript, verdict = await run_scenario_with_evaluation(
+        run_out, verdict = await run_scenario_with_evaluation(
             scenario,
             args.agent_url,
             run_cfg,
             agent_system_prompt=None,
             agent_tools=None,
         )
+        transcript = run_out.transcript
     else:
-        transcript = await run_scenario(
+        run_out = await run_scenario(
             scenario,
             args.agent_url,
             run_cfg,
         )
+        transcript = run_out.transcript
         verdict = None
 
     print(f"Scenario: {scenario.name} ({scenario_path})")

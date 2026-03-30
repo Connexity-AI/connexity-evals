@@ -50,18 +50,27 @@ import type {
   LoginTestTokenData,
   LoginTestTokenErrors,
   LoginTestTokenResponses,
+  RunsCancelRunEndpointData,
+  RunsCancelRunEndpointErrors,
+  RunsCancelRunEndpointResponses,
   RunsCreateRunData,
   RunsCreateRunErrors,
   RunsCreateRunResponses,
   RunsDeleteRunData,
   RunsDeleteRunErrors,
   RunsDeleteRunResponses,
+  RunsExecuteRunEndpointData,
+  RunsExecuteRunEndpointErrors,
+  RunsExecuteRunEndpointResponses,
   RunsGetRunData,
   RunsGetRunErrors,
   RunsGetRunResponses,
   RunsListRunsData,
   RunsListRunsErrors,
   RunsListRunsResponses,
+  RunsStreamRunData,
+  RunsStreamRunErrors,
+  RunsStreamRunResponses,
   RunsUpdateRunData,
   RunsUpdateRunErrors,
   RunsUpdateRunResponses,
@@ -1144,6 +1153,77 @@ export class RunsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+
+  /**
+   * Execute Run Endpoint
+   */
+  public static executeRunEndpoint<ThrowOnError extends boolean = false>(
+    options: Options<RunsExecuteRunEndpointData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      RunsExecuteRunEndpointResponses,
+      RunsExecuteRunEndpointErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/runs/{run_id}/execute',
+      ...options,
+    });
+  }
+
+  /**
+   * Cancel Run Endpoint
+   */
+  public static cancelRunEndpoint<ThrowOnError extends boolean = false>(
+    options: Options<RunsCancelRunEndpointData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      RunsCancelRunEndpointResponses,
+      RunsCancelRunEndpointErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/runs/{run_id}/cancel',
+      ...options,
+    });
+  }
+
+  /**
+   * Stream Run
+   *
+   * SSE endpoint streaming real-time run progress events.
+   */
+  public static streamRun<ThrowOnError extends boolean = false>(
+    options: Options<RunsStreamRunData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      RunsStreamRunResponses,
+      RunsStreamRunErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+      ],
+      url: '/api/v1/runs/{run_id}/stream',
+      ...options,
     });
   }
 }

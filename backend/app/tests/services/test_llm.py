@@ -28,7 +28,12 @@ def _fake_response(
     message = SimpleNamespace(content=content)
     choice = SimpleNamespace(message=message)
     usage = SimpleNamespace(prompt_tokens=3, completion_tokens=7, total_tokens=10)
-    return SimpleNamespace(choices=[choice], model=model, usage=usage)
+    return SimpleNamespace(
+        choices=[choice],
+        model=model,
+        usage=usage,
+        _hidden_params={"response_cost": 0.00042},
+    )
 
 
 @pytest.mark.asyncio
@@ -53,6 +58,7 @@ async def test_call_llm_success_maps_response() -> None:
         "total_tokens": 10,
     }
     assert out.latency_ms is not None
+    assert out.response_cost_usd == pytest.approx(0.00042)
     mock_completion.assert_awaited_once()
     assert mock_completion.await_args is not None
     _call_kw = mock_completion.await_args.kwargs

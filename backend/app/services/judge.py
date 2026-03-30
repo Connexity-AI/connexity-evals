@@ -319,6 +319,7 @@ def _error_verdict(
     judge_latency_ms: int | None,
     judge_token_usage: dict[str, int] | None,
     error_message: str,
+    judge_cost_usd: float | None = None,
 ) -> JudgeVerdict:
     """Construct a failed verdict when judge evaluation cannot complete."""
     return JudgeVerdict(
@@ -331,6 +332,7 @@ def _error_verdict(
         judge_provider=judge_provider,
         judge_latency_ms=judge_latency_ms,
         judge_token_usage=judge_token_usage,
+        judge_cost_usd=judge_cost_usd,
     )
 
 
@@ -402,6 +404,7 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
             judge_latency_ms=response.latency_ms,
             judge_token_usage=token_usage,
             error_message="Judge model did not return valid JSON",
+            judge_cost_usd=response.response_cost_usd,
         )
 
     effective_judge = judge_cfg or JudgeConfig()
@@ -480,6 +483,7 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
             judge_latency_ms=response.latency_ms,
             judge_token_usage=token_usage,
             error_message=str(e),
+            judge_cost_usd=response.response_cost_usd,
         )
 
     overall_score = round(overall_accum * 100.0, 2)
@@ -501,4 +505,5 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
         judge_provider=judge_provider,
         judge_latency_ms=response.latency_ms,
         judge_token_usage=token_usage,
+        judge_cost_usd=response.response_cost_usd,
     )

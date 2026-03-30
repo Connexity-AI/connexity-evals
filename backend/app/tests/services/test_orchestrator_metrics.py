@@ -2,6 +2,8 @@
 
 import uuid
 
+import pytest
+
 from app.models.scenario_result import ScenarioResult
 from app.services.orchestrator import compute_aggregate_metrics
 
@@ -12,6 +14,9 @@ def _make_result(
     error_message: str | None = None,
     agent_latency_p50_ms: int | None = None,
     verdict: dict | None = None,
+    agent_token_usage: dict[str, int | bool] | None = None,
+    platform_token_usage: dict[str, int] | None = None,
+    estimated_cost_usd: float | None = None,
 ) -> ScenarioResult:
     return ScenarioResult(
         id=uuid.uuid4(),
@@ -21,6 +26,9 @@ def _make_result(
         error_message=error_message,
         agent_latency_p50_ms=agent_latency_p50_ms,
         verdict=verdict,
+        agent_token_usage=agent_token_usage,
+        platform_token_usage=platform_token_usage,
+        estimated_cost_usd=estimated_cost_usd,
     )
 
 
@@ -127,3 +135,30 @@ def test_avg_overall_score_all_none() -> None:
     ]
     metrics = compute_aggregate_metrics(results)
     assert metrics.avg_overall_score is None
+
+
+def test_token_and_cost_aggregation() -> None:
+    results = [
+        _make_result(
+            passed=True,
+            agent_token_usage={"prompt_tokens": 10, "completion_tokens": 5},
+            platform_token_usage={"prompt_tokens": 100, "completion_tokens": 20},
+            estimated_cost_usd=0.01,
+        ),
+        _make_result(
+            passed=True,
+            agent_token_usage={"prompt_tokens": 20, "completion_tokens": 10},
+            platform_token_usage={"prompt_tokens": 50, "completion_tokens": 10},
+            estimated_cost_usd=0.02,
+        ),
+    ]
+    metrics = compute_aggregate_metrics(results)
+    assert metrics.total_agent_token_usage == {
+        "prompt_tokens": 30,
+        "completion_tokens": 15,
+    }
+    assert metrics.total_platform_token_usage == {
+        "prompt_tokens": 150,
+        "completion_tokens": 30,
+    }
+    assert metrics.total_estimated_cost_usd == pytest.approx(0.03)

@@ -222,6 +222,10 @@ class JudgeVerdict(BaseModel):
     judge_token_usage: dict[str, int] | None = Field(
         default=None, description="Token usage for the judge call"
     )
+    judge_cost_usd: float | None = Field(
+        default=None,
+        description="LiteLLM-estimated USD cost for the judge completion",
+    )
 
 
 # ── Aggregate metrics nested types ─────────────────────────────────
@@ -249,7 +253,7 @@ class AggregateMetrics(BaseModel):
     latency_avg_ms: float | None = Field(
         default=None, description="Mean agent latency across scenarios"
     )
-    total_agent_token_usage: dict[str, int] | None = Field(
+    total_agent_token_usage: dict[str, int | bool] | None = Field(
         default=None,
         description="Summed token usage from the agent across all scenarios",
     )

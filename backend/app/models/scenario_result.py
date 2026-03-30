@@ -54,10 +54,10 @@ class ScenarioResultBase(SQLModel):
         default=None,
         description="Maximum agent response latency in milliseconds",
     )
-    agent_token_usage: dict[str, int] | None = Field(
+    agent_token_usage: dict[str, int | bool] | None = Field(
         default=None,
         sa_column=Column("agent_token_usage", JSONB, nullable=True),
-        description="Token usage breakdown from the agent (input/output counts)",
+        description="Token usage from the agent; may include estimated=true",
     )
     platform_token_usage: dict[str, int] | None = Field(
         default=None,
@@ -135,9 +135,9 @@ class ScenarioResultUpdate(SQLModel):
         default=None,
         description="Maximum agent response latency in milliseconds",
     )
-    agent_token_usage: dict[str, int] | None = Field(
+    agent_token_usage: dict[str, int | bool] | None = Field(
         default=None,
-        description="Token usage breakdown from the agent (input/output counts)",
+        description="Token usage from the agent; may include estimated=true",
     )
     platform_token_usage: dict[str, int] | None = Field(
         default=None,
@@ -185,9 +185,9 @@ class ScenarioResultPublic(SQLModel):
     agent_latency_max_ms: int | None = Field(
         description="Maximum agent response latency in milliseconds"
     )
-    agent_token_usage: dict[str, int] | None = Field(
+    agent_token_usage: dict[str, int | bool] | None = Field(
         default=None,
-        description="Token usage breakdown from the agent (input/output counts)",
+        description="Token usage from the agent; may include estimated=true",
     )
     platform_token_usage: dict[str, int] | None = Field(
         default=None,
