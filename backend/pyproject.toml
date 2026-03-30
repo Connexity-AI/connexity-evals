@@ -29,7 +29,7 @@ dependencies = [
 ]
 
 [project.scripts]
-cli = "cli.main:app"
+connexity-evals = "cli.main:app"
 
 [dependency-groups]
 dev = [

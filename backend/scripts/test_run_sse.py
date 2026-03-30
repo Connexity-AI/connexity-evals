@@ -25,8 +25,6 @@ Usage::
         --scenarios ../examples/scenarios/normal-refund-request.json
 """
 
-from __future__ import annotations
-
 import argparse
 import json
 import sys
