@@ -6,10 +6,11 @@ helpers (:class:`RunConfig`, :class:`SimulatorConfig`, :class:`JudgeConfig`)
 live here so API and services share one definition.
 """
 
+import uuid
 from datetime import datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.models.enums import ErrorCategory, SimulatorMode, TurnRole
 
@@ -95,6 +96,13 @@ class SimulatorConfig(BaseModel):
         le=2.0,
         description="Sampling temperature for simulator LLM",
     )
+
+    @model_validator(mode="after")
+    def scripted_mode_requires_messages(self) -> "SimulatorConfig":
+        if self.mode == SimulatorMode.SCRIPTED and not self.scripted_messages:
+            msg = "scripted_messages must be non-empty when mode is 'scripted'"
+            raise ValueError(msg)
+        return self
 
 
 class RunConfig(BaseModel):
@@ -271,3 +279,22 @@ class AggregateMetrics(BaseModel):
         default=None,
         description="Mean judge overall score across all scenarios",
     )
+
+
+# ── SSE Event nested types ─────────────────────────────────────────
+
+
+class RunStreamEvent(BaseModel):
+    event: str
+    data: dict[str, Any]
+
+
+class ScenarioProgressData(BaseModel):
+    run_id: uuid.UUID
+    scenario_id: uuid.UUID
+    scenario_name: str
+    completed_count: int
+    total_count: int
+    passed: bool | None = None
+    overall_score: float | None = None
+    error_message: str | None = None

@@ -242,6 +242,35 @@ def test_delete_scenario_set(db: Session) -> None:
     assert fetched is None
 
 
+def test_get_scenarios_for_set_returns_active_only(db: Session) -> None:
+    active = create_test_scenario(db, status="active")
+    draft = create_test_scenario(db, status="draft")
+    archived = create_test_scenario(db, status="archived")
+    scenario_set = create_test_scenario_set(
+        db, scenario_ids=[active.id, draft.id, archived.id]
+    )
+    results = crud.get_scenarios_for_set(session=db, scenario_set_id=scenario_set.id)
+    result_ids = [s.id for s in results]
+    assert active.id in result_ids
+    assert draft.id not in result_ids
+    assert archived.id not in result_ids
+
+
+def test_get_scenarios_for_set_preserves_order(db: Session) -> None:
+    s1 = create_test_scenario(db)
+    s2 = create_test_scenario(db)
+    s3 = create_test_scenario(db)
+    scenario_set = create_test_scenario_set(db, scenario_ids=[s3.id, s1.id, s2.id])
+    results = crud.get_scenarios_for_set(session=db, scenario_set_id=scenario_set.id)
+    assert [s.id for s in results] == [s3.id, s1.id, s2.id]
+
+
+def test_get_scenarios_for_set_empty(db: Session) -> None:
+    scenario_set = create_test_scenario_set(db)
+    results = crud.get_scenarios_for_set(session=db, scenario_set_id=scenario_set.id)
+    assert results == []
+
+
 def test_count_scenarios_in_sets_batch(db: Session) -> None:
     s1 = create_test_scenario(db)
     s2 = create_test_scenario(db)
