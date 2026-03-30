@@ -3,7 +3,6 @@ import uuid
 from app.models.agent import Agent, AgentCreate
 from app.models.enums import (
     Difficulty,
-    ErrorCategory,
     RunStatus,
     ScenarioStatus,
 )
@@ -159,5 +158,4 @@ def test_scenario_result_table_defaults():
         scenario_id=uuid.uuid4(),
     )
     assert sr.id is not None
-    assert sr.error_category == ErrorCategory.NONE
     assert sr.passed is None

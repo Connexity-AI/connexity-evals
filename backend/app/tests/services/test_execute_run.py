@@ -7,7 +7,7 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import app as app_pkg
-from app.models.enums import ErrorCategory, RunStatus, ScenarioStatus, TurnRole
+from app.models.enums import RunStatus, ScenarioStatus, TurnRole
 from app.models.run import Run
 from app.models.scenario import Scenario
 from app.models.scenario_result import ScenarioResult
@@ -57,7 +57,6 @@ def _make_result(
         run_id=run_id,
         scenario_id=scenario_id,
         passed=passed,
-        error_category=ErrorCategory.NONE,
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
@@ -85,7 +84,6 @@ def _mock_verdict() -> JudgeVerdict:
     return JudgeVerdict(
         passed=True,
         overall_score=85.0,
-        error_category=ErrorCategory.NONE,
         metric_scores=[
             MetricScore(
                 metric="response_delivery",
@@ -205,7 +203,6 @@ class TestExecuteSingleScenario:
         scenario = _make_scenario()
         result_obj = _make_result(run_id, scenario.id)
         updated_result = _make_result(run_id, scenario.id, passed=False)
-        updated_result.error_category = ErrorCategory.OTHER
         updated_result.error_message = "boom"
 
         mock_run_eval.side_effect = RuntimeError("boom")
@@ -232,12 +229,12 @@ class TestExecuteSingleScenario:
                 cancel_event=asyncio.Event(),
             )
 
-        assert result.error_category == ErrorCategory.OTHER
+        assert result.error_message == "boom"
         update_call = mock_crud.update_scenario_result.call_args
         update_data = update_call.kwargs.get(
             "result_in", update_call[1].get("result_in")
         )
-        assert update_data.error_category == ErrorCategory.OTHER
+        assert update_data.error_message == "boom"
 
 
 class TestExecuteRun:

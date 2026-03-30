@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from app.core.config import settings
-from app.models.enums import ErrorCategory, TurnRole
+from app.models.enums import TurnRole
 from app.models.scenario import Scenario
 from app.models.schemas import (
     ConversationTurn,
@@ -16,9 +16,7 @@ from app.models.schemas import (
     ToolCall,
 )
 from app.services.judge_metrics import (
-    METRIC_REGISTRY,
     MetricDefinition,
-    MetricTier,
     ScoreType,
     resolve_metrics,
 )
@@ -123,14 +121,25 @@ You judge conversation transcripts against the rubrics below.
 ## Scoring Rules
 
 - For **scored** metrics (0-5 integer): use the full range. Each score level
-  has specific criteria in the rubric. Output `{{ "score": <0-5>, "justification": "<cite turn numbers>" }}`.
+  has specific criteria in the rubric.
 - For **binary** metrics (pass/fail): evaluate against the stated criteria.
-  Output `{{ "passed": <true|false>, "justification": "<cite turn numbers>" }}`.
 - Score each metric **independently** — one metric's result must not influence another.
 - Ground every judgment in **observable evidence** from the transcript.
   Cite specific turn indices and quote relevant text where helpful.
 - Be strict but fair: penalize clear failures, do not invent problems not evidenced in the transcript.
 - If the transcript lacks evidence to judge a metric, note that and score conservatively.
+
+## Per-Metric Output Fields
+
+For each metric, return a JSON object with these fields:
+- **score** (scored) or **passed** (binary): the numeric score or boolean result.
+- **justification**: cite specific turn numbers and explain your reasoning.
+- **failure_code**: a short `snake_case` label describing the failure mode when the metric
+  scored poorly (score <= 2 for scored, or failed for binary). Set to `null` when the metric
+  is acceptable or better. Examples: `wrong_tool_selected`, `hallucinated_result`,
+  `missing_confirmation`, `skipped_required_field`. These are suggestions — use whatever
+  label best describes the specific issue observed. You are not limited to these examples.
+- **turns**: a list of integer turn indices where the issue was observed. Empty list if no issue.
 
 ## Metric Rubrics
 
@@ -208,8 +217,22 @@ def build_judge_response_format(
             "properties": {
                 "score": {"type": "integer", "minimum": 0, "maximum": 5},
                 "justification": {"type": "string"},
+                "failure_code": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Short snake_case label for the failure mode when score <= 2. "
+                        "Examples: wrong_tool_selected, hallucinated_result, missing_confirmation. "
+                        "These are suggestions — use whatever best describes the issue. "
+                        "null when score >= 3."
+                    ),
+                },
+                "turns": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "Turn indices where the issue was observed. Empty if no issue.",
+                },
             },
-            "required": ["score", "justification"],
+            "required": ["score", "justification", "failure_code", "turns"],
             "additionalProperties": False,
         }
 
@@ -219,8 +242,20 @@ def build_judge_response_format(
             "properties": {
                 "passed": {"type": "boolean"},
                 "justification": {"type": "string"},
+                "failure_code": {
+                    "type": ["string", "null"],
+                    "description": (
+                        "Short snake_case label for the failure mode when not passed. "
+                        "null when passed."
+                    ),
+                },
+                "turns": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "Turn indices where the issue was observed. Empty if no issue.",
+                },
             },
-            "required": ["passed", "justification"],
+            "required": ["passed", "justification", "failure_code", "turns"],
             "additionalProperties": False,
         }
 
@@ -248,63 +283,15 @@ def build_judge_response_format(
     }
 
 
-def _effective_numeric_score(score: int, *, is_binary: bool) -> int:
-    if is_binary:
-        return 5 if score >= 5 else 0
-    return max(0, min(5, score))
-
-
-def _critical_failure(
-    metric_scores: list[MetricScore],
-    threshold: int,
-) -> bool:
-    for c in metric_scores:
-        if c.is_binary:
-            continue
-        if c.tier != MetricTier.EXECUTION.value:
-            continue
-        if c.score <= threshold:
-            return True
-    return False
-
-
-def _derive_error_category(
-    metric_scores: list[MetricScore],
-    *,
-    passed: bool,
-) -> ErrorCategory:
-    if passed:
-        return ErrorCategory.NONE
-    if not metric_scores:
-        return ErrorCategory.OTHER
-
-    best: tuple[int, MetricScore] | None = None
-    for c in metric_scores:
-        eff = _effective_numeric_score(c.score, is_binary=c.is_binary)
-        if best is None or eff < best[0]:
-            best = (eff, c)
-    if best is None:
-        return ErrorCategory.OTHER
-    lowest = best[1]
-    definition = METRIC_REGISTRY.get(lowest.metric)
-    if definition is None:
-        return ErrorCategory.OTHER
-    return definition.failure_error_category
-
-
 def _build_summary(
     metric_scores: list[MetricScore],
     *,
     passed: bool,
     overall_score: float,
-    critical_failure: bool,
 ) -> str:
     """Build a concise human-readable summary from the scored metrics."""
     status = "PASSED" if passed else "FAILED"
     parts: list[str] = [f"{status} ({overall_score:.1f}/100)."]
-
-    if critical_failure:
-        parts.append("Critical failure detected on an execution-tier metric.")
 
     # Highlight lowest and highest scoring non-binary metrics
     scored = [ms for ms in metric_scores if not ms.is_binary]
@@ -337,9 +324,7 @@ def _error_verdict(
     return JudgeVerdict(
         passed=False,
         overall_score=0.0,
-        critical_failure=False,
         metric_scores=[],
-        error_category=ErrorCategory.OTHER,
         summary=f"Judge evaluation failed: {error_message}",
         raw_judge_output=raw_output,
         judge_model=judge_model,
@@ -421,7 +406,6 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
 
     effective_judge = judge_cfg or JudgeConfig()
     pass_threshold = effective_judge.pass_threshold
-    critical_threshold = effective_judge.critical_failure_threshold
 
     metric_scores: list[MetricScore] = []
     overall_accum = 0.0
@@ -432,6 +416,9 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
             if not isinstance(block, dict):
                 msg = f"Judge output missing or invalid block for metric {m.name}"
                 raise ValueError(msg)
+
+            failure_code = block.get("failure_code") or None
+            turns = block.get("turns") or []
 
             if m.score_type == ScoreType.BINARY:
                 passed_flag = block.get("passed")
@@ -452,6 +439,8 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
                         justification=justification,
                         is_binary=True,
                         tier=m.tier.value,
+                        failure_code=failure_code,
+                        turns=turns,
                     )
                 )
                 overall_accum += (score_int / 5.0) * weight
@@ -477,6 +466,8 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
                         justification=justification,
                         is_binary=False,
                         tier=m.tier.value,
+                        failure_code=failure_code,
+                        turns=turns,
                     )
                 )
                 overall_accum += (score_int / 5.0) * weight
@@ -492,27 +483,18 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
         )
 
     overall_score = round(overall_accum * 100.0, 2)
-    critical = _critical_failure(metric_scores, critical_threshold)
-    tentative_pass = overall_score >= pass_threshold and not critical
-    error_cat = _derive_error_category(
-        metric_scores,
-        passed=tentative_pass,
-    )
-    passed = tentative_pass
+    passed = overall_score >= pass_threshold
 
     summary = _build_summary(
         metric_scores,
         passed=passed,
         overall_score=overall_score,
-        critical_failure=critical,
     )
 
     return JudgeVerdict(
         passed=passed,
         overall_score=overall_score,
-        critical_failure=critical,
         metric_scores=metric_scores,
-        error_category=error_cat,
         summary=summary,
         raw_judge_output=raw,
         judge_model=response.model,

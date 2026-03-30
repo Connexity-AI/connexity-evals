@@ -1,4 +1,4 @@
-# LLM Judge Evaluation Criteria (CE-015 / CS-22)
+# LLM Judge Evaluation Criteria
 
 This document describes the evaluation metrics used by the LLM-as-a-judge module
 to score agent conversation transcripts. The canonical definitions live in
@@ -15,9 +15,18 @@ determine their contribution to the overall score.
 | Property | Description |
 |---|---|
 | **Overall score** | Weighted sum of normalized metric scores, 0-100. |
-| **Pass/fail** | `overall_score >= pass_threshold AND NOT critical_failure`. |
-| **Critical failure** | Any execution-tier scored metric at or below `critical_failure_threshold`. |
-| **Error category** | Derived from the lowest-scoring metric when the scenario fails. |
+| **Pass/fail** | `overall_score >= pass_threshold`. |
+
+### Per-Metric Failure Diagnostics
+
+When a metric scores poorly, the judge generates:
+
+- **`failure_code`** — a free-form `snake_case` label describing the failure mode
+  (e.g. `wrong_tool_selected`, `hallucinated_result`, `missing_confirmation`).
+  These are suggestions; the judge is not limited to a fixed set.
+  `null` when the metric is acceptable or better.
+- **`turns`** — a list of integer turn indices where the issue was observed.
+  Empty list if no issue.
 
 ## Metric Tiers
 
@@ -39,8 +48,6 @@ provided. All use the 0-5 scored scale.
 - **Tier:** Execution
 - **Default weight:** 0.15
 - **Measures:** Correct tool names and call sequence.
-- **What to fix:** Tool descriptions, selection logic, flow graph.
-- **Error category on failure:** `tool_misuse`
 
 | Score | Criteria |
 |---|---|
@@ -57,8 +64,6 @@ provided. All use the 0-5 scored scale.
 - **Tier:** Execution
 - **Default weight:** 0.15
 - **Measures:** Argument values correctly extracted from conversation for tools.
-- **What to fix:** Slot-filling prompts, parameter parsing, formatting.
-- **Error category on failure:** `tool_misuse`
 
 | Score | Criteria |
 |---|---|
@@ -75,8 +80,6 @@ provided. All use the 0-5 scored scale.
 - **Tier:** Execution
 - **Default weight:** 0.15
 - **Measures:** Tool output accurately reflected in agent response.
-- **What to fix:** Response generation prompt, output formatting rules.
-- **Error category on failure:** `hallucination`
 
 | Score | Criteria |
 |---|---|
@@ -93,8 +96,6 @@ provided. All use the 0-5 scored scale.
 - **Tier:** Knowledge
 - **Default weight:** 0.125
 - **Measures:** Every agent claim traceable to context, tools, or business rules.
-- **What to fix:** Grounding instructions, retrieval, citation rules.
-- **Error category on failure:** `hallucination`
 
 | Score | Criteria |
 |---|---|
@@ -111,8 +112,6 @@ provided. All use the 0-5 scored scale.
 - **Tier:** Knowledge
 - **Default weight:** 0.125
 - **Measures:** Agent follows explicit rules from system prompt and business rules.
-- **What to fix:** The specific violated rule; clarify ambiguous instructions.
-- **Error category on failure:** `prompt_violation`
 
 | Score | Criteria |
 |---|---|
@@ -129,8 +128,6 @@ provided. All use the 0-5 scored scale.
 - **Tier:** Process
 - **Default weight:** 0.10
 - **Measures:** Required info collected before action; previously stated info reused.
-- **What to fix:** Required-fields checklist, context window, slot prompts.
-- **Error category on failure:** `incomplete`
 
 | Score | Criteria |
 |---|---|
@@ -147,8 +144,6 @@ provided. All use the 0-5 scored scale.
 - **Tier:** Process
 - **Default weight:** 0.10
 - **Measures:** Ambiguity handling, error recovery, and conversation closure.
-- **What to fix:** Flow logic, clarification prompts, closing sequence.
-- **Error category on failure:** `incomplete`
 
 | Score | Criteria |
 |---|---|
@@ -165,8 +160,6 @@ provided. All use the 0-5 scored scale.
 - **Tier:** Delivery
 - **Default weight:** 0.10
 - **Measures:** Concise, natural, TTS-friendly, non-repetitive responses.
-- **What to fix:** Output formatting, max length, style instructions.
-- **Error category on failure:** `other`
 
 | Score | Criteria |
 |---|---|
@@ -186,7 +179,6 @@ provided. All use the 0-5 scored scale.
 - **Default weight:** 0 (must supply explicit weight when selected)
 - **Scale:** Binary pass/fail
 - **Measures:** Whether the agent completed the primary task from `expected_outcomes`.
-- **Error category on failure:** `incomplete`
 
 To include this metric, add it to `JudgeConfig.metrics` with an explicit weight:
 
@@ -207,7 +199,6 @@ To include this metric, add it to `JudgeConfig.metrics` with an explicit weight:
 |---|---|---|---|
 | `metrics` | `list[MetricSelection] \| null` | `null` (use defaults) | Selected metrics with optional weight overrides. |
 | `pass_threshold` | `float` | `75.0` | Minimum overall score (0-100) to pass. |
-| `critical_failure_threshold` | `int` | `1` | Execution-tier scored metric at or below this triggers critical failure. |
 | `model` | `string \| null` | `null` | Judge LLM model override. |
 | `provider` | `string \| null` | `null` | Judge LLM provider override. |
 
@@ -239,12 +230,10 @@ Returns all registered metrics (including opt-in) for UI discovery.
       "name": "tool_routing",
       "display_name": "Tool Routing",
       "description": "Correct tool names and call sequence.",
-      "what_to_fix": "Tool descriptions, selection logic, flow graph.",
       "tier": "execution",
       "default_weight": 0.15,
       "score_type": "scored",
       "rubric": "...",
-      "failure_error_category": "tool_misuse",
       "include_in_defaults": true
     }
   ],

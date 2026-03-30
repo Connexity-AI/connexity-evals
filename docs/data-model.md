@@ -92,7 +92,6 @@ erDiagram
         jsonb platform_token_usage
         float estimated_cost_usd
         bool passed
-        enum error_category
         text error_message
         timestamp started_at
         timestamp completed_at
@@ -108,7 +107,6 @@ erDiagram
 | `Difficulty` | `normal`, `hard` |
 | `ScenarioStatus` | `draft`, `active`, `archived` |
 | `RunStatus` | `pending`, `running`, `completed`, `failed`, `cancelled` |
-| `ErrorCategory` | `none`, `off_topic`, `hallucination`, `refusal`, `tool_misuse`, `safety_violation`, `prompt_violation`, `incomplete`, `latency_timeout`, `agent_error`, `other` |
 | `TurnRole` | `user`, `assistant`, `system`, `tool` |
 
 ## JSONB Nested Entities
@@ -130,7 +128,6 @@ These are stored inside JSONB columns, not as separate tables.
 |-------|------|---------|
 | `metrics` | `list[MetricSelection] \| None` | `None` |
 | `pass_threshold` | `float` | `75.0` |
-| `critical_failure_threshold` | `int` | `1` |
 | `model` | `str \| None` | `None` |
 | `provider` | `str \| None` | `None` |
 
@@ -174,24 +171,27 @@ OpenAI chat-completions shape, plus optional `tool_result` for platform-stored o
 |-------|------|---------|
 | `passed` | `bool` | — |
 | `overall_score` | `float` | — |
-| `criterion_scores` | `list[CriterionScore]` | — |
-| `error_category` | `ErrorCategory` | `none` |
-| `summary` | `str` | — |
+| `metric_scores` | `list[MetricScore]` | — |
+| `summary` | `str \| None` | `None` |
 | `raw_judge_output` | `str \| None` | `None` |
 | `judge_model` | `str` | — |
 | `judge_provider` | `str` | — |
 | `judge_latency_ms` | `int \| None` | `None` |
 | `judge_token_usage` | `dict[str, int] \| None` | `None` |
 
-### CriterionScore (nested in `JudgeVerdict.criterion_scores`)
+### MetricScore (nested in `JudgeVerdict.metric_scores`)
 
 | Field | Type | Default |
 |-------|------|---------|
-| `criterion` | `str` | — |
-| `score` | `float` | — (1.0–5.0) |
-| `label` | `str` | — (fail\|poor\|acceptable\|good\|excellent) |
+| `metric` | `str` | — |
+| `score` | `int` | — (0–5 scored; 0 or 5 binary) |
+| `label` | `str` | — (critical_fail\|fail\|poor\|acceptable\|good\|excellent / pass\|fail) |
 | `weight` | `float` | `1.0` |
 | `justification` | `str` | — |
+| `is_binary` | `bool` | `false` |
+| `tier` | `str \| None` | `None` |
+| `failure_code` | `str \| None` | `None` — judge-generated label when metric scored poorly |
+| `turns` | `list[int]` | `[]` — turn indices where the issue was observed |
 
 ### AggregateMetrics (stored in `runs.aggregate_metrics`)
 
@@ -209,7 +209,6 @@ OpenAI chat-completions shape, plus optional `tool_result` for platform-stored o
 | `total_agent_token_usage` | `dict[str, int] \| None` | `None` |
 | `total_platform_token_usage` | `dict[str, int] \| None` | `None` |
 | `total_estimated_cost_usd` | `float \| None` | `None` |
-| `error_category_distribution` | `list[ErrorCategoryCount]` | `[]` |
 | `avg_overall_score` | `float \| None` | `None` |
 
 ### Persona (stored in `scenarios.persona`)
@@ -248,7 +247,6 @@ Free-form `dict[str, Any]`. Keys are descriptive labels (e.g. `"refund_initiated
 | `scenario_result` | `run_id` | btree |
 | `scenario_result` | `scenario_id` | btree |
 | `scenario_result` | `passed` | btree |
-| `scenario_result` | `error_category` | btree |
 
 ## Critical Design Decision
 

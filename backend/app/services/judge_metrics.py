@@ -8,7 +8,6 @@ from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
-from app.models.enums import ErrorCategory
 from app.models.schemas import JudgeConfig, MetricSelection
 
 
@@ -28,7 +27,6 @@ class MetricDefinition(BaseModel):
     name: str = Field(description="Stable metric id (snake_case)")
     display_name: str = Field(description="Human-readable name")
     description: str = Field(description="What this metric measures")
-    what_to_fix: str = Field(description="What to fix when the score is low")
     tier: MetricTier
     default_weight: float = Field(
         ge=0.0,
@@ -36,9 +34,6 @@ class MetricDefinition(BaseModel):
     )
     score_type: ScoreType
     rubric: str = Field(description="Rubric and examples for the judge prompt")
-    failure_error_category: ErrorCategory = Field(
-        description="ErrorCategory when this metric is the lowest scorer on failure"
-    )
     include_in_defaults: bool = Field(
         default=True,
         description="If False, metric is omitted unless explicitly selected",
@@ -185,100 +180,82 @@ METRIC_REGISTRY: dict[str, MetricDefinition] = {
         name="tool_routing",
         display_name="Tool Routing",
         description="Correct tool names and call sequence.",
-        what_to_fix="Tool descriptions, selection logic, flow graph.",
         tier=MetricTier.EXECUTION,
         default_weight=0.15,
         score_type=ScoreType.SCORED,
         rubric=_RUBRIC_TOOL_ROUTING,
-        failure_error_category=ErrorCategory.TOOL_MISUSE,
     ),
     "parameter_extraction": MetricDefinition(
         name="parameter_extraction",
         display_name="Parameter Extraction",
         description="Arguments correctly extracted from conversation for tools.",
-        what_to_fix="Slot-filling prompts, parameter parsing, formatting.",
         tier=MetricTier.EXECUTION,
         default_weight=0.15,
         score_type=ScoreType.SCORED,
         rubric=_RUBRIC_PARAMETER_EXTRACTION,
-        failure_error_category=ErrorCategory.TOOL_MISUSE,
     ),
     "result_interpretation": MetricDefinition(
         name="result_interpretation",
         display_name="Result Interpretation",
         description="Tool outputs accurately reflected in agent responses.",
-        what_to_fix="Response generation prompt, output formatting rules.",
         tier=MetricTier.EXECUTION,
         default_weight=0.15,
         score_type=ScoreType.SCORED,
         rubric=_RUBRIC_RESULT_INTERPRETATION,
-        failure_error_category=ErrorCategory.HALLUCINATION,
     ),
     "grounding_fidelity": MetricDefinition(
         name="grounding_fidelity",
         display_name="Grounding Fidelity",
         description="Claims traceable to context, tools, or business rules.",
-        what_to_fix="Grounding instructions, retrieval, citation rules.",
         tier=MetricTier.KNOWLEDGE,
         default_weight=0.125,
         score_type=ScoreType.SCORED,
         rubric=_RUBRIC_GROUNDING_FIDELITY,
-        failure_error_category=ErrorCategory.HALLUCINATION,
     ),
     "instruction_compliance": MetricDefinition(
         name="instruction_compliance",
         display_name="Instruction Compliance",
         description="Follows explicit system prompt and business rules.",
-        what_to_fix="The specific violated rule; clarify ambiguous instructions.",
         tier=MetricTier.KNOWLEDGE,
         default_weight=0.125,
         score_type=ScoreType.SCORED,
         rubric=_RUBRIC_INSTRUCTION_COMPLIANCE,
-        failure_error_category=ErrorCategory.PROMPT_VIOLATION,
     ),
     "information_gathering": MetricDefinition(
         name="information_gathering",
         display_name="Information Gathering",
         description="Required information collected before action; prior info reused.",
-        what_to_fix="Required-fields checklist, context window, slot prompts.",
         tier=MetricTier.PROCESS,
         default_weight=0.10,
         score_type=ScoreType.SCORED,
         rubric=_RUBRIC_INFORMATION_GATHERING,
-        failure_error_category=ErrorCategory.INCOMPLETE,
     ),
     "conversation_management": MetricDefinition(
         name="conversation_management",
         display_name="Conversation Management",
         description="Ambiguity handling, error recovery, conversation closure.",
-        what_to_fix="Flow logic, clarification prompts, closing sequence.",
         tier=MetricTier.PROCESS,
         default_weight=0.10,
         score_type=ScoreType.SCORED,
         rubric=_RUBRIC_CONVERSATION_MANAGEMENT,
-        failure_error_category=ErrorCategory.INCOMPLETE,
     ),
     "response_delivery": MetricDefinition(
         name="response_delivery",
         display_name="Response Delivery",
         description="Concise, natural, TTS-friendly, non-repetitive responses.",
-        what_to_fix="Output formatting, max length, style instructions.",
         tier=MetricTier.DELIVERY,
         default_weight=0.10,
         score_type=ScoreType.SCORED,
         rubric=_RUBRIC_RESPONSE_DELIVERY,
-        failure_error_category=ErrorCategory.OTHER,
     ),
     "task_completion": MetricDefinition(
         name="task_completion",
         display_name="Task Completion (binary example)",
         description="Primary task from expected_outcomes achieved (pass/fail).",
-        what_to_fix="End-to-end flow against scenario success criteria.",
         tier=MetricTier.EXECUTION,
         default_weight=0.0,
         score_type=ScoreType.BINARY,
         rubric=_RUBRIC_TASK_COMPLETION,
-        failure_error_category=ErrorCategory.INCOMPLETE,
         include_in_defaults=False,
     ),
 }

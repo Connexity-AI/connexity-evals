@@ -1,7 +1,7 @@
 """Tests for the judge evaluation pipeline.
 
-Covers score parsing, weighted scoring, critical failure detection,
-error category derivation, summary generation, and graceful error handling.
+Covers score parsing, weighted scoring, summary generation, failure_code/turns
+per metric, and graceful error handling.
 """
 
 import json
@@ -11,20 +11,16 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from app.models.enums import ErrorCategory, TurnRole
+from app.models.enums import TurnRole
 from app.models.scenario import Scenario
 from app.models.schemas import (
     ConversationTurn,
     JudgeConfig,
     JudgeVerdict,
-    MetricScore,
     MetricSelection,
 )
 from app.services.judge import (
     JudgeInput,
-    _critical_failure,
-    _derive_error_category,
-    _effective_numeric_score,
     evaluate_transcript,
 )
 from app.services.llm import LLMResponse
@@ -81,17 +77,54 @@ def _make_transcript() -> list[ConversationTurn]:
 def _default_judge_llm_response() -> dict[str, object]:
     """LLM JSON payload with all 8 default metrics scoring well."""
     return {
-        "tool_routing": {"score": 5, "justification": "All tools correct (turn 1)."},
-        "parameter_extraction": {"score": 4, "justification": "Params mostly correct."},
-        "result_interpretation": {"score": 5, "justification": "Accurate reflection."},
-        "grounding_fidelity": {"score": 4, "justification": "Claims grounded."},
+        "tool_routing": {
+            "score": 5,
+            "justification": "All tools correct (turn 1).",
+            "failure_code": None,
+            "turns": [],
+        },
+        "parameter_extraction": {
+            "score": 4,
+            "justification": "Params mostly correct.",
+            "failure_code": None,
+            "turns": [],
+        },
+        "result_interpretation": {
+            "score": 5,
+            "justification": "Accurate reflection.",
+            "failure_code": None,
+            "turns": [],
+        },
+        "grounding_fidelity": {
+            "score": 4,
+            "justification": "Claims grounded.",
+            "failure_code": None,
+            "turns": [],
+        },
         "instruction_compliance": {
             "score": 5,
             "justification": "Instructions followed.",
+            "failure_code": None,
+            "turns": [],
         },
-        "information_gathering": {"score": 4, "justification": "Info collected."},
-        "conversation_management": {"score": 4, "justification": "Good flow."},
-        "response_delivery": {"score": 4, "justification": "Concise and natural."},
+        "information_gathering": {
+            "score": 4,
+            "justification": "Info collected.",
+            "failure_code": None,
+            "turns": [],
+        },
+        "conversation_management": {
+            "score": 4,
+            "justification": "Good flow.",
+            "failure_code": None,
+            "turns": [],
+        },
+        "response_delivery": {
+            "score": 4,
+            "justification": "Concise and natural.",
+            "failure_code": None,
+            "turns": [],
+        },
     }
 
 
@@ -116,220 +149,6 @@ def _make_judge_input(
         agent_tools=[{"type": "function", "function": {"name": "book_appointment"}}],
         judge_config=judge_config,
     )
-
-
-# ── _effective_numeric_score ──────────────────────────────────────────
-
-
-class TestEffectiveNumericScore:
-    def test_scored_clamps_to_range(self) -> None:
-        assert _effective_numeric_score(-1, is_binary=False) == 0
-        assert _effective_numeric_score(3, is_binary=False) == 3
-        assert _effective_numeric_score(7, is_binary=False) == 5
-
-    def test_binary_pass(self) -> None:
-        assert _effective_numeric_score(5, is_binary=True) == 5
-
-    def test_binary_fail(self) -> None:
-        assert _effective_numeric_score(0, is_binary=True) == 0
-        assert _effective_numeric_score(4, is_binary=True) == 0
-
-
-# ── _critical_failure ─────────────────────────────────────────────────
-
-
-class TestCriticalFailure:
-    def test_no_failure_when_execution_scores_above_threshold(self) -> None:
-        scores = [
-            MetricScore(
-                metric="tool_routing",
-                score=3,
-                label="acceptable",
-                weight=0.5,
-                justification="ok",
-                is_binary=False,
-                tier="execution",
-            ),
-            MetricScore(
-                metric="grounding_fidelity",
-                score=1,
-                label="fail",
-                weight=0.5,
-                justification="bad",
-                is_binary=False,
-                tier="knowledge",
-            ),
-        ]
-        assert _critical_failure(scores, threshold=1) is False
-
-    def test_failure_when_execution_score_at_threshold(self) -> None:
-        scores = [
-            MetricScore(
-                metric="tool_routing",
-                score=1,
-                label="fail",
-                weight=0.5,
-                justification="bad",
-                is_binary=False,
-                tier="execution",
-            ),
-        ]
-        assert _critical_failure(scores, threshold=1) is True
-
-    def test_failure_when_execution_score_below_threshold(self) -> None:
-        scores = [
-            MetricScore(
-                metric="parameter_extraction",
-                score=0,
-                label="critical_fail",
-                weight=0.5,
-                justification="terrible",
-                is_binary=False,
-                tier="execution",
-            ),
-        ]
-        assert _critical_failure(scores, threshold=1) is True
-
-    def test_binary_metrics_ignored(self) -> None:
-        scores = [
-            MetricScore(
-                metric="task_completion",
-                score=0,
-                label="fail",
-                weight=0.5,
-                justification="failed",
-                is_binary=True,
-                tier="execution",
-            ),
-        ]
-        assert _critical_failure(scores, threshold=1) is False
-
-    def test_non_execution_tiers_ignored(self) -> None:
-        scores = [
-            MetricScore(
-                metric="response_delivery",
-                score=0,
-                label="critical_fail",
-                weight=0.5,
-                justification="terrible",
-                is_binary=False,
-                tier="delivery",
-            ),
-        ]
-        assert _critical_failure(scores, threshold=1) is False
-
-    def test_empty_scores(self) -> None:
-        assert _critical_failure([], threshold=1) is False
-
-
-# ── _derive_error_category ────────────────────────────────────────────
-
-
-class TestDeriveErrorCategory:
-    def test_passed_returns_none(self) -> None:
-        scores = [
-            MetricScore(
-                metric="tool_routing",
-                score=1,
-                label="fail",
-                weight=1.0,
-                justification="bad",
-                is_binary=False,
-                tier="execution",
-            ),
-        ]
-        assert _derive_error_category(scores, passed=True) == ErrorCategory.NONE
-
-    def test_empty_scores_returns_other(self) -> None:
-        assert _derive_error_category([], passed=False) == ErrorCategory.OTHER
-
-    def test_lowest_execution_metric_maps_to_tool_misuse(self) -> None:
-        scores = [
-            MetricScore(
-                metric="tool_routing",
-                score=1,
-                label="fail",
-                weight=0.5,
-                justification="wrong tool",
-                is_binary=False,
-                tier="execution",
-            ),
-            MetricScore(
-                metric="grounding_fidelity",
-                score=4,
-                label="good",
-                weight=0.5,
-                justification="fine",
-                is_binary=False,
-                tier="knowledge",
-            ),
-        ]
-        assert _derive_error_category(scores, passed=False) == ErrorCategory.TOOL_MISUSE
-
-    def test_lowest_result_interpretation_maps_to_hallucination(self) -> None:
-        scores = [
-            MetricScore(
-                metric="tool_routing",
-                score=4,
-                label="good",
-                weight=0.5,
-                justification="fine",
-                is_binary=False,
-                tier="execution",
-            ),
-            MetricScore(
-                metric="result_interpretation",
-                score=0,
-                label="critical_fail",
-                weight=0.5,
-                justification="fabricated",
-                is_binary=False,
-                tier="execution",
-            ),
-        ]
-        assert (
-            _derive_error_category(scores, passed=False) == ErrorCategory.HALLUCINATION
-        )
-
-    def test_lowest_instruction_compliance_maps_to_prompt_violation(self) -> None:
-        scores = [
-            MetricScore(
-                metric="instruction_compliance",
-                score=1,
-                label="fail",
-                weight=0.5,
-                justification="violated",
-                is_binary=False,
-                tier="knowledge",
-            ),
-            MetricScore(
-                metric="response_delivery",
-                score=3,
-                label="acceptable",
-                weight=0.5,
-                justification="ok",
-                is_binary=False,
-                tier="delivery",
-            ),
-        ]
-        assert (
-            _derive_error_category(scores, passed=False)
-            == ErrorCategory.PROMPT_VIOLATION
-        )
-
-    def test_unknown_metric_returns_other(self) -> None:
-        scores = [
-            MetricScore(
-                metric="nonexistent_metric",
-                score=0,
-                label="fail",
-                weight=1.0,
-                justification="bad",
-                is_binary=False,
-                tier="execution",
-            ),
-        ]
-        assert _derive_error_category(scores, passed=False) == ErrorCategory.OTHER
 
 
 # ── evaluate_transcript ───────────────────────────────────────────────
@@ -362,21 +181,23 @@ class TestEvaluateTranscript:
         assert isinstance(verdict, JudgeVerdict)
         assert verdict.passed is True
         assert verdict.overall_score > 75.0
-        assert verdict.critical_failure is False
-        assert verdict.error_category == ErrorCategory.NONE
         assert len(verdict.metric_scores) == 8
         assert verdict.judge_model == "gpt-4o"
         assert verdict.judge_provider == "openai"
         assert verdict.judge_latency_ms == 1200
         assert verdict.raw_judge_output is not None
-        assert verdict.summary is not None  # summary now populated
+        assert verdict.summary is not None
 
     @pytest.mark.asyncio
     async def test_low_scores_produce_failing_verdict(self) -> None:
         payload = _default_judge_llm_response()
-        # Make all scores low
         for key in payload:
-            payload[key] = {"score": 1, "justification": "Poor performance."}
+            payload[key] = {
+                "score": 1,
+                "justification": "Poor performance.",
+                "failure_code": "poor_performance",
+                "turns": [1, 3],
+            }
 
         mock_response = _mock_llm_response(payload)
 
@@ -387,18 +208,17 @@ class TestEvaluateTranscript:
 
         assert verdict.passed is False
         assert verdict.overall_score < 75.0
-        assert verdict.critical_failure is True  # execution metrics at 1 ≤ threshold 1
-        assert verdict.error_category != ErrorCategory.NONE
 
     @pytest.mark.asyncio
-    async def test_critical_failure_overrides_high_overall_score(self) -> None:
-        """Even if overall_score ≥ threshold, critical_failure forces failure."""
+    async def test_failure_code_and_turns_captured(self) -> None:
+        """Per-metric failure_code and turns are passed through from judge output."""
         payload = _default_judge_llm_response()
-        # One execution metric at 0, rest very high
-        payload["tool_routing"] = {"score": 0, "justification": "No tools called."}
-        for key in payload:
-            if key != "tool_routing":
-                payload[key] = {"score": 5, "justification": "Perfect."}
+        payload["tool_routing"] = {
+            "score": 1,
+            "justification": "Wrong tool called at turn 1.",
+            "failure_code": "wrong_tool_selected",
+            "turns": [1],
+        }
 
         mock_response = _mock_llm_response(payload)
 
@@ -407,18 +227,29 @@ class TestEvaluateTranscript:
             inp = _make_judge_input()
             verdict = await evaluate_transcript(inp)
 
-        assert verdict.critical_failure is True
-        assert verdict.passed is False
+        by_name = {ms.metric: ms for ms in verdict.metric_scores}
+        tr = by_name["tool_routing"]
+        assert tr.failure_code == "wrong_tool_selected"
+        assert tr.turns == [1]
+
+        # High-scoring metric should have no failure_code
+        pe = by_name["parameter_extraction"]
+        assert pe.failure_code is None
+        assert pe.turns == []
 
     @pytest.mark.asyncio
     async def test_custom_pass_threshold(self) -> None:
         payload = _default_judge_llm_response()
-        # Set all scores to 3 → overall ~60%
         for key in payload:
-            payload[key] = {"score": 3, "justification": "Acceptable."}
+            payload[key] = {
+                "score": 3,
+                "justification": "Acceptable.",
+                "failure_code": None,
+                "turns": [],
+            }
 
         mock_response = _mock_llm_response(payload)
-        cfg = JudgeConfig(pass_threshold=50.0, critical_failure_threshold=0)
+        cfg = JudgeConfig(pass_threshold=50.0)
 
         with patch("app.services.judge.call_llm", new_callable=AsyncMock) as mock_call:
             mock_call.return_value = mock_response
@@ -437,8 +268,18 @@ class TestEvaluateTranscript:
             ],
         )
         payload = {
-            "tool_routing": {"score": 5, "justification": "Perfect routing."},
-            "response_delivery": {"score": 3, "justification": "Verbose."},
+            "tool_routing": {
+                "score": 5,
+                "justification": "Perfect routing.",
+                "failure_code": None,
+                "turns": [],
+            },
+            "response_delivery": {
+                "score": 3,
+                "justification": "Verbose.",
+                "failure_code": "verbose_response",
+                "turns": [3],
+            },
         }
         mock_response = _mock_llm_response(payload)
 
@@ -463,8 +304,18 @@ class TestEvaluateTranscript:
             ],
         )
         payload = {
-            "tool_routing": {"score": 4, "justification": "Good."},
-            "task_completion": {"passed": True, "justification": "Task completed."},
+            "tool_routing": {
+                "score": 4,
+                "justification": "Good.",
+                "failure_code": None,
+                "turns": [],
+            },
+            "task_completion": {
+                "passed": True,
+                "justification": "Task completed.",
+                "failure_code": None,
+                "turns": [],
+            },
         }
         mock_response = _mock_llm_response(payload)
 
@@ -488,8 +339,18 @@ class TestEvaluateTranscript:
             ],
         )
         payload = {
-            "tool_routing": {"score": 4, "justification": "Good."},
-            "task_completion": {"passed": False, "justification": "Failed."},
+            "tool_routing": {
+                "score": 4,
+                "justification": "Good.",
+                "failure_code": None,
+                "turns": [],
+            },
+            "task_completion": {
+                "passed": False,
+                "justification": "Failed.",
+                "failure_code": "task_not_completed",
+                "turns": [3],
+            },
         }
         mock_response = _mock_llm_response(payload)
 
@@ -502,16 +363,48 @@ class TestEvaluateTranscript:
         tc = metrics_by_name["task_completion"]
         assert tc.score == 0
         assert tc.label == "fail"
+        assert tc.failure_code == "task_not_completed"
+        assert tc.turns == [3]
 
     @pytest.mark.asyncio
     async def test_score_labels_assigned_correctly(self) -> None:
         payload = _default_judge_llm_response()
-        payload["tool_routing"] = {"score": 0, "justification": "No tools."}
-        payload["parameter_extraction"] = {"score": 1, "justification": "Bad."}
-        payload["result_interpretation"] = {"score": 2, "justification": "Poor."}
-        payload["grounding_fidelity"] = {"score": 3, "justification": "OK."}
-        payload["instruction_compliance"] = {"score": 4, "justification": "Good."}
-        payload["information_gathering"] = {"score": 5, "justification": "Excellent."}
+        payload["tool_routing"] = {
+            "score": 0,
+            "justification": "No tools.",
+            "failure_code": "no_tools_called",
+            "turns": [0, 1, 2, 3],
+        }
+        payload["parameter_extraction"] = {
+            "score": 1,
+            "justification": "Bad.",
+            "failure_code": "bad_params",
+            "turns": [1],
+        }
+        payload["result_interpretation"] = {
+            "score": 2,
+            "justification": "Poor.",
+            "failure_code": "poor_interpretation",
+            "turns": [3],
+        }
+        payload["grounding_fidelity"] = {
+            "score": 3,
+            "justification": "OK.",
+            "failure_code": None,
+            "turns": [],
+        }
+        payload["instruction_compliance"] = {
+            "score": 4,
+            "justification": "Good.",
+            "failure_code": None,
+            "turns": [],
+        }
+        payload["information_gathering"] = {
+            "score": 5,
+            "justification": "Excellent.",
+            "failure_code": None,
+            "turns": [],
+        }
 
         mock_response = _mock_llm_response(payload)
 
@@ -531,7 +424,12 @@ class TestEvaluateTranscript:
     @pytest.mark.asyncio
     async def test_score_clamped_to_0_5(self) -> None:
         payload = _default_judge_llm_response()
-        payload["tool_routing"] = {"score": 10, "justification": "Over max."}
+        payload["tool_routing"] = {
+            "score": 10,
+            "justification": "Over max.",
+            "failure_code": None,
+            "turns": [],
+        }
 
         mock_response = _mock_llm_response(payload)
 
@@ -551,11 +449,20 @@ class TestEvaluateTranscript:
                 MetricSelection(metric="tool_routing", weight=1.0),
                 MetricSelection(metric="grounding_fidelity", weight=1.0),
             ],
-            critical_failure_threshold=0,
         )
         payload = {
-            "tool_routing": {"score": 5, "justification": "Perfect."},
-            "grounding_fidelity": {"score": 3, "justification": "OK."},
+            "tool_routing": {
+                "score": 5,
+                "justification": "Perfect.",
+                "failure_code": None,
+                "turns": [],
+            },
+            "grounding_fidelity": {
+                "score": 3,
+                "justification": "OK.",
+                "failure_code": None,
+                "turns": [],
+            },
         }
         mock_response = _mock_llm_response(payload)
 
@@ -590,7 +497,6 @@ class TestEvaluateTranscript:
 
         assert isinstance(verdict, JudgeVerdict)
         assert verdict.passed is False
-        assert verdict.error_category == ErrorCategory.OTHER
         assert verdict.overall_score == 0.0
         assert verdict.raw_judge_output == "This is not JSON at all"
 
@@ -609,7 +515,6 @@ class TestEvaluateTranscript:
 
         assert isinstance(verdict, JudgeVerdict)
         assert verdict.passed is False
-        assert verdict.error_category == ErrorCategory.OTHER
 
     @pytest.mark.asyncio
     async def test_llm_exception_returns_error_verdict(self) -> None:
@@ -621,7 +526,6 @@ class TestEvaluateTranscript:
 
         assert isinstance(verdict, JudgeVerdict)
         assert verdict.passed is False
-        assert verdict.error_category == ErrorCategory.OTHER
         assert verdict.overall_score == 0.0
 
     @pytest.mark.asyncio

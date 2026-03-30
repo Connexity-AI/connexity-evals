@@ -196,10 +196,6 @@ def fetch_final_run(client: httpx.Client, base: str, run_id: str) -> None:
             print(f"  Latency p95:      {metrics['latency_p95_ms']:.0f} ms")
         if metrics.get("total_estimated_cost_usd") is not None:
             print(f"  Est. cost:        ${metrics['total_estimated_cost_usd']:.4f}")
-        if metrics.get("error_category_distribution"):
-            print(f"  Error categories:")
-            for ec in metrics["error_category_distribution"]:
-                print(f"    {ec['category']}: {ec['count']}")
     else:
         print("\n  (no aggregate metrics)")
 
