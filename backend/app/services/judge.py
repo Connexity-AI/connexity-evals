@@ -2,6 +2,7 @@
 
 import json
 import logging
+import uuid
 from dataclasses import dataclass
 from typing import Any
 
@@ -41,6 +42,7 @@ class JudgeInput:
     agent_system_prompt: str | None
     agent_tools: list[dict[str, Any]] | None
     judge_config: JudgeConfig | None
+    metrics_owner_id: uuid.UUID | None = None
 
 
 def _pretty_json_oneline(raw: str | Any) -> str:
@@ -349,7 +351,7 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
         raise ValueError(msg)
 
     judge_cfg = inp.judge_config
-    resolved = resolve_metrics(judge_cfg)
+    resolved = resolve_metrics(judge_cfg, owner_id=inp.metrics_owner_id)
     metric_defs = [m for m, _ in resolved]
 
     metric_names = [m.name for m in metric_defs]
