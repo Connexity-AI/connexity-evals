@@ -351,7 +351,28 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
         raise ValueError(msg)
 
     judge_cfg = inp.judge_config
-    resolved = resolve_metrics(judge_cfg, owner_id=inp.metrics_owner_id)
+    try:
+        resolved = resolve_metrics(judge_cfg, owner_id=inp.metrics_owner_id)
+    except ValueError as e:
+        logger.error("Metric resolution failed: %s", e)
+        judge_model = (
+            (judge_cfg.model if judge_cfg else None)
+            or settings.LLM_DEFAULT_MODEL
+            or "unknown"
+        )
+        judge_provider = (
+            (judge_cfg.provider if judge_cfg else None)
+            or settings.LLM_DEFAULT_PROVIDER
+            or "openai"
+        )
+        return _error_verdict(
+            raw_output=None,
+            judge_model=judge_model,
+            judge_provider=judge_provider,
+            judge_latency_ms=None,
+            judge_token_usage=None,
+            error_message=f"Metric resolution failed: {e}",
+        )
     metric_defs = [m for m, _ in resolved]
 
     metric_names = [m.name for m in metric_defs]
