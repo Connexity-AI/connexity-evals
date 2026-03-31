@@ -7,6 +7,9 @@
 cd backend && uv venv && source .venv/bin/activate && uv sync
 uvicorn app.main:app --reload
 
+# CLI (after `uv pip install -e ./backend`)
+connexity-evals --help
+
 # Database
 docker compose up -d database adminer
 cd backend && bash scripts/prestart.sh  # runs Alembic migrations + seed

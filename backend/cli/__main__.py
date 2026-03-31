@@ -1,4 +1,4 @@
-"""Entry point for `python -m cli` or `uv run cli`."""
+"""Entry point for `python -m cli` (same Click app as the `connexity-evals` script)."""
 
 from cli.main import app
 

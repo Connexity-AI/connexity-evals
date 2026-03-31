@@ -3,7 +3,11 @@ from typing import Annotated
 
 import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import APIKeyCookie
+from fastapi.security import (
+    APIKeyCookie,
+    HTTPAuthorizationCredentials,
+    HTTPBearer,
+)
 from jwt.exceptions import InvalidTokenError
 from pydantic import ValidationError
 from sqlmodel import Session
@@ -13,7 +17,8 @@ from app.core.config import settings
 from app.core.db import engine
 from app.models import TokenPayload, User
 
-cookie_scheme = APIKeyCookie(name=settings.AUTH_COOKIE)
+cookie_scheme = APIKeyCookie(name=settings.AUTH_COOKIE, auto_error=False)
+bearer_scheme = HTTPBearer(auto_error=False)
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -22,11 +27,13 @@ def get_db() -> Generator[Session, None, None]:
 
 
 SessionDep = Annotated[Session, Depends(get_db)]
-CookieDep = Annotated[str, Depends(cookie_scheme)]
+CookieDep = Annotated[str | None, Depends(cookie_scheme)]
+BearerDep = Annotated[HTTPAuthorizationCredentials | None, Depends(bearer_scheme)]
 
 
-def get_current_user(session: SessionDep, cookie: CookieDep) -> User:
-    if not cookie:
+def get_current_user(session: SessionDep, cookie: CookieDep, bearer: BearerDep) -> User:
+    token = cookie or (bearer.credentials if bearer else None)
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Not authenticated",
@@ -34,7 +41,7 @@ def get_current_user(session: SessionDep, cookie: CookieDep) -> User:
 
     try:
         payload = jwt.decode(
-            cookie, settings.JWT_SECRET_KEY, algorithms=[security.ALGORITHM]
+            token, settings.JWT_SECRET_KEY, algorithms=[security.ALGORITHM]
         )
         token_data = TokenPayload(**payload)
     except (InvalidTokenError, ValidationError):

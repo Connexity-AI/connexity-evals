@@ -1,7 +1,5 @@
 """Token usage aggregation and agent-side token estimation (no DB / I/O)."""
 
-from __future__ import annotations
-
 import json
 import logging
 from dataclasses import dataclass, field

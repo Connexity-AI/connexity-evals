@@ -47,6 +47,22 @@ def test_use_auth_cookie(
     assert "email" in result
 
 
+def test_use_bearer_token(client: TestClient) -> None:
+    login_data = {
+        "username": settings.FIRST_SUPERUSER,
+        "password": settings.FIRST_SUPERUSER_PASSWORD,
+    }
+    login = client.post(f"{settings.API_V1_STR}/login/access-token", data=login_data)
+    assert login.status_code == 200
+    token = login.json()["access_token"]
+    r = client.post(
+        f"{settings.API_V1_STR}/login/test-token",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    assert "email" in r.json()
+
+
 def test_recovery_password(
     client: TestClient, normal_user_auth_cookies: dict[str, str]
 ) -> None:
