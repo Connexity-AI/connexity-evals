@@ -13,6 +13,7 @@ from app.models.scenario import Scenario
 from app.models.scenario_result import ScenarioResult
 from app.models.schemas import ConversationTurn, JudgeVerdict, MetricScore, RunConfig
 from app.services.orchestrator import (
+    ScenarioRunResult,
     _execute_single_scenario,
     execute_run,
 )
@@ -131,7 +132,15 @@ class TestExecuteSingleScenario:
         updated_result = _make_result(run_id, scenario.id, passed=True)
         updated_result.verdict = {"overall_score": 0.85}
 
-        mock_run_eval.return_value = (_mock_transcript(), _mock_verdict())
+        mock_run_eval.return_value = (
+            ScenarioRunResult(
+                transcript=_mock_transcript(),
+                agent_token_usage={},
+                platform_token_usage={},
+                platform_cost_usd=0.0,
+            ),
+            _mock_verdict(),
+        )
 
         mock_crud = MagicMock()
         mock_crud.create_scenario_result.return_value = result_obj

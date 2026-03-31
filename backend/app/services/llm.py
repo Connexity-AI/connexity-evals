@@ -81,6 +81,10 @@ class LLMResponse(BaseModel):
     model: str
     usage: dict[str, int] = Field(default_factory=dict)
     latency_ms: int | None = None
+    response_cost_usd: float | None = Field(
+        default=None,
+        description="LiteLLM-computed USD cost from _hidden_params.response_cost",
+    )
 
 
 _PROVIDER_ALIASES: dict[str, str] = {
@@ -155,12 +159,41 @@ def _is_transient_llm_error(exc: BaseException) -> bool:
 
 
 def _usage_to_dict(usage_obj: object) -> dict[str, int]:
+    """Map provider usage to int counts, including common cache fields."""
     out: dict[str, int] = {}
-    for key in ("prompt_tokens", "completion_tokens", "total_tokens"):
+    for key in (
+        "prompt_tokens",
+        "completion_tokens",
+        "total_tokens",
+        "cache_creation_input_tokens",
+        "cache_read_input_tokens",
+    ):
         raw = getattr(usage_obj, key, None)
         if raw is not None:
             out[key] = int(raw)
+
+    details = getattr(usage_obj, "prompt_tokens_details", None)
+    if details is not None:
+        cached = getattr(details, "cached_tokens", None)
+        if cached is None and isinstance(details, dict):
+            cached = details.get("cached_tokens")
+        if cached is not None:
+            out["cached_prompt_tokens"] = int(cached)
+
     return out
+
+
+def _response_cost_usd_from_litellm(response: object) -> float | None:
+    hidden = getattr(response, "_hidden_params", None)
+    if not isinstance(hidden, dict):
+        return None
+    raw = hidden.get("response_cost")
+    if raw is None:
+        return None
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return None
 
 
 def _content_from_response(response: object) -> str:
@@ -255,6 +288,7 @@ async def call_llm(
                 model=str(response_model),
                 usage=usage,
                 latency_ms=latency_ms,
+                response_cost_usd=_response_cost_usd_from_litellm(response),
             )
 
     raise AssertionError("unreachable")  # pragma: no cover

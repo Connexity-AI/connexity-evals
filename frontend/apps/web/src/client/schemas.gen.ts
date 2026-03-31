@@ -184,7 +184,7 @@ export const AgentsPublicSchema = {
   title: 'AgentsPublic',
 } as const;
 
-export const AggregateMetrics_InputSchema = {
+export const AggregateMetricsSchema = {
   properties: {
     total_scenarios: {
       type: 'integer',
@@ -263,7 +263,14 @@ export const AggregateMetrics_InputSchema = {
       anyOf: [
         {
           additionalProperties: {
-            type: 'integer',
+            anyOf: [
+              {
+                type: 'integer',
+              },
+              {
+                type: 'boolean',
+              },
+            ],
           },
           type: 'object',
         },
@@ -300,157 +307,6 @@ export const AggregateMetrics_InputSchema = {
       ],
       title: 'Total Estimated Cost Usd',
       description: 'Total estimated cost in USD for the entire run',
-    },
-    error_category_distribution: {
-      items: {
-        $ref: '#/components/schemas/ErrorCategoryCount',
-      },
-      type: 'array',
-      title: 'Error Category Distribution',
-      description: 'Breakdown of error counts by category',
-    },
-    avg_overall_score: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Avg Overall Score',
-      description: 'Mean judge overall score across all scenarios',
-    },
-  },
-  type: 'object',
-  required: ['total_scenarios', 'passed_count', 'failed_count', 'error_count', 'pass_rate'],
-  title: 'AggregateMetrics',
-} as const;
-
-export const AggregateMetrics_OutputSchema = {
-  properties: {
-    total_scenarios: {
-      type: 'integer',
-      title: 'Total Scenarios',
-      description: 'Total number of scenarios executed in the run',
-    },
-    passed_count: {
-      type: 'integer',
-      title: 'Passed Count',
-      description: 'Number of scenarios that passed',
-    },
-    failed_count: {
-      type: 'integer',
-      title: 'Failed Count',
-      description: 'Number of scenarios that failed',
-    },
-    error_count: {
-      type: 'integer',
-      title: 'Error Count',
-      description: 'Number of scenarios that errored during execution',
-    },
-    pass_rate: {
-      type: 'number',
-      title: 'Pass Rate',
-      description: 'Fraction of scenarios that passed (0.0–1.0)',
-    },
-    latency_p50_ms: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Latency P50 Ms',
-      description: 'Median agent latency across scenarios',
-    },
-    latency_p95_ms: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Latency P95 Ms',
-      description: '95th percentile agent latency',
-    },
-    latency_max_ms: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Latency Max Ms',
-      description: 'Maximum agent latency across scenarios',
-    },
-    latency_avg_ms: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Latency Avg Ms',
-      description: 'Mean agent latency across scenarios',
-    },
-    total_agent_token_usage: {
-      anyOf: [
-        {
-          additionalProperties: {
-            type: 'integer',
-          },
-          type: 'object',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Total Agent Token Usage',
-      description: 'Summed token usage from the agent across all scenarios',
-    },
-    total_platform_token_usage: {
-      anyOf: [
-        {
-          additionalProperties: {
-            type: 'integer',
-          },
-          type: 'object',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Total Platform Token Usage',
-      description: 'Summed token usage from the platform (simulator + judge)',
-    },
-    total_estimated_cost_usd: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Total Estimated Cost Usd',
-      description: 'Total estimated cost in USD for the entire run',
-    },
-    error_category_distribution: {
-      items: {
-        $ref: '#/components/schemas/ErrorCategoryCount',
-      },
-      type: 'array',
-      title: 'Error Category Distribution',
-      description: 'Breakdown of error counts by category',
     },
     avg_overall_score: {
       anyOf: [
@@ -755,41 +611,6 @@ export const DifficultySchema = {
   title: 'Difficulty',
 } as const;
 
-export const ErrorCategorySchema = {
-  type: 'string',
-  enum: [
-    'none',
-    'off_topic',
-    'hallucination',
-    'refusal',
-    'tool_misuse',
-    'safety_violation',
-    'prompt_violation',
-    'incomplete',
-    'latency_timeout',
-    'agent_error',
-    'other',
-  ],
-  title: 'ErrorCategory',
-} as const;
-
-export const ErrorCategoryCountSchema = {
-  properties: {
-    category: {
-      $ref: '#/components/schemas/ErrorCategory',
-      description: 'The error category',
-    },
-    count: {
-      type: 'integer',
-      title: 'Count',
-      description: 'Number of results in this category',
-    },
-  },
-  type: 'object',
-  required: ['category', 'count'],
-  title: 'ErrorCategoryCount',
-} as const;
-
 export const ErrorResponseSchema = {
   properties: {
     detail: {
@@ -953,14 +774,6 @@ export const JudgeConfigSchema = {
       description: 'Minimum overall score (0-100) to pass',
       default: 75,
     },
-    critical_failure_threshold: {
-      type: 'integer',
-      maximum: 5,
-      minimum: 0,
-      title: 'Critical Failure Threshold',
-      description: 'Execution-tier scored metric at or below this value triggers critical failure',
-      default: 1,
-    },
     model: {
       anyOf: [
         {
@@ -1003,12 +816,6 @@ export const JudgeVerdictSchema = {
       title: 'Overall Score',
       description: 'Weighted overall score across all criteria (0-100)',
     },
-    critical_failure: {
-      type: 'boolean',
-      title: 'Critical Failure',
-      description: 'True if an execution-tier scored metric is at or below the critical threshold',
-      default: false,
-    },
     metric_scores: {
       items: {
         $ref: '#/components/schemas/MetricScore',
@@ -1016,11 +823,6 @@ export const JudgeVerdictSchema = {
       type: 'array',
       title: 'Metric Scores',
       description: 'Per-metric score breakdown',
-    },
-    error_category: {
-      $ref: '#/components/schemas/ErrorCategory',
-      description: 'Derived from the lowest-scoring metric when failed',
-      default: 'none',
     },
     summary: {
       anyOf: [
@@ -1083,6 +885,18 @@ export const JudgeVerdictSchema = {
       title: 'Judge Token Usage',
       description: 'Token usage for the judge call',
     },
+    judge_cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Judge Cost Usd',
+      description: 'LiteLLM-estimated USD cost for the judge completion',
+    },
   },
   type: 'object',
   required: ['passed', 'overall_score', 'metric_scores', 'judge_model', 'judge_provider'],
@@ -1118,11 +932,6 @@ export const MetricDefinitionSchema = {
       title: 'Description',
       description: 'What this metric measures',
     },
-    what_to_fix: {
-      type: 'string',
-      title: 'What To Fix',
-      description: 'What to fix when the score is low',
-    },
     tier: {
       $ref: '#/components/schemas/MetricTier',
     },
@@ -1140,10 +949,6 @@ export const MetricDefinitionSchema = {
       title: 'Rubric',
       description: 'Rubric and examples for the judge prompt',
     },
-    failure_error_category: {
-      $ref: '#/components/schemas/ErrorCategory',
-      description: 'ErrorCategory when this metric is the lowest scorer on failure',
-    },
     include_in_defaults: {
       type: 'boolean',
       title: 'Include In Defaults',
@@ -1156,12 +961,10 @@ export const MetricDefinitionSchema = {
     'name',
     'display_name',
     'description',
-    'what_to_fix',
     'tier',
     'default_weight',
     'score_type',
     'rubric',
-    'failure_error_category',
   ],
   title: 'MetricDefinition',
 } as const;
@@ -1212,6 +1015,26 @@ export const MetricScoreSchema = {
       ],
       title: 'Tier',
       description: 'Metric tier: execution, knowledge, process, delivery',
+    },
+    failure_code: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Failure Code',
+      description: 'Free-form failure code generated by the judge when this metric scored poorly',
+    },
+    turns: {
+      items: {
+        type: 'integer',
+      },
+      type: 'array',
+      title: 'Turns',
+      description: 'Turn indices where the issue was observed',
     },
   },
   type: 'object',
@@ -1596,7 +1419,7 @@ export const RunPublicSchema = {
     aggregate_metrics: {
       anyOf: [
         {
-          $ref: '#/components/schemas/AggregateMetrics-Output',
+          $ref: '#/components/schemas/AggregateMetrics',
         },
         {
           type: 'null',
@@ -1708,7 +1531,7 @@ export const RunUpdateSchema = {
     aggregate_metrics: {
       anyOf: [
         {
-          $ref: '#/components/schemas/AggregateMetrics-Input',
+          $ref: '#/components/schemas/AggregateMetrics',
         },
         {
           type: 'null',
@@ -2346,7 +2169,14 @@ export const ScenarioResultPublicSchema = {
       anyOf: [
         {
           additionalProperties: {
-            type: 'integer',
+            anyOf: [
+              {
+                type: 'integer',
+              },
+              {
+                type: 'boolean',
+              },
+            ],
           },
           type: 'object',
         },
@@ -2355,7 +2185,7 @@ export const ScenarioResultPublicSchema = {
         },
       ],
       title: 'Agent Token Usage',
-      description: 'Token usage breakdown from the agent (input/output counts)',
+      description: 'Token usage from the agent; may include estimated=true',
     },
     platform_token_usage: {
       anyOf: [
@@ -2395,10 +2225,6 @@ export const ScenarioResultPublicSchema = {
       ],
       title: 'Passed',
       description: 'Whether the scenario passed evaluation',
-    },
-    error_category: {
-      $ref: '#/components/schemas/ErrorCategory',
-      description: 'Classified error category if the scenario failed',
     },
     error_message: {
       anyOf: [
@@ -2463,7 +2289,6 @@ export const ScenarioResultPublicSchema = {
     'agent_latency_max_ms',
     'estimated_cost_usd',
     'passed',
-    'error_category',
     'error_message',
     'started_at',
     'completed_at',
@@ -2565,7 +2390,14 @@ export const ScenarioResultUpdateSchema = {
       anyOf: [
         {
           additionalProperties: {
-            type: 'integer',
+            anyOf: [
+              {
+                type: 'integer',
+              },
+              {
+                type: 'boolean',
+              },
+            ],
           },
           type: 'object',
         },
@@ -2574,7 +2406,7 @@ export const ScenarioResultUpdateSchema = {
         },
       ],
       title: 'Agent Token Usage',
-      description: 'Token usage breakdown from the agent (input/output counts)',
+      description: 'Token usage from the agent; may include estimated=true',
     },
     platform_token_usage: {
       anyOf: [
@@ -2614,17 +2446,6 @@ export const ScenarioResultUpdateSchema = {
       ],
       title: 'Passed',
       description: 'Whether the scenario passed evaluation',
-    },
-    error_category: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/ErrorCategory',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      description: 'Classified error category if the scenario failed',
     },
     error_message: {
       anyOf: [

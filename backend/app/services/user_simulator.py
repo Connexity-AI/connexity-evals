@@ -21,6 +21,10 @@ class SimulatorResult(BaseModel):
         default_factory=dict,
         description="Token usage from the simulator LLM call, if any",
     )
+    cost_usd: float | None = Field(
+        default=None,
+        description="LiteLLM-estimated USD cost for the simulator completion, if any",
+    )
 
 
 def _build_system_prompt(
@@ -112,7 +116,9 @@ class UserSimulator:
             raise RuntimeError(msg)
         content = self._config.scripted_messages[self._scripted_index]
         self._scripted_index += 1
-        return SimulatorResult(content=content, latency_ms=0, token_usage={})
+        return SimulatorResult(
+            content=content, latency_ms=0, token_usage={}, cost_usd=None
+        )
 
     async def _generate_llm_message(
         self,
@@ -132,4 +138,5 @@ class UserSimulator:
             content=response.content.strip(),
             latency_ms=response.latency_ms,
             token_usage=dict(response.usage),
+            cost_usd=response.response_cost_usd,
         )

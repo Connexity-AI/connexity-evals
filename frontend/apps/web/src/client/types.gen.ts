@@ -139,7 +139,7 @@ export type AgentsPublic = {
 /**
  * AggregateMetrics
  */
-export type AggregateMetricsInput = {
+export type AggregateMetrics = {
   /**
    * Total Scenarios
    *
@@ -200,7 +200,7 @@ export type AggregateMetricsInput = {
    * Summed token usage from the agent across all scenarios
    */
   total_agent_token_usage?: {
-    [key: string]: number;
+    [key: string]: number | boolean;
   } | null;
   /**
    * Total Platform Token Usage
@@ -216,106 +216,6 @@ export type AggregateMetricsInput = {
    * Total estimated cost in USD for the entire run
    */
   total_estimated_cost_usd?: number | null;
-  /**
-   * Error Category Distribution
-   *
-   * Breakdown of error counts by category
-   */
-  error_category_distribution?: Array<ErrorCategoryCount>;
-  /**
-   * Avg Overall Score
-   *
-   * Mean judge overall score across all scenarios
-   */
-  avg_overall_score?: number | null;
-};
-
-/**
- * AggregateMetrics
- */
-export type AggregateMetricsOutput = {
-  /**
-   * Total Scenarios
-   *
-   * Total number of scenarios executed in the run
-   */
-  total_scenarios: number;
-  /**
-   * Passed Count
-   *
-   * Number of scenarios that passed
-   */
-  passed_count: number;
-  /**
-   * Failed Count
-   *
-   * Number of scenarios that failed
-   */
-  failed_count: number;
-  /**
-   * Error Count
-   *
-   * Number of scenarios that errored during execution
-   */
-  error_count: number;
-  /**
-   * Pass Rate
-   *
-   * Fraction of scenarios that passed (0.0–1.0)
-   */
-  pass_rate: number;
-  /**
-   * Latency P50 Ms
-   *
-   * Median agent latency across scenarios
-   */
-  latency_p50_ms?: number | null;
-  /**
-   * Latency P95 Ms
-   *
-   * 95th percentile agent latency
-   */
-  latency_p95_ms?: number | null;
-  /**
-   * Latency Max Ms
-   *
-   * Maximum agent latency across scenarios
-   */
-  latency_max_ms?: number | null;
-  /**
-   * Latency Avg Ms
-   *
-   * Mean agent latency across scenarios
-   */
-  latency_avg_ms?: number | null;
-  /**
-   * Total Agent Token Usage
-   *
-   * Summed token usage from the agent across all scenarios
-   */
-  total_agent_token_usage?: {
-    [key: string]: number;
-  } | null;
-  /**
-   * Total Platform Token Usage
-   *
-   * Summed token usage from the platform (simulator + judge)
-   */
-  total_platform_token_usage?: {
-    [key: string]: number;
-  } | null;
-  /**
-   * Total Estimated Cost Usd
-   *
-   * Total estimated cost in USD for the entire run
-   */
-  total_estimated_cost_usd?: number | null;
-  /**
-   * Error Category Distribution
-   *
-   * Breakdown of error counts by category
-   */
-  error_category_distribution?: Array<ErrorCategoryCount>;
   /**
    * Avg Overall Score
    *
@@ -519,44 +419,6 @@ export const Difficulty = { NORMAL: 'normal', HARD: 'hard' } as const;
 export type Difficulty = (typeof Difficulty)[keyof typeof Difficulty];
 
 /**
- * ErrorCategory
- */
-export const ErrorCategory = {
-  NONE: 'none',
-  OFF_TOPIC: 'off_topic',
-  HALLUCINATION: 'hallucination',
-  REFUSAL: 'refusal',
-  TOOL_MISUSE: 'tool_misuse',
-  SAFETY_VIOLATION: 'safety_violation',
-  PROMPT_VIOLATION: 'prompt_violation',
-  INCOMPLETE: 'incomplete',
-  LATENCY_TIMEOUT: 'latency_timeout',
-  AGENT_ERROR: 'agent_error',
-  OTHER: 'other',
-} as const;
-
-/**
- * ErrorCategory
- */
-export type ErrorCategory = (typeof ErrorCategory)[keyof typeof ErrorCategory];
-
-/**
- * ErrorCategoryCount
- */
-export type ErrorCategoryCount = {
-  /**
-   * The error category
-   */
-  category: ErrorCategory;
-  /**
-   * Count
-   *
-   * Number of results in this category
-   */
-  count: number;
-};
-
-/**
  * ErrorResponse
  */
 export type ErrorResponse = {
@@ -673,12 +535,6 @@ export type JudgeConfig = {
    */
   pass_threshold?: number;
   /**
-   * Critical Failure Threshold
-   *
-   * Execution-tier scored metric at or below this value triggers critical failure
-   */
-  critical_failure_threshold?: number;
-  /**
    * Model
    *
    * Judge LLM model override
@@ -709,21 +565,11 @@ export type JudgeVerdict = {
    */
   overall_score: number;
   /**
-   * Critical Failure
-   *
-   * True if an execution-tier scored metric is at or below the critical threshold
-   */
-  critical_failure?: boolean;
-  /**
    * Metric Scores
    *
    * Per-metric score breakdown
    */
   metric_scores: Array<MetricScore>;
-  /**
-   * Derived from the lowest-scoring metric when failed
-   */
-  error_category?: ErrorCategory;
   /**
    * Summary
    *
@@ -762,6 +608,12 @@ export type JudgeVerdict = {
   judge_token_usage?: {
     [key: string]: number;
   } | null;
+  /**
+   * Judge Cost Usd
+   *
+   * LiteLLM-estimated USD cost for the judge completion
+   */
+  judge_cost_usd?: number | null;
 };
 
 /**
@@ -796,12 +648,6 @@ export type MetricDefinition = {
    * What this metric measures
    */
   description: string;
-  /**
-   * What To Fix
-   *
-   * What to fix when the score is low
-   */
-  what_to_fix: string;
   tier: MetricTier;
   /**
    * Default Weight
@@ -816,10 +662,6 @@ export type MetricDefinition = {
    * Rubric and examples for the judge prompt
    */
   rubric: string;
-  /**
-   * ErrorCategory when this metric is the lowest scorer on failure
-   */
-  failure_error_category: ErrorCategory;
   /**
    * Include In Defaults
    *
@@ -874,6 +716,18 @@ export type MetricScore = {
    * Metric tier: execution, knowledge, process, delivery
    */
   tier?: string | null;
+  /**
+   * Failure Code
+   *
+   * Free-form failure code generated by the judge when this metric scored poorly
+   */
+  failure_code?: string | null;
+  /**
+   * Turns
+   *
+   * Turn indices where the issue was observed
+   */
+  turns?: Array<number>;
 };
 
 /**
@@ -1158,7 +1012,7 @@ export type RunPublic = {
   /**
    * Aggregate metrics computed after completion
    */
-  aggregate_metrics?: AggregateMetricsOutput | null;
+  aggregate_metrics?: AggregateMetrics | null;
   /**
    * Started At
    *
@@ -1224,7 +1078,7 @@ export type RunUpdate = {
   /**
    * Aggregate metrics computed after completion
    */
-  aggregate_metrics?: AggregateMetricsInput | null;
+  aggregate_metrics?: AggregateMetrics | null;
   /**
    * Started At
    *
@@ -1605,10 +1459,10 @@ export type ScenarioResultPublic = {
   /**
    * Agent Token Usage
    *
-   * Token usage breakdown from the agent (input/output counts)
+   * Token usage from the agent; may include estimated=true
    */
   agent_token_usage?: {
-    [key: string]: number;
+    [key: string]: number | boolean;
   } | null;
   /**
    * Platform Token Usage
@@ -1630,10 +1484,6 @@ export type ScenarioResultPublic = {
    * Whether the scenario passed evaluation
    */
   passed: boolean | null;
-  /**
-   * Classified error category if the scenario failed
-   */
-  error_category: ErrorCategory;
   /**
    * Error Message
    *
@@ -1713,10 +1563,10 @@ export type ScenarioResultUpdate = {
   /**
    * Agent Token Usage
    *
-   * Token usage breakdown from the agent (input/output counts)
+   * Token usage from the agent; may include estimated=true
    */
   agent_token_usage?: {
-    [key: string]: number;
+    [key: string]: number | boolean;
   } | null;
   /**
    * Platform Token Usage
@@ -1738,10 +1588,6 @@ export type ScenarioResultUpdate = {
    * Whether the scenario passed evaluation
    */
   passed?: boolean | null;
-  /**
-   * Classified error category if the scenario failed
-   */
-  error_category?: ErrorCategory | null;
   /**
    * Error Message
    *
@@ -4260,7 +4106,14 @@ export type RunsListRunsResponse = RunsListRunsResponses[keyof RunsListRunsRespo
 export type RunsCreateRunData = {
   body: RunCreate;
   path?: never;
-  query?: never;
+  query?: {
+    /**
+     * Auto Execute
+     *
+     * Immediately start execution
+     */
+    auto_execute?: boolean;
+  };
   url: '/api/v1/runs/';
 };
 
@@ -4467,6 +4320,170 @@ export type RunsUpdateRunResponses = {
 };
 
 export type RunsUpdateRunResponse = RunsUpdateRunResponses[keyof RunsUpdateRunResponses];
+
+export type RunsExecuteRunEndpointData = {
+  body?: never;
+  path: {
+    /**
+     * Run Id
+     */
+    run_id: string;
+  };
+  query?: never;
+  url: '/api/v1/runs/{run_id}/execute';
+};
+
+export type RunsExecuteRunEndpointErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type RunsExecuteRunEndpointError =
+  RunsExecuteRunEndpointErrors[keyof RunsExecuteRunEndpointErrors];
+
+export type RunsExecuteRunEndpointResponses = {
+  /**
+   * Successful Response
+   */
+  202: RunPublic;
+};
+
+export type RunsExecuteRunEndpointResponse =
+  RunsExecuteRunEndpointResponses[keyof RunsExecuteRunEndpointResponses];
+
+export type RunsCancelRunEndpointData = {
+  body?: never;
+  path: {
+    /**
+     * Run Id
+     */
+    run_id: string;
+  };
+  query?: never;
+  url: '/api/v1/runs/{run_id}/cancel';
+};
+
+export type RunsCancelRunEndpointErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type RunsCancelRunEndpointError =
+  RunsCancelRunEndpointErrors[keyof RunsCancelRunEndpointErrors];
+
+export type RunsCancelRunEndpointResponses = {
+  /**
+   * Successful Response
+   */
+  200: RunPublic;
+};
+
+export type RunsCancelRunEndpointResponse =
+  RunsCancelRunEndpointResponses[keyof RunsCancelRunEndpointResponses];
+
+export type RunsStreamRunData = {
+  body?: never;
+  path: {
+    /**
+     * Run Id
+     */
+    run_id: string;
+  };
+  query?: never;
+  url: '/api/v1/runs/{run_id}/stream';
+};
+
+export type RunsStreamRunErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type RunsStreamRunError = RunsStreamRunErrors[keyof RunsStreamRunErrors];
+
+export type RunsStreamRunResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
 
 export type ScenarioResultsListScenarioResultsData = {
   body?: never;

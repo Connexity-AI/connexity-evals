@@ -5,17 +5,20 @@ import logging
 import statistics
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
 import httpx
 from pydantic import ValidationError
 
+from app.core.config import settings
 from app.models.agent_contract import (
     AgentRequest,
     AgentRequestMetadata,
     AgentResponse,
     ChatMessage,
+    TokenUsage,
 )
 from app.models.enums import SimulatorMode, TurnRole
 from app.models.scenario import Scenario
@@ -29,11 +32,43 @@ from app.models.schemas import (
     SimulatorConfig,
     ToolCall,
 )
+from app.services.cost_tracker import (
+    ScenarioTokenAccumulator,
+    estimate_agent_cost,
+    estimate_agent_tokens,
+    sum_platform_usage_dicts,
+    sum_usage_dicts,
+)
 from app.services.judge import JudgeInput, evaluate_transcript
 from app.services.llm import LLMMessage
 from app.services.user_simulator import UserSimulator
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class ScenarioRunResult:
+    """Outcome of :func:`run_scenario` including token/cost aggregates (simulator only)."""
+
+    transcript: list[ConversationTurn]
+    agent_token_usage: dict[str, int | bool]
+    platform_token_usage: dict[str, int]
+    agent_cost_usd: float = 0.0
+    platform_cost_usd: float = 0.0
+
+
+def _reported_agent_usage(usage: TokenUsage | None) -> dict[str, int] | None:
+    """Non-empty usage dict from agent-reported :class:`TokenUsage`, or ``None``."""
+    if usage is None:
+        return None
+    out: dict[str, int] = {}
+    if usage.prompt_tokens is not None:
+        out["prompt_tokens"] = usage.prompt_tokens
+    if usage.completion_tokens is not None:
+        out["completion_tokens"] = usage.completion_tokens
+    if usage.total_tokens is not None:
+        out["total_tokens"] = usage.total_tokens
+    return out if out else None
 
 
 class AgentCallError(Exception):
@@ -193,8 +228,10 @@ async def run_scenario(
     agent_endpoint_url: str,
     config: RunConfig,
     *,
+    agent_system_prompt: str | None = None,
+    agent_tools: list[dict[str, Any]] | None = None,
     cancel_event: asyncio.Event | None = None,
-) -> list[ConversationTurn]:
+) -> ScenarioRunResult:
     """Execute one scenario: initial user message, then agent / simulator turns.
 
     If ``scenario.initial_message`` is empty, the opening user line is produced by
@@ -215,6 +252,7 @@ async def run_scenario(
         config=sim_cfg,
     )
 
+    acc = ScenarioTokenAccumulator()
     transcript: list[ConversationTurn] = []
     initial_stripped = (scenario.initial_message or "").strip()
     if initial_stripped:
@@ -234,7 +272,16 @@ async def run_scenario(
                 scenario.id,
                 e,
             )
-            return transcript
+            return ScenarioRunResult(
+                transcript=transcript,
+                agent_token_usage=acc.agent_token_usage,
+                platform_token_usage=acc.platform_token_usage,
+                agent_cost_usd=acc.agent_cost_usd,
+                platform_cost_usd=acc.platform_cost_usd,
+            )
+        if opening.token_usage:
+            acc.add_platform_usage(dict(opening.token_usage))
+        acc.add_platform_cost(opening.cost_usd)
         total_tok = opening.token_usage.get("total_tokens")
         transcript.append(
             build_conversation_turn(
@@ -312,6 +359,30 @@ async def run_scenario(
                 break
 
             agent_rounds += 1
+            reported = _reported_agent_usage(response.usage)
+            if reported is not None:
+                acc.add_agent_usage(reported)
+            else:
+                estimated = estimate_agent_tokens(
+                    prompt_messages=agent_messages,
+                    response_messages=response.messages,
+                    agent_system_prompt=agent_system_prompt,
+                    agent_tools=agent_tools,
+                    model=response.model,
+                    fallback_model=settings.LLM_DEFAULT_MODEL,
+                )
+                acc.add_agent_usage(estimated)
+                reported = estimated
+
+            if reported.get("prompt_tokens") or reported.get("completion_tokens"):
+                acc.add_agent_cost(
+                    estimate_agent_cost(
+                        model=response.model,
+                        provider=response.provider,
+                        usage=reported,
+                    )
+                )
+
             _append_agent_response(transcript, response, round_latency)
 
             if sim_cfg.mode == SimulatorMode.SCRIPTED and simulator.is_exhausted:
@@ -324,20 +395,30 @@ async def run_scenario(
                 logger.warning("Simulator exhausted or failed: %s", e)
                 break
 
+            if sim_result.token_usage:
+                acc.add_platform_usage(dict(sim_result.token_usage))
+            acc.add_platform_cost(sim_result.cost_usd)
+            sim_total = sim_result.token_usage.get("total_tokens")
             transcript.append(
                 build_conversation_turn(
                     index=len(transcript),
                     role=TurnRole.USER,
                     content=sim_result.content,
                     latency_ms=sim_result.latency_ms,
-                    token_count=None,
+                    token_count=sim_total,
                 )
             )
 
             if sim_cfg.mode == SimulatorMode.SCRIPTED and simulator.is_exhausted:
                 break
 
-    return transcript
+    return ScenarioRunResult(
+        transcript=transcript,
+        agent_token_usage=acc.agent_token_usage,
+        platform_token_usage=acc.platform_token_usage,
+        agent_cost_usd=acc.agent_cost_usd,
+        platform_cost_usd=acc.platform_cost_usd,
+    )
 
 
 async def run_scenario_with_evaluation(
@@ -348,30 +429,33 @@ async def run_scenario_with_evaluation(
     agent_system_prompt: str | None = None,
     agent_tools: list[dict[str, Any]] | None = None,
     cancel_event: asyncio.Event | None = None,
-) -> tuple[list[ConversationTurn], JudgeVerdict | None]:
-    """Run simulation then judge the transcript; returns ``(transcript, verdict)``.
+) -> tuple[ScenarioRunResult, JudgeVerdict | None]:
+    """Run simulation then judge the transcript.
 
-    If the transcript is empty, ``verdict`` is ``None``.
+    Returns ``(run_result, verdict)``. If the transcript is empty, ``verdict`` is
+    ``None``.
     """
-    transcript = await run_scenario(
+    run_out = await run_scenario(
         scenario,
         agent_endpoint_url,
         config,
+        agent_system_prompt=agent_system_prompt,
+        agent_tools=agent_tools,
         cancel_event=cancel_event,
     )
-    if not transcript:
-        return transcript, None
+    if not run_out.transcript:
+        return run_out, None
 
     verdict = await evaluate_transcript(
         JudgeInput(
-            transcript=transcript,
+            transcript=run_out.transcript,
             scenario=scenario,
             agent_system_prompt=agent_system_prompt,
             agent_tools=agent_tools,
             judge_config=config.judge,
         )
     )
-    return transcript, verdict
+    return run_out, verdict
 
 
 def compute_aggregate_metrics(
@@ -401,6 +485,27 @@ def compute_aggregate_metrics(
         if r.verdict and r.verdict.get("overall_score") is not None
     ]
 
+    agent_parts = [r.agent_token_usage for r in results if r.agent_token_usage]
+    total_agent = sum_usage_dicts(*agent_parts) if agent_parts else None
+    if not total_agent:
+        total_agent = None
+
+    platform_parts = [r.platform_token_usage for r in results if r.platform_token_usage]
+    total_platform = (
+        sum_platform_usage_dicts(*platform_parts) if platform_parts else None
+    )
+    if not total_platform:
+        total_platform = None
+
+    agent_costs = [r.agent_cost_usd for r in results if r.agent_cost_usd is not None]
+    platform_costs = [
+        r.platform_cost_usd for r in results if r.platform_cost_usd is not None
+    ]
+    cost_values = [
+        r.estimated_cost_usd for r in results if r.estimated_cost_usd is not None
+    ]
+    total_cost_usd = sum(cost_values) if cost_values else None
+
     return AggregateMetrics(
         total_scenarios=total,
         passed_count=passed,
@@ -413,6 +518,11 @@ def compute_aggregate_metrics(
         else None,
         latency_max_ms=max(latencies) if latencies else None,
         latency_avg_ms=statistics.mean(latencies) if latencies else None,
+        total_agent_token_usage=total_agent,
+        total_platform_token_usage=total_platform,
+        total_agent_cost_usd=sum(agent_costs) if agent_costs else None,
+        total_platform_cost_usd=sum(platform_costs) if platform_costs else None,
+        total_estimated_cost_usd=total_cost_usd,
         avg_overall_score=statistics.mean(scores) if scores else None,
     )
 
@@ -457,7 +567,7 @@ async def _execute_single_scenario(
 
         started_at = datetime.now(UTC)
         try:
-            transcript, verdict = await run_scenario_with_evaluation(
+            run_out, verdict = await run_scenario_with_evaluation(
                 scenario=scenario,
                 agent_endpoint_url=agent_endpoint_url,
                 config=config,
@@ -465,6 +575,7 @@ async def _execute_single_scenario(
                 agent_tools=agent_tools,
                 cancel_event=cancel_event,
             )
+            transcript = run_out.transcript
             completed_at = datetime.now(UTC)
 
             # Calculate metrics
@@ -484,6 +595,26 @@ async def _execute_single_scenario(
             )
             max_lat = max(agent_latencies) if agent_latencies else None
 
+            platform_usage = sum_platform_usage_dicts(
+                run_out.platform_token_usage,
+                verdict.judge_token_usage if verdict else None,
+            )
+            judge_cost = (verdict.judge_cost_usd or 0.0) if verdict else 0.0
+            if verdict and verdict.judge_cost_usd is None:
+                logger.warning(
+                    "Judge cost unavailable for scenario %s — LiteLLM may lack "
+                    "pricing for model %s; judge cost excluded from totals",
+                    scenario.id,
+                    verdict.judge_model,
+                )
+            platform_cost = run_out.platform_cost_usd + judge_cost
+            agent_cost = run_out.agent_cost_usd
+            total_cost = agent_cost + platform_cost
+            agent_usage_out = (
+                run_out.agent_token_usage if run_out.agent_token_usage else None
+            )
+            platform_usage_out = platform_usage if platform_usage else None
+
             update_data = ScenarioResultUpdate(
                 transcript=transcript,
                 turn_count=turn_count,
@@ -492,6 +623,12 @@ async def _execute_single_scenario(
                 agent_latency_p50_ms=p50,
                 agent_latency_p95_ms=p95,
                 agent_latency_max_ms=max_lat,
+                agent_latency_per_turn_ms=agent_latencies or None,
+                agent_token_usage=agent_usage_out,
+                platform_token_usage=platform_usage_out,
+                agent_cost_usd=agent_cost or None,
+                platform_cost_usd=platform_cost or None,
+                estimated_cost_usd=total_cost or None,
                 passed=verdict.passed if verdict else False,
                 started_at=started_at,
                 completed_at=completed_at,

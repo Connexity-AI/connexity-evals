@@ -54,15 +54,27 @@ class ScenarioResultBase(SQLModel):
         default=None,
         description="Maximum agent response latency in milliseconds",
     )
-    agent_token_usage: dict[str, int] | None = Field(
+    agent_latency_per_turn_ms: list[int] | None = Field(
+        default=None,
+        sa_column=Column("agent_latency_per_turn_ms", JSONB, nullable=True),
+        description="Per-turn agent response latencies in milliseconds",
+    )
+    agent_token_usage: dict[str, int | bool] | None = Field(
         default=None,
         sa_column=Column("agent_token_usage", JSONB, nullable=True),
-        description="Token usage breakdown from the agent (input/output counts)",
+        description="Token usage from the agent; may include estimated=true",
     )
     platform_token_usage: dict[str, int] | None = Field(
         default=None,
         sa_column=Column("platform_token_usage", JSONB, nullable=True),
         description="Token usage from the eval platform (simulator + judge)",
+    )
+    agent_cost_usd: float | None = Field(
+        default=None, description="Estimated agent cost in USD for this scenario"
+    )
+    platform_cost_usd: float | None = Field(
+        default=None,
+        description="Estimated platform cost in USD (simulator + judge) for this scenario",
     )
     estimated_cost_usd: float | None = Field(
         default=None, description="Estimated total cost in USD for this scenario"
@@ -135,13 +147,24 @@ class ScenarioResultUpdate(SQLModel):
         default=None,
         description="Maximum agent response latency in milliseconds",
     )
-    agent_token_usage: dict[str, int] | None = Field(
+    agent_latency_per_turn_ms: list[int] | None = Field(
         default=None,
-        description="Token usage breakdown from the agent (input/output counts)",
+        description="Per-turn agent response latencies in milliseconds",
+    )
+    agent_token_usage: dict[str, int | bool] | None = Field(
+        default=None,
+        description="Token usage from the agent; may include estimated=true",
     )
     platform_token_usage: dict[str, int] | None = Field(
         default=None,
         description="Token usage from the eval platform (simulator + judge)",
+    )
+    agent_cost_usd: float | None = Field(
+        default=None, description="Estimated agent cost in USD for this scenario"
+    )
+    platform_cost_usd: float | None = Field(
+        default=None,
+        description="Estimated platform cost in USD (simulator + judge) for this scenario",
     )
     estimated_cost_usd: float | None = Field(
         default=None, description="Estimated total cost in USD for this scenario"
@@ -185,13 +208,24 @@ class ScenarioResultPublic(SQLModel):
     agent_latency_max_ms: int | None = Field(
         description="Maximum agent response latency in milliseconds"
     )
-    agent_token_usage: dict[str, int] | None = Field(
+    agent_latency_per_turn_ms: list[int] | None = Field(
         default=None,
-        description="Token usage breakdown from the agent (input/output counts)",
+        description="Per-turn agent response latencies in milliseconds",
+    )
+    agent_token_usage: dict[str, int | bool] | None = Field(
+        default=None,
+        description="Token usage from the agent; may include estimated=true",
     )
     platform_token_usage: dict[str, int] | None = Field(
         default=None,
         description="Token usage from the eval platform (simulator + judge)",
+    )
+    agent_cost_usd: float | None = Field(
+        default=None, description="Estimated agent cost in USD for this scenario"
+    )
+    platform_cost_usd: float | None = Field(
+        default=None,
+        description="Estimated platform cost in USD (simulator + judge) for this scenario",
     )
     estimated_cost_usd: float | None = Field(
         description="Estimated total cost in USD for this scenario"
