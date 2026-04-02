@@ -102,7 +102,7 @@ jobs:
 
       - name: ESLint
         working-directory: frontend/apps/web
-        run: pnpm exec next lint
+        run: pnpm exec eslint .
 
       - name: TypeScript typecheck
         run: pnpm turbo typecheck
