@@ -5,6 +5,7 @@ import os
 import click
 
 from cli.api_client import DEFAULT_BASE_URL
+from cli.commands.compare import compare_command
 from cli.commands.results import results_group
 from cli.commands.run import run_command
 from cli.commands.scenarios import scenarios_group
@@ -48,6 +49,7 @@ def app(
     }
 
 
+app.add_command(compare_command)
 app.add_command(run_command)
 app.add_command(results_group)
 app.add_command(scenarios_group)

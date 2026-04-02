@@ -116,6 +116,32 @@ class AggregateComparison(BaseModel):
     per_metric_aggregate_deltas: list[MetricAggregateDelta]
 
 
+# ── CS-28: Regression verdict ───────────────────────────────────
+
+
+class RegressionThresholds(BaseModel):
+    """Sensible defaults. Overridable via CLI flags or API query params."""
+
+    max_pass_rate_drop: float = Field(
+        default=0.0,
+        description="Any pass-rate drop flags regression (default: strict)",
+    )
+    max_avg_score_drop: float = Field(
+        default=5.0,
+        description="Tolerance on 0-100 scale for avg score drop (LLM noise)",
+    )
+    max_latency_increase_pct: float = Field(
+        default=0.2,
+        description="Fraction of latency increase tolerated (0.2 = 20%)",
+    )
+
+
+class RegressionVerdict(BaseModel):
+    regression_detected: bool
+    reasons: list[str]
+    thresholds_used: RegressionThresholds
+
+
 # ── CS-27: Top-level response ────────────────────────────────────
 
 
@@ -129,4 +155,5 @@ class RunComparison(BaseModel):
     baseline_only_scenarios: list[uuid.UUID]
     candidate_only_scenarios: list[uuid.UUID]
     config_diff: RunConfigDiff
+    verdict: RegressionVerdict
     warnings: list[str]

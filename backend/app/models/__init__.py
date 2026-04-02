@@ -37,6 +37,8 @@ from app.models.comparison import (  # noqa: F401
     MetricAggregateDelta,
     MetricDelta,
     PromptDiff,
+    RegressionThresholds,
+    RegressionVerdict,
     RunComparison,
     RunConfigDiff,
     ScenarioComparison,

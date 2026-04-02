@@ -98,6 +98,10 @@ class ApiClient:
         r = self._client.post("scenarios/generate", json=body)
         return self._json_dict(r)
 
+    def compare_runs(self, params: dict[str, Any]) -> dict[str, Any]:
+        r = self._client.get("runs/compare", params=params)
+        return self._json_dict(r)
+
     def list_agents(self, params: dict[str, Any] | None = None) -> dict[str, Any]:
         r = self._client.get("agents/", params=params or {})
         return self._json_dict(r)
