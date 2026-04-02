@@ -71,7 +71,9 @@ def test_enrich_run_create_platform_agent_simulator_model_override(db: Session) 
     assert enriched.agent_provider == "openai"
 
 
-def test_enrich_run_create_platform_agent_simulator_provider_override(db: Session) -> None:
+def test_enrich_run_create_platform_agent_simulator_provider_override(
+    db: Session,
+) -> None:
     agent_in = AgentCreate(
         name="platform-agent-prov-override",
         mode=AgentMode.PLATFORM,

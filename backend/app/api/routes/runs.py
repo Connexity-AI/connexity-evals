@@ -17,7 +17,7 @@ from app.models import (
     RunStatus,
     RunUpdate,
 )
-from app.models.comparison import RunComparison
+from app.models.comparison import RegressionThresholds, RunComparison
 from app.services.comparison import compare_runs
 from app.services.orchestrator import execute_run
 from app.services.run_manager import run_manager
@@ -81,6 +81,15 @@ def compare_runs_endpoint(
     session: SessionDep,
     baseline_run_id: uuid.UUID = Query(description="UUID of the baseline run"),
     candidate_run_id: uuid.UUID = Query(description="UUID of the candidate run"),
+    max_pass_rate_drop: float | None = Query(
+        default=None, description="Override max pass-rate drop threshold (0.0 = strict)"
+    ),
+    max_avg_score_drop: float | None = Query(
+        default=None, description="Override max avg score drop on 0-100 scale"
+    ),
+    max_latency_increase_pct: float | None = Query(
+        default=None, description="Override max latency increase fraction (0.2 = 20%)"
+    ),
 ) -> RunComparison:
     baseline = crud.get_run(session=session, run_id=baseline_run_id)
     if not baseline:
@@ -100,7 +109,23 @@ def compare_runs_endpoint(
             detail=f"Candidate run is not completed (status: {candidate.status})",
         )
 
-    return compare_runs(session=session, baseline=baseline, candidate=candidate)
+    # Build thresholds only if any override is provided
+    thresholds: RegressionThresholds | None = None
+    overrides = {
+        k: v
+        for k, v in {
+            "max_pass_rate_drop": max_pass_rate_drop,
+            "max_avg_score_drop": max_avg_score_drop,
+            "max_latency_increase_pct": max_latency_increase_pct,
+        }.items()
+        if v is not None
+    }
+    if overrides:
+        thresholds = RegressionThresholds(**overrides)
+
+    return compare_runs(
+        session=session, baseline=baseline, candidate=candidate, thresholds=thresholds
+    )
 
 
 @router.get("/{run_id}", response_model=RunPublic)

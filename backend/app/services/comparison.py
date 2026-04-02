@@ -14,6 +14,8 @@ from app.models.comparison import (
     AggregateComparison,
     MetricAggregateDelta,
     MetricDelta,
+    RegressionThresholds,
+    RegressionVerdict,
     RunComparison,
     ScenarioComparison,
 )
@@ -32,6 +34,7 @@ def compare_runs(
     session: Session,
     baseline: Run,
     candidate: Run,
+    thresholds: RegressionThresholds | None = None,
 ) -> RunComparison:
     """Compare two completed runs and return a structured RunComparison."""
     warnings: list[str] = []
@@ -87,6 +90,10 @@ def compare_runs(
         baseline, candidate, baseline_sids, candidate_sids
     )
 
+    # Regression verdict (CS-28)
+    effective_thresholds = thresholds or RegressionThresholds()
+    verdict = _compute_verdict(aggregate, effective_thresholds)
+
     return RunComparison(
         baseline_run_id=baseline.id,
         candidate_run_id=candidate.id,
@@ -97,6 +104,7 @@ def compare_runs(
         baseline_only_scenarios=baseline_only,
         candidate_only_scenarios=candidate_only,
         config_diff=config_diff,
+        verdict=verdict,
         warnings=warnings,
     )
 
@@ -398,4 +406,44 @@ def _compute_aggregate(
         per_metric_aggregate_deltas=_compute_per_metric_aggregate_deltas(
             scenario_comparisons
         ),
+    )
+
+
+def _compute_verdict(
+    aggregate: AggregateComparison,
+    thresholds: RegressionThresholds,
+) -> RegressionVerdict:
+    """Evaluate aggregate deltas against thresholds to produce a verdict."""
+    reasons: list[str] = []
+
+    # Pass-rate check
+    drop = -aggregate.pass_rate_delta  # positive = drop
+    if drop > thresholds.max_pass_rate_drop:
+        b = aggregate.baseline_metrics.pass_rate
+        c = aggregate.candidate_metrics.pass_rate
+        reasons.append(f"pass_rate dropped {drop:.0%} ({b:.2f} → {c:.2f})")
+
+    # Average score check
+    if aggregate.avg_score_delta is not None and aggregate.avg_score_delta < 0:
+        score_drop = -aggregate.avg_score_delta
+        if score_drop > thresholds.max_avg_score_drop:
+            b = aggregate.baseline_metrics.avg_overall_score
+            c = aggregate.candidate_metrics.avg_overall_score
+            reasons.append(f"avg_score dropped {score_drop:.1f}pt ({b:.1f} → {c:.1f})")
+
+    # Latency check (percentage-based)
+    b_lat = aggregate.baseline_metrics.latency_avg_ms
+    c_lat = aggregate.candidate_metrics.latency_avg_ms
+    if b_lat is not None and c_lat is not None and b_lat > 0:
+        increase_pct = (c_lat - b_lat) / b_lat
+        if increase_pct > thresholds.max_latency_increase_pct:
+            reasons.append(
+                f"avg_latency increased {increase_pct:.0%} "
+                f"({b_lat:.0f}ms → {c_lat:.0f}ms)"
+            )
+
+    return RegressionVerdict(
+        regression_detected=len(reasons) > 0,
+        reasons=reasons,
+        thresholds_used=thresholds,
     )

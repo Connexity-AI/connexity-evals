@@ -5,13 +5,19 @@ from types import SimpleNamespace
 
 import pytest
 
-from app.models.comparison import MetricDelta, ScenarioComparison
+from app.models.comparison import (
+    AggregateComparison,
+    MetricDelta,
+    RegressionThresholds,
+    ScenarioComparison,
+)
 from app.models.schemas import AggregateMetrics, JudgeVerdict, MetricScore
 from app.services.comparison import (
     _build_metric_deltas,
     _compare_scenario,
     _compute_aggregate,
     _compute_per_metric_aggregate_deltas,
+    _compute_verdict,
     _metric_status,
     _scenario_status,
 )
@@ -424,3 +430,155 @@ class TestComputeAggregate:
         assert result.total_improvements == 1
         assert result.total_unchanged == 1
         assert result.total_errors == 0
+
+
+# ── _compute_verdict ───────────────────────────────────────────
+
+
+class TestComputeVerdict:
+    def _make_aggregate(
+        self,
+        *,
+        pass_rate_delta: float = 0.0,
+        avg_score_delta: float | None = 0.0,
+        latency_avg_delta_ms: float | None = 0.0,
+        b_pass_rate: float = 1.0,
+        c_pass_rate: float = 1.0,
+        b_avg_score: float | None = 80.0,
+        c_avg_score: float | None = 80.0,
+        b_latency_avg: float | None = 500.0,
+        c_latency_avg: float | None = 500.0,
+    ) -> AggregateComparison:
+        b_metrics = AggregateMetrics(
+            total_scenarios=10,
+            passed_count=int(b_pass_rate * 10),
+            failed_count=10 - int(b_pass_rate * 10),
+            error_count=0,
+            pass_rate=b_pass_rate,
+            avg_overall_score=b_avg_score,
+            latency_avg_ms=b_latency_avg,
+        )
+        c_metrics = AggregateMetrics(
+            total_scenarios=10,
+            passed_count=int(c_pass_rate * 10),
+            failed_count=10 - int(c_pass_rate * 10),
+            error_count=0,
+            pass_rate=c_pass_rate,
+            avg_overall_score=c_avg_score,
+            latency_avg_ms=c_latency_avg,
+        )
+        return AggregateComparison(
+            baseline_metrics=b_metrics,
+            candidate_metrics=c_metrics,
+            pass_rate_delta=pass_rate_delta,
+            avg_score_delta=avg_score_delta,
+            latency_avg_delta_ms=latency_avg_delta_ms,
+            total_regressions=0,
+            total_improvements=0,
+            total_unchanged=10,
+            total_errors=0,
+            per_metric_aggregate_deltas=[],
+        )
+
+    def test_no_regression_default_thresholds(self) -> None:
+        agg = self._make_aggregate()
+        verdict = _compute_verdict(agg, RegressionThresholds())
+        assert verdict.regression_detected is False
+        assert verdict.reasons == []
+
+    def test_pass_rate_drop_strict(self) -> None:
+        """Default threshold: any drop flags regression."""
+        agg = self._make_aggregate(
+            pass_rate_delta=-0.1,
+            b_pass_rate=1.0,
+            c_pass_rate=0.9,
+        )
+        verdict = _compute_verdict(agg, RegressionThresholds())
+        assert verdict.regression_detected is True
+        assert any("pass_rate" in r for r in verdict.reasons)
+
+    def test_pass_rate_drop_within_custom_threshold(self) -> None:
+        agg = self._make_aggregate(
+            pass_rate_delta=-0.02,
+            b_pass_rate=1.0,
+            c_pass_rate=0.98,
+        )
+        verdict = _compute_verdict(agg, RegressionThresholds(max_pass_rate_drop=0.05))
+        assert verdict.regression_detected is False
+
+    def test_avg_score_drop_within_default_threshold(self) -> None:
+        """5-point tolerance: 3pt drop should not flag."""
+        agg = self._make_aggregate(
+            avg_score_delta=-3.0,
+            b_avg_score=80.0,
+            c_avg_score=77.0,
+        )
+        verdict = _compute_verdict(agg, RegressionThresholds())
+        assert verdict.regression_detected is False
+
+    def test_avg_score_drop_exceeds_threshold(self) -> None:
+        agg = self._make_aggregate(
+            avg_score_delta=-10.0,
+            b_avg_score=80.0,
+            c_avg_score=70.0,
+        )
+        verdict = _compute_verdict(agg, RegressionThresholds())
+        assert verdict.regression_detected is True
+        assert any("avg_score" in r for r in verdict.reasons)
+
+    def test_latency_increase_within_threshold(self) -> None:
+        """20% increase tolerance: 10% should not flag."""
+        agg = self._make_aggregate(
+            latency_avg_delta_ms=50.0,
+            b_latency_avg=500.0,
+            c_latency_avg=550.0,
+        )
+        verdict = _compute_verdict(agg, RegressionThresholds())
+        assert verdict.regression_detected is False
+
+    def test_latency_increase_exceeds_threshold(self) -> None:
+        agg = self._make_aggregate(
+            latency_avg_delta_ms=200.0,
+            b_latency_avg=500.0,
+            c_latency_avg=700.0,
+        )
+        verdict = _compute_verdict(agg, RegressionThresholds())
+        assert verdict.regression_detected is True
+        assert any("latency" in r for r in verdict.reasons)
+
+    def test_multiple_regressions(self) -> None:
+        """All three thresholds can fire simultaneously."""
+        agg = self._make_aggregate(
+            pass_rate_delta=-0.2,
+            b_pass_rate=1.0,
+            c_pass_rate=0.8,
+            avg_score_delta=-15.0,
+            b_avg_score=90.0,
+            c_avg_score=75.0,
+            latency_avg_delta_ms=500.0,
+            b_latency_avg=500.0,
+            c_latency_avg=1000.0,
+        )
+        verdict = _compute_verdict(agg, RegressionThresholds())
+        assert verdict.regression_detected is True
+        assert len(verdict.reasons) == 3
+
+    def test_thresholds_recorded(self) -> None:
+        thresholds = RegressionThresholds(
+            max_pass_rate_drop=0.1,
+            max_avg_score_drop=10.0,
+            max_latency_increase_pct=0.5,
+        )
+        agg = self._make_aggregate()
+        verdict = _compute_verdict(agg, thresholds)
+        assert verdict.thresholds_used == thresholds
+
+    def test_none_latency_no_crash(self) -> None:
+        """None latency values should not trigger regression."""
+        agg = self._make_aggregate(
+            b_latency_avg=None,
+            c_latency_avg=None,
+            latency_avg_delta_ms=None,
+        )
+        verdict = _compute_verdict(agg, RegressionThresholds())
+        assert verdict.regression_detected is False
