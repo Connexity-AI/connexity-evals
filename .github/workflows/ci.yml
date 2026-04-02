@@ -105,7 +105,7 @@ jobs:
         run: pnpm exec eslint .
 
       - name: TypeScript typecheck
-        run: pnpm turbo typecheck
+        run: pnpm turbo check-types
 
   # ── Client codegen freshness check ─────────────────────────
   client-codegen:

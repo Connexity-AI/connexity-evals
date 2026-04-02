@@ -30,7 +30,7 @@ cd frontend && pnpm typecheck
 cd backend && ruff check . && ruff format --check .
 cd backend && pyright
 cd frontend && pnpm lint
-cd frontend && pnpm turbo typecheck
+cd frontend && pnpm turbo check-types
 ```
 
 ## Quality Checks (run before committing)
@@ -50,7 +50,7 @@ uv run pytest app/tests -v                  # tests
 ```bash
 cd frontend
 pnpm lint                  # ESLint
-pnpm turbo typecheck       # TypeScript type check
+pnpm turbo check-types       # TypeScript type check
 ```
 
 ### After backend route or model changes
@@ -64,7 +64,7 @@ This keeps the frontend TypeScript SDK in sync. CI will fail if the generated cl
 | What changed | Run |
 |---|---|
 | Python code in `backend/` | `ruff check` + `ruff format --check` + `pyright` + `pytest` |
-| Frontend code in `frontend/` | `pnpm lint` + `pnpm turbo typecheck` |
+| Frontend code in `frontend/` | `pnpm lint` + `pnpm turbo check-types` |
 | Backend routes/models | All backend checks + `bash scripts/generate-client.sh` |
 | Both backend + frontend | All of the above |
 
