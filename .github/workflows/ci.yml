@@ -101,7 +101,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: ESLint
-        run: pnpm --filter connexity-evals run lint
+        working-directory: frontend/apps/web
+        run: pnpm exec next lint
 
       - name: TypeScript typecheck
         run: pnpm turbo typecheck
