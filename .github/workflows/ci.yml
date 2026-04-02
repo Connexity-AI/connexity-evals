@@ -73,6 +73,9 @@ jobs:
           cache-dependency-glob: backend/uv.lock
       - run: uv sync --group dev --frozen
 
+      - name: Run migrations
+        run: uv run alembic upgrade head
+
       - name: Run tests with coverage
         run: |
           uv run coverage run --source=app -m pytest -v
@@ -98,7 +101,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
 
       - name: ESLint
-        run: pnpm lint
+        run: pnpm turbo lint --filter=connexity-evals
 
       - name: TypeScript typecheck
         run: pnpm turbo typecheck
@@ -107,6 +110,13 @@ jobs:
   client-codegen:
     name: "Client · Codegen Freshness"
     runs-on: ubuntu-latest
+    env:
+      # Dummy values so app.main can be imported for OpenAPI extraction
+      POSTGRES_SERVER: localhost
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: app
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
