@@ -806,6 +806,12 @@ export type ExpectedToolCall = {
   expected_params?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Mock Responses
+   *
+   * Ordered mock responses consumed sequentially during platform agent simulation. First entry whose expected_params partially matches is popped and returned.
+   */
+  mock_responses?: Array<MockResponse> | null;
 };
 
 /**
@@ -1332,6 +1338,28 @@ export const MetricTier = {
  * MetricTier
  */
 export type MetricTier = (typeof MetricTier)[keyof typeof MetricTier];
+
+/**
+ * MockResponse
+ */
+export type MockResponse = {
+  /**
+   * Expected Params
+   *
+   * Partial-match filter on tool arguments; null = match any call
+   */
+  expected_params?: {
+    [key: string]: unknown;
+  } | null;
+  /**
+   * Response
+   *
+   * Canned return value sent back to the LLM as the tool result
+   */
+  response: {
+    [key: string]: unknown;
+  };
+};
 
 /**
  * NewPassword

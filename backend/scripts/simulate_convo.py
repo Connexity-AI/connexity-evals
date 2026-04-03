@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Print a simulated user ↔ agent conversation using the orchestrator + user simulator.
 
-**Endpoint agent** — POST to a running HTTP agent (e.g. ``examples/mock_agent/main.py``).
-Default URL: ``http://127.0.0.1:8001/agent/respond``. Set provider API keys like the
-rest of the backend.
+**Endpoint mode** — POST to a running HTTP agent (e.g. ``examples/mock_agent/main.py``).
 
-**Platform agent** — same system prompt and tool definitions as ``mock_agent/main.py``
-(loaded at runtime; that file is not modified), but the platform runs the agent turn via
-:class:`~app.services.agent_simulator.AgentSimulator` / LiteLLM. Tool results are
-synthetic placeholders (see agent simulator), not the mock server's tool registry.
+**Platform mode** — same system prompt and tool definitions as ``mock_agent/main.py``
+(loaded at runtime), but the platform runs the agent turn via
+:class:`~app.services.agent_simulator.AgentSimulator` / LiteLLM. Use ``--tool-mode``
+to control how tool calls are resolved:
+
+* ``synthetic`` (default) — placeholder acknowledgement (no real data).
+* ``mock`` — canned responses from each scenario's ``mock_responses``.
+* ``live`` — Python sandbox execution with hardcoded logic and
+  ``context.scenario_context`` (mirrors ``mock_agent`` tool registry).
 
 Setup and run (repo root paths shown; run from ``backend/``)::
 
@@ -17,14 +20,24 @@ Setup and run (repo root paths shown; run from ``backend/``)::
     # Terminal A — optional: mock HTTP agent
     uv run python ../examples/mock_agent/main.py
 
-    # Terminal B — HTTP agent (LLM user from scenario persona; needs LLM keys)
+    # Endpoint mode (LLM user from scenario persona; needs LLM keys)
     uv run python scripts/simulate_convo.py \\
         --agent-url http://127.0.0.1:8001/agent/respond \\
         --scenario ../examples/scenarios/normal-refund-request.json
 
-    # Same scenario, agent simulated on-platform (mock_agent prompt + tools JSON)
+    # Platform mode — synthetic tool results (default, backward compat)
     uv run python scripts/simulate_convo.py \\
         --platform-agent \\
+        --scenario ../examples/scenarios/normal-refund-request.json
+
+    # Platform mode — mock tool responses from scenario JSON
+    uv run python scripts/simulate_convo.py \\
+        --platform-agent --tool-mode mock \\
+        --scenario ../examples/scenarios/normal-refund-request.json
+
+    # Platform mode — live Python tool execution
+    uv run python scripts/simulate_convo.py \\
+        --platform-agent --tool-mode live \\
         --scenario ../examples/scenarios/normal-refund-request.json
 
 Fixed replay lines instead of an LLM user (no simulator LLM calls)::
@@ -58,6 +71,151 @@ from app.services.orchestrator import (
     run_scenario,
     run_scenario_with_evaluation,
 )
+
+# ---------------------------------------------------------------------------
+# Python tool implementations for --tool-mode live
+#
+# Each value is an ``async def execute(args, context) -> dict`` body.  The
+# sandbox receives ``args`` (parsed JSON) and a ``ToolContext`` whose
+# ``scenario_context`` carries the scenario's ``user_context``.
+# ---------------------------------------------------------------------------
+_TOOL_PYTHON_IMPLEMENTATIONS: dict[str, str] = {
+    "check_service_area": (
+        "async def execute(args, context):\n"
+        '    z = args.get("zone", "").replace(" ", "").upper()\n'
+        '    return {"serviced": True, "region": "Metro Vancouver", "zone": z}\n'
+    ),
+    "lookup_order": (
+        "async def execute(args, context):\n"
+        '    oid = args.get("order_id", "").strip().upper()\n'
+        "    ctx = context.scenario_context\n"
+        '    if ctx.get("order_id", "").upper() == oid:\n'
+        "        return {\n"
+        '            "order_id": oid,\n'
+        '            "status": ctx.get("order_status", "delivered"),\n'
+        '            "amount": ctx.get("amount", 0),\n'
+        '            "product": ctx.get("product", "Unknown"),\n'
+        '            "purchase_date": ctx.get("purchase_date", ""),\n'
+        '            "payment_method": ctx.get("payment_method", ""),\n'
+        '            "eligible_refund": True,\n'
+        '            "order_total": ctx.get("order_total"),\n'
+        '            "shipping_address": ctx.get("current_address"),\n'
+        "        }\n"
+        '    return {"order_id": oid, "status": "not_found"}\n'
+    ),
+    "process_refund": (
+        "async def execute(args, context):\n"
+        '    oid = args.get("order_id", "").strip().upper()\n'
+        "    try:\n"
+        '        amt = float(args.get("amount", 0))\n'
+        "    except (TypeError, ValueError):\n"
+        "        amt = 0.0\n"
+        "    return {\n"
+        '        "status": "completed", "refund_id": "RF-MOCK-001",\n'
+        '        "order_id": oid, "amount": amt,\n'
+        '        "message": "Refund submitted to payment provider; 5-7 business days",\n'
+        "    }\n"
+    ),
+    "update_shipping_address": (
+        "async def execute(args, context):\n"
+        "    return {\n"
+        '        "order_id": args.get("order_id", "").strip().upper(),\n'
+        '        "address": args.get("address", "").strip(),\n'
+        '        "updated": True,\n'
+        "    }\n"
+    ),
+    "apply_discount": (
+        "async def execute(args, context):\n"
+        '    code = args.get("code", "").strip().upper()\n'
+        '    pct = 20 if "SAVE20" in code else 10 if code else 0\n'
+        "    return {\n"
+        '        "order_id": args.get("order_id", "").strip().upper(),\n'
+        '        "code": args.get("code", "").strip(),\n'
+        '        "applied": True, "percent_off": pct,\n'
+        "    }\n"
+    ),
+    "add_order_item": (
+        "async def execute(args, context):\n"
+        "    return {\n"
+        '        "order_id": args.get("order_id", "").strip().upper(),\n'
+        '        "item_name": args.get("item_name", "").strip(),\n'
+        '        "added": True, "line_id": "LINE-MOCK",\n'
+        "    }\n"
+    ),
+    "lookup_account": (
+        "async def execute(args, context):\n"
+        '    aid = args.get("account_id", "").strip().upper()\n'
+        "    ctx = context.scenario_context\n"
+        '    if ctx.get("account_id", "").upper() == aid:\n'
+        "        return {\n"
+        '            "account_id": aid,\n'
+        '            "subscription_plan": ctx.get("subscription_plan", ""),\n'
+        '            "customer_since": ctx.get("customer_since", ""),\n'
+        '            "lifetime_value": ctx.get("lifetime_value", 0),\n'
+        '            "support_notes": f"Customer reported recurring billing overcharge;"\n'
+        "            f\" {ctx.get('prior_contacts', 0)} prior contacts logged\",\n"
+        "        }\n"
+        '    return {"account_id": aid, "status": "active", "support_notes": ""}\n'
+    ),
+    "get_billing_history": (
+        "async def execute(args, context):\n"
+        '    aid = args.get("account_id", "").strip().upper()\n'
+        "    ctx = context.scenario_context\n"
+        '    if ctx.get("account_id", "").upper() == aid:\n'
+        '        overcharge = ctx.get("monthly_overcharge", 50.0)\n'
+        '        months = ctx.get("months_affected", 3)\n'
+        "        charges = [\n"
+        "            {\n"
+        '                "period": f"2026-{i+1:02d}",\n'
+        '                "billed": 49.0 + overcharge,\n'
+        '                "plan_expected": 49.0,\n'
+        '                "variance": overcharge,\n'
+        "            }\n"
+        "            for i in range(months)\n"
+        "        ]\n"
+        "        return {\n"
+        '            "account_id": aid, "charges": charges,\n'
+        '            "total_overcharge": ctx.get("total_overcharge", overcharge * months),\n'
+        '            "summary": f"{months} consecutive months show"\n'
+        '            f" ${overcharge:.0f} overcharge vs plan",\n'
+        "        }\n"
+        '    return {"account_id": aid, "charges": [], "summary": "No billing rows"}\n'
+    ),
+    "escalate_to_supervisor": (
+        "async def execute(args, context):\n"
+        "    return {\n"
+        '        "ticket_id": "ESC-MOCK-001", "status": "queued",\n'
+        '        "eta_minutes": 15,\n'
+        '        "reason": args.get("reason", "customer_requested"),\n'
+        '        "account_id": args.get("account_id"),\n'
+        "    }\n"
+    ),
+}
+
+
+def _inject_platform_config(
+    tools: list[dict[str, Any]],
+    tool_mode: str,
+) -> None:
+    """Mutate tool dicts to add ``platform_config`` for mock or live dispatch."""
+    for tool in tools:
+        fn = tool.get("function", {})
+        name = fn.get("name", "") if isinstance(fn, dict) else ""
+        if tool_mode == "mock":
+            tool["platform_config"] = {"mode": "mock"}
+        elif tool_mode == "live":
+            code = _TOOL_PYTHON_IMPLEMENTATIONS.get(name)
+            if code:
+                tool["platform_config"] = {
+                    "mode": "live",
+                    "implementation": {
+                        "type": "python",
+                        "code": code,
+                        "timeout_s": 30.0,
+                    },
+                }
+            else:
+                tool["platform_config"] = {"mode": "mock"}
 
 
 def _repo_root() -> Path:
@@ -141,6 +299,8 @@ async def _run(args: argparse.Namespace) -> int:
 
     if args.platform_agent:
         agent_system_prompt, agent_tools = _load_mock_agent_prompt_tools()
+        if args.tool_mode in ("mock", "live"):
+            _inject_platform_config(agent_tools, args.tool_mode)
         agent_model = args.agent_model or os.getenv("MOCK_AGENT_MODEL", "gpt-4o-mini")
         agent_provider = args.agent_provider
         if args.agent_temperature is not None or args.agent_max_tokens is not None:
@@ -185,8 +345,15 @@ async def _run(args: argparse.Namespace) -> int:
         transcript = run_out.transcript
         verdict = None
 
+    tool_label = (
+        f", tool-mode={args.tool_mode}"
+        if args.platform_agent and args.tool_mode != "synthetic"
+        else ""
+    )
     mode_note = (
-        "platform (mock_agent prompt+tools)" if args.platform_agent else "endpoint"
+        f"platform (mock_agent prompt+tools{tool_label})"
+        if args.platform_agent
+        else "endpoint"
     )
     print(f"Scenario: {scenario.name} ({scenario_path})  [agent: {mode_note}]")
     print(f"Turns: {len(transcript)}")
@@ -250,6 +417,17 @@ def main() -> None:
         help=(
             "Run the agent via the platform simulator using SYSTEM_PROMPT and TOOLS "
             "from examples/mock_agent/main.py (no HTTP agent; needs LLM keys)."
+        ),
+    )
+    parser.add_argument(
+        "--tool-mode",
+        choices=["synthetic", "mock", "live"],
+        default="synthetic",
+        help=(
+            "How platform-agent tool calls are resolved (only with --platform-agent). "
+            "synthetic: placeholder results (default). "
+            "mock: canned responses from scenario mock_responses. "
+            "live: execute Python implementations defined in this script."
         ),
     )
     parser.add_argument(
@@ -336,6 +514,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.platform_agent == (args.agent_url is not None):
         parser.error("Specify exactly one of: --platform-agent OR --agent-url")
+    if args.tool_mode != "synthetic" and not args.platform_agent:
+        parser.error("--tool-mode requires --platform-agent")
     try:
         raise SystemExit(asyncio.run(_run(args)))
     except KeyboardInterrupt:

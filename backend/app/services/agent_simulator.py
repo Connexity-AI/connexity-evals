@@ -1,8 +1,7 @@
 """Platform-side agent turn simulation via :func:`call_llm` and optional tools."""
 
-import json
 import logging
-from typing import Any, Protocol
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -11,42 +10,11 @@ from app.models.enums import TurnRole
 from app.models.schemas import AgentSimulatorConfig, ToolCall, ToolCallFunction
 from app.services.cost_tracker import sum_usage_dicts
 from app.services.llm import LLMCallConfig, LLMMessage, call_llm
+from app.services.tool_executor import SyntheticToolExecutor, ToolExecutor
 
 logger = logging.getLogger(__name__)
 
 _MAX_TOOL_ROUNDS = 16
-
-
-class ToolExecutor(Protocol):
-    """Pluggable tool execution (synthetic, mock, or real implementations)."""
-
-    async def execute(
-        self,
-        tool_name: str,
-        tool_call_id: str,
-        arguments: str,
-    ) -> str:
-        """Return tool result as a string (typically JSON)."""
-        ...
-
-
-class SyntheticToolExecutor:
-    """Placeholder tool results until real or mock executors are wired."""
-
-    async def execute(
-        self,
-        tool_name: str,
-        tool_call_id: str,
-        arguments: str,
-    ) -> str:
-        _ = tool_name, tool_call_id, arguments
-        return json.dumps(
-            {
-                "status": "simulated",
-                "note": "Tool not executed by platform agent simulator",
-            },
-            ensure_ascii=False,
-        )
 
 
 class AgentSimulatorResult(BaseModel):
@@ -86,6 +54,17 @@ def _tool_calls_dicts_to_models(raw: list[dict[str, Any]]) -> list[ToolCall]:
             )
         )
     return out
+
+
+_PLATFORM_ONLY_KEYS = frozenset({"platform_config"})
+
+
+def _strip_platform_keys(tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Remove platform-internal keys (e.g. ``platform_config``) before sending to LLM."""
+    return [
+        {k: v for k, v in tool.items() if k not in _PLATFORM_ONLY_KEYS}
+        for tool in tools
+    ]
 
 
 _TURN_TO_LLM_ROLE: dict[TurnRole, str] = {
@@ -129,7 +108,7 @@ class AgentSimulator:
         tool_executor: ToolExecutor | None = None,
     ) -> None:
         self._system_prompt = system_prompt
-        self._tools = tools
+        self._tools = _strip_platform_keys(tools) if tools else tools
         self._tool_executor = tool_executor or SyntheticToolExecutor()
         cfg = config
         self._model = cfg.model if cfg and cfg.model else agent_model

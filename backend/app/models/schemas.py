@@ -23,11 +23,81 @@ class Persona(BaseModel):
     instructions: str = Field(description="Behavioral directives for the LLM simulator")
 
 
+class MockResponse(BaseModel):
+    expected_params: dict[str, Any] | None = Field(
+        default=None,
+        description="Partial-match filter on tool arguments; null = match any call",
+    )
+    response: dict[str, Any] = Field(
+        description="Canned return value sent back to the LLM as the tool result",
+    )
+
+
 class ExpectedToolCall(BaseModel):
     tool: str = Field(description="Tool/function name the agent should invoke")
     expected_params: dict[str, Any] | None = Field(
         default=None,
         description="Key parameters the judge verifies; null = any params acceptable",
+    )
+    mock_responses: list[MockResponse] | None = Field(
+        default=None,
+        description=(
+            "Ordered mock responses consumed sequentially during platform agent "
+            "simulation. First entry whose expected_params partially matches is "
+            "popped and returned."
+        ),
+    )
+
+
+# ── Tool platform config (lives inside Agent.tools JSONB) ─────────
+
+
+class PythonImplementation(BaseModel):
+    type: Literal["python"] = "python"
+    code: str = Field(
+        description="Python source defining: async def execute(args, context) -> dict"
+    )
+    config: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Static config available as context.config inside the tool code",
+    )
+    timeout_s: float = Field(
+        default=30.0,
+        ge=1.0,
+        le=120.0,
+        description="Max seconds before the tool execution is cancelled",
+    )
+
+
+class HttpWebhookImplementation(BaseModel):
+    type: Literal["http_webhook"] = "http_webhook"
+    url: str = Field(description="Webhook URL; supports ${VAR} env interpolation")
+    method: str = Field(
+        default="POST", description="HTTP method (POST, GET, PUT, etc.)"
+    )
+    headers: dict[str, str] | None = Field(
+        default=None,
+        description="HTTP headers; values support ${VAR} env interpolation",
+    )
+    timeout_ms: int = Field(
+        default=10000,
+        ge=1000,
+        le=60000,
+        description="Request timeout in milliseconds",
+    )
+
+
+ToolImplementation = PythonImplementation | HttpWebhookImplementation
+
+
+class ToolPlatformConfig(BaseModel):
+    mode: Literal["mock", "live"] = Field(
+        default="mock",
+        description="mock: use scenario mock_responses; live: execute real implementation",
+    )
+    implementation: ToolImplementation | None = Field(
+        default=None,
+        description="Required when mode=live. Null for mock tools.",
     )
 
 
