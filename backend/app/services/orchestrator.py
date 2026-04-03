@@ -43,6 +43,7 @@ from app.services.cost_tracker import (
 )
 from app.services.judge import JudgeInput, evaluate_transcript
 from app.services.llm import LLMMessage
+from app.services.tool_dispatch import build_tool_executor
 from app.services.user_simulator import UserSimulator
 
 logger = logging.getLogger(__name__)
@@ -275,12 +276,18 @@ async def run_scenario(
                 "Platform agent mode requires agent_model on the run snapshot; scenario %s",
                 scenario.id,
             )
+        tool_executor = build_tool_executor(
+            tools=agent_tools,
+            expected_tool_calls=scenario.expected_tool_calls,
+            scenario_context=scenario.user_context or {},
+        )
         agent_simulator = AgentSimulator(
             system_prompt=agent_system_prompt or "",
             tools=agent_tools,
             agent_model=model_id or (settings.LLM_DEFAULT_MODEL or "gpt-4o"),
             agent_provider=agent_provider,
             config=config.agent_simulator,
+            tool_executor=tool_executor,
         )
 
     acc = ScenarioTokenAccumulator()

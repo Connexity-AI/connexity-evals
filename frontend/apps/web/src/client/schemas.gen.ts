@@ -1300,6 +1300,22 @@ export const ExpectedToolCallSchema = {
       title: 'Expected Params',
       description: 'Key parameters the judge verifies; null = any params acceptable',
     },
+    mock_responses: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/MockResponse',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Mock Responses',
+      description:
+        'Ordered mock responses consumed sequentially during platform agent simulation. First entry whose expected_params partially matches is popped and returned.',
+    },
   },
   type: 'object',
   required: ['tool'],
@@ -2102,6 +2118,31 @@ export const MetricTierSchema = {
   type: 'string',
   enum: ['execution', 'knowledge', 'process', 'delivery'],
   title: 'MetricTier',
+} as const;
+
+export const MockResponseSchema = {
+  properties: {
+    expected_params: {
+      anyOf: [
+        {
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Expected Params',
+      description: 'Partial-match filter on tool arguments; null = match any call',
+    },
+    response: {
+      type: 'object',
+      title: 'Response',
+      description: 'Canned return value sent back to the LLM as the tool result',
+    },
+  },
+  type: 'object',
+  required: ['response'],
+  title: 'MockResponse',
 } as const;
 
 export const NewPasswordSchema = {
