@@ -323,9 +323,15 @@ export type AggregateMetrics = {
   /**
    * Total Scenarios
    *
-   * Total number of scenarios executed in the run
+   * Number of unique scenarios represented in run results
    */
   total_scenarios: number;
+  /**
+   * Total Executions
+   *
+   * Total number of scenario executions (result rows) in the run
+   */
+  total_executions: number;
   /**
    * Passed Count
    *
@@ -347,7 +353,7 @@ export type AggregateMetrics = {
   /**
    * Pass Rate
    *
-   * Fraction of scenarios that passed (0.0–1.0)
+   * Fraction of executions that passed (0.0–1.0); denominator is total_executions
    */
   pass_rate: number;
   /**
@@ -884,6 +890,12 @@ export type GenerateRequest = {
    * Persist
    */
   persist?: boolean;
+  /**
+   * Agent Id
+   *
+   * When persist=true, bind created scenarios to this agent
+   */
+  agent_id?: string | null;
 };
 
 /**
@@ -2034,6 +2046,12 @@ export type ScenarioCreate = {
    * Custom judge prompt section that overrides default criteria
    */
   evaluation_criteria_override?: string | null;
+  /**
+   * Agent Id
+   *
+   * Agent this scenario belongs to (test suite pool for that agent)
+   */
+  agent_id?: string | null;
 };
 
 /**
@@ -2107,6 +2125,12 @@ export type ScenarioImportItem = {
    * Custom judge prompt section that overrides default criteria
    */
   evaluation_criteria_override?: string | null;
+  /**
+   * Agent Id
+   *
+   * Agent this scenario belongs to (test suite pool for that agent)
+   */
+  agent_id?: string | null;
   /**
    * Id
    */
@@ -2211,6 +2235,12 @@ export type ScenarioPublic = {
    */
   evaluation_criteria_override?: string | null;
   /**
+   * Agent Id
+   *
+   * Agent this scenario belongs to (test suite pool for that agent)
+   */
+  agent_id?: string | null;
+  /**
    * Id
    *
    * Unique scenario identifier
@@ -2246,6 +2276,18 @@ export type ScenarioResultCreate = {
    * FK to the scenario that was executed
    */
   scenario_id: string;
+  /**
+   * Repetition Index
+   *
+   * Repetition within one set pass (0-based)
+   */
+  repetition_index?: number;
+  /**
+   * Set Repetition Index
+   *
+   * Which full set pass (0-based)
+   */
+  set_repetition_index?: number;
 };
 
 /**
@@ -2270,6 +2312,18 @@ export type ScenarioResultPublic = {
    * FK to the scenario that was executed
    */
   scenario_id: string;
+  /**
+   * Repetition Index
+   *
+   * Repetition within one set pass (0-based)
+   */
+  repetition_index: number;
+  /**
+   * Set Repetition Index
+   *
+   * Which full set pass (0-based)
+   */
+  set_repetition_index: number;
   /**
    * Transcript
    *
@@ -2533,11 +2587,17 @@ export type ScenarioSetCreate = {
    */
   description?: string | null;
   /**
-   * Scenario Ids
+   * Set Repetitions
    *
-   * Scenarios to include in the set on creation
+   * How many times to repeat the entire set during a run
    */
-  scenario_ids?: Array<string> | null;
+  set_repetitions?: number;
+  /**
+   * Members
+   *
+   * Initial members with per-scenario repetitions (omit or empty for no scenarios)
+   */
+  members?: Array<ScenarioSetMemberEntry> | null;
 };
 
 /**
@@ -2567,13 +2627,77 @@ export type ScenarioSetDiff = {
 };
 
 /**
+ * ScenarioSetMemberEntry
+ *
+ * API payload for adding or replacing set members with per-scenario repetition counts.
+ */
+export type ScenarioSetMemberEntry = {
+  /**
+   * Scenario Id
+   *
+   * Scenario to include in the set
+   */
+  scenario_id: string;
+  /**
+   * Repetitions
+   *
+   * How many times to execute this scenario within one set pass
+   */
+  repetitions?: number;
+};
+
+/**
+ * ScenarioSetMemberPublic
+ *
+ * Public view of one scenario's membership in a set.
+ */
+export type ScenarioSetMemberPublic = {
+  /**
+   * Scenario Id
+   *
+   * Linked scenario id
+   */
+  scenario_id: string;
+  /**
+   * Position
+   *
+   * Order within the set
+   */
+  position: number;
+  /**
+   * Repetitions
+   *
+   * Executions per set pass for this scenario
+   */
+  repetitions: number;
+};
+
+/**
+ * ScenarioSetMembersPublic
+ */
+export type ScenarioSetMembersPublic = {
+  /**
+   * Data
+   *
+   * Set members with position and repetitions
+   */
+  data: Array<ScenarioSetMemberPublic>;
+  /**
+   * Count
+   *
+   * Total members matching the query
+   */
+  count: number;
+};
+
+/**
  * ScenarioSetMembersUpdate
  */
 export type ScenarioSetMembersUpdate = {
   /**
-   * Scenario Ids
+   * Members
    */
-  scenario_ids: Array<string>;
+  members: Array<ScenarioSetMemberEntry>;
 };
 
 /**
@@ -2599,6 +2723,12 @@ export type ScenarioSetPublic = {
    */
   version?: number;
   /**
+   * Set Repetitions
+   *
+   * How many times to repeat the entire set during a run
+   */
+  set_repetitions?: number;
+  /**
    * Id
    *
    * Unique scenario set identifier
@@ -2608,6 +2738,12 @@ export type ScenarioSetPublic = {
    * Scenario Count
    */
   scenario_count?: number;
+  /**
+   * Effective Scenario Count
+   *
+   * Sum(member.repetitions) * set_repetitions — total expanded executions
+   */
+  effective_scenario_count?: number;
   /**
    * Created At
    *
@@ -2638,6 +2774,12 @@ export type ScenarioSetUpdate = {
    * What this scenario set covers
    */
   description?: string | null;
+  /**
+   * Set Repetitions
+   *
+   * How many times to repeat the entire set during a run
+   */
+  set_repetitions?: number | null;
 };
 
 /**
@@ -2737,6 +2879,12 @@ export type ScenarioUpdate = {
    * Custom judge prompt section that overrides default criteria
    */
   evaluation_criteria_override?: string | null;
+  /**
+   * Agent Id
+   *
+   * Agent this scenario belongs to (test suite pool for that agent)
+   */
+  agent_id?: string | null;
 };
 
 /**
@@ -4029,6 +4177,12 @@ export type ScenariosListScenariosData = {
      * Sort direction
      */
     sort_order?: string;
+    /**
+     * Agent Id
+     *
+     * Filter scenarios bound to this agent
+     */
+    agent_id?: string | null;
   };
   url: '/api/v1/scenarios/';
 };
@@ -4144,6 +4298,12 @@ export type ScenariosExportScenariosData = {
      * Status
      */
     status?: ScenarioStatus | null;
+    /**
+     * Agent Id
+     *
+     * Export only scenarios bound to this agent
+     */
+    agent_id?: string | null;
   };
   url: '/api/v1/scenarios/export';
 };
@@ -5135,7 +5295,7 @@ export type ScenarioSetsListScenariosInSetResponses = {
   /**
    * Successful Response
    */
-  200: ScenariosPublic;
+  200: ScenarioSetMembersPublic;
 };
 
 export type ScenarioSetsListScenariosInSetResponse =
@@ -5991,6 +6151,18 @@ export type ScenarioResultsListScenarioResultsData = {
      * Scenario Id
      */
     scenario_id?: string | null;
+    /**
+     * Repetition Index
+     *
+     * Filter by repetition within a set pass (0-based)
+     */
+    repetition_index?: number | null;
+    /**
+     * Set Repetition Index
+     *
+     * Filter by full set pass index (0-based)
+     */
+    set_repetition_index?: number | null;
   };
   url: '/api/v1/scenario-results/';
 };

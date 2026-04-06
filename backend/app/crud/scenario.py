@@ -4,6 +4,7 @@ from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.models import (
+    Agent,
     Difficulty,
     OnConflict,
     Scenario,
@@ -16,6 +17,11 @@ from app.models import (
 
 
 def create_scenario(*, session: Session, scenario_in: ScenarioCreate) -> Scenario:
+    if scenario_in.agent_id is not None:
+        agent = session.get(Agent, scenario_in.agent_id)
+        if agent is None:
+            msg = f"Agent not found: {scenario_in.agent_id}"
+            raise ValueError(msg)
     db_obj = Scenario.model_validate(scenario_in.model_dump())
     session.add(db_obj)
     session.commit()
@@ -38,6 +44,7 @@ def list_scenarios(
     search: str | None = None,
     sort_by: str = "created_at",
     sort_order: str = "desc",
+    agent_id: uuid.UUID | None = None,
 ) -> tuple[list[Scenario], int]:
     statement = select(Scenario)
     count_statement = select(func.count()).select_from(Scenario)
@@ -51,6 +58,9 @@ def list_scenarios(
     if status is not None:
         statement = statement.where(Scenario.status == status)
         count_statement = count_statement.where(Scenario.status == status)
+    if agent_id is not None:
+        statement = statement.where(Scenario.agent_id == agent_id)
+        count_statement = count_statement.where(Scenario.agent_id == agent_id)
     if search is not None:
         pattern = f"%{search}%"
         search_filter = col(Scenario.name).ilike(pattern) | col(
@@ -75,6 +85,11 @@ def update_scenario(
     *, session: Session, db_scenario: Scenario, scenario_in: ScenarioUpdate
 ) -> Scenario:
     update_data = scenario_in.model_dump(exclude_unset=True)
+    if "agent_id" in update_data and update_data["agent_id"] is not None:
+        agent = session.get(Agent, update_data["agent_id"])
+        if agent is None:
+            msg = f"Agent not found: {update_data['agent_id']}"
+            raise ValueError(msg)
     db_scenario.sqlmodel_update(update_data)
     session.add(db_scenario)
     session.commit()
@@ -96,6 +111,7 @@ def export_scenarios(
     tag: str | None = None,
     difficulty: Difficulty | None = None,
     status: ScenarioStatus | None = None,
+    agent_id: uuid.UUID | None = None,
 ) -> list[Scenario]:
     """Export scenarios matching optional filters (capped at EXPORT_MAX_ROWS)."""
     statement = select(Scenario)
@@ -106,6 +122,8 @@ def export_scenarios(
         statement = statement.where(Scenario.difficulty == difficulty)
     if status is not None:
         statement = statement.where(Scenario.status == status)
+    if agent_id is not None:
+        statement = statement.where(Scenario.agent_id == agent_id)
 
     statement = statement.limit(EXPORT_MAX_ROWS)
     return list(session.exec(statement).all())
@@ -134,6 +152,13 @@ def bulk_import_scenarios(
 
     for idx, item in enumerate(scenarios_in):
         try:
+            if item.agent_id is not None:
+                agent = session.get(Agent, item.agent_id)
+                if agent is None:
+                    label = item.name if item.name else f"index {idx}"
+                    errors.append(f"Item '{label}': Agent not found: {item.agent_id}")
+                    continue
+
             data = item.model_dump(exclude_unset=True, exclude={"id"})
 
             if item.id is None:

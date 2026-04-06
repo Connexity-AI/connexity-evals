@@ -542,7 +542,12 @@ export const AggregateMetricsSchema = {
     total_scenarios: {
       type: 'integer',
       title: 'Total Scenarios',
-      description: 'Total number of scenarios executed in the run',
+      description: 'Number of unique scenarios represented in run results',
+    },
+    total_executions: {
+      type: 'integer',
+      title: 'Total Executions',
+      description: 'Total number of scenario executions (result rows) in the run',
     },
     passed_count: {
       type: 'integer',
@@ -562,7 +567,7 @@ export const AggregateMetricsSchema = {
     pass_rate: {
       type: 'number',
       title: 'Pass Rate',
-      description: 'Fraction of scenarios that passed (0.0–1.0)',
+      description: 'Fraction of executions that passed (0.0–1.0); denominator is total_executions',
     },
     latency_p50_ms: {
       anyOf: [
@@ -699,7 +704,14 @@ export const AggregateMetricsSchema = {
     },
   },
   type: 'object',
-  required: ['total_scenarios', 'passed_count', 'failed_count', 'error_count', 'pass_rate'],
+  required: [
+    'total_scenarios',
+    'total_executions',
+    'passed_count',
+    'failed_count',
+    'error_count',
+    'pass_rate',
+  ],
   title: 'AggregateMetrics',
 } as const;
 
@@ -1445,6 +1457,19 @@ export const GenerateRequestSchema = {
       type: 'boolean',
       title: 'Persist',
       default: true,
+    },
+    agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Id',
+      description: 'When persist=true, bind created scenarios to this agent',
     },
   },
   type: 'object',
@@ -3324,6 +3349,19 @@ export const ScenarioCreateSchema = {
       title: 'Evaluation Criteria Override',
       description: 'Custom judge prompt section that overrides default criteria',
     },
+    agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Id',
+      description: 'Agent this scenario belongs to (test suite pool for that agent)',
+    },
   },
   type: 'object',
   required: ['name'],
@@ -3451,6 +3489,19 @@ export const ScenarioImportItemSchema = {
       ],
       title: 'Evaluation Criteria Override',
       description: 'Custom judge prompt section that overrides default criteria',
+    },
+    agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Id',
+      description: 'Agent this scenario belongs to (test suite pool for that agent)',
     },
     id: {
       anyOf: [
@@ -3626,6 +3677,19 @@ export const ScenarioPublicSchema = {
       title: 'Evaluation Criteria Override',
       description: 'Custom judge prompt section that overrides default criteria',
     },
+    agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Id',
+      description: 'Agent this scenario belongs to (test suite pool for that agent)',
+    },
     id: {
       type: 'string',
       format: 'uuid',
@@ -3664,6 +3728,18 @@ export const ScenarioResultCreateSchema = {
       title: 'Scenario Id',
       description: 'FK to the scenario that was executed',
     },
+    repetition_index: {
+      type: 'integer',
+      title: 'Repetition Index',
+      description: 'Repetition within one set pass (0-based)',
+      default: 0,
+    },
+    set_repetition_index: {
+      type: 'integer',
+      title: 'Set Repetition Index',
+      description: 'Which full set pass (0-based)',
+      default: 0,
+    },
   },
   type: 'object',
   required: ['run_id', 'scenario_id'],
@@ -3689,6 +3765,16 @@ export const ScenarioResultPublicSchema = {
       format: 'uuid',
       title: 'Scenario Id',
       description: 'FK to the scenario that was executed',
+    },
+    repetition_index: {
+      type: 'integer',
+      title: 'Repetition Index',
+      description: 'Repetition within one set pass (0-based)',
+    },
+    set_repetition_index: {
+      type: 'integer',
+      title: 'Set Repetition Index',
+      description: 'Which full set pass (0-based)',
     },
     transcript: {
       anyOf: [
@@ -3932,6 +4018,8 @@ export const ScenarioResultPublicSchema = {
     'id',
     'run_id',
     'scenario_id',
+    'repetition_index',
+    'set_repetition_index',
     'turn_count',
     'total_latency_ms',
     'agent_latency_p50_ms',
@@ -4220,12 +4308,18 @@ export const ScenarioSetCreateSchema = {
       title: 'Description',
       description: 'What this scenario set covers',
     },
-    scenario_ids: {
+    set_repetitions: {
+      type: 'integer',
+      minimum: 1,
+      title: 'Set Repetitions',
+      description: 'How many times to repeat the entire set during a run',
+      default: 1,
+    },
+    members: {
       anyOf: [
         {
           items: {
-            type: 'string',
-            format: 'uuid',
+            $ref: '#/components/schemas/ScenarioSetMemberEntry',
           },
           type: 'array',
         },
@@ -4233,8 +4327,8 @@ export const ScenarioSetCreateSchema = {
           type: 'null',
         },
       ],
-      title: 'Scenario Ids',
-      description: 'Scenarios to include in the set on creation',
+      title: 'Members',
+      description: 'Initial members with per-scenario repetitions (omit or empty for no scenarios)',
     },
   },
   type: 'object',
@@ -4282,19 +4376,88 @@ export const ScenarioSetDiffSchema = {
   title: 'ScenarioSetDiff',
 } as const;
 
-export const ScenarioSetMembersUpdateSchema = {
+export const ScenarioSetMemberEntrySchema = {
   properties: {
-    scenario_ids: {
-      items: {
-        type: 'string',
-        format: 'uuid',
-      },
-      type: 'array',
-      title: 'Scenario Ids',
+    scenario_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Scenario Id',
+      description: 'Scenario to include in the set',
+    },
+    repetitions: {
+      type: 'integer',
+      minimum: 1,
+      title: 'Repetitions',
+      description: 'How many times to execute this scenario within one set pass',
+      default: 1,
     },
   },
   type: 'object',
-  required: ['scenario_ids'],
+  required: ['scenario_id'],
+  title: 'ScenarioSetMemberEntry',
+  description:
+    'API payload for adding or replacing set members with per-scenario repetition counts.',
+} as const;
+
+export const ScenarioSetMemberPublicSchema = {
+  properties: {
+    scenario_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Scenario Id',
+      description: 'Linked scenario id',
+    },
+    position: {
+      type: 'integer',
+      title: 'Position',
+      description: 'Order within the set',
+    },
+    repetitions: {
+      type: 'integer',
+      minimum: 1,
+      title: 'Repetitions',
+      description: 'Executions per set pass for this scenario',
+    },
+  },
+  type: 'object',
+  required: ['scenario_id', 'position', 'repetitions'],
+  title: 'ScenarioSetMemberPublic',
+  description: "Public view of one scenario's membership in a set.",
+} as const;
+
+export const ScenarioSetMembersPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/ScenarioSetMemberPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Set members with position and repetitions',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total members matching the query',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'ScenarioSetMembersPublic',
+} as const;
+
+export const ScenarioSetMembersUpdateSchema = {
+  properties: {
+    members: {
+      items: {
+        $ref: '#/components/schemas/ScenarioSetMemberEntry',
+      },
+      type: 'array',
+      title: 'Members',
+    },
+  },
+  type: 'object',
+  required: ['members'],
   title: 'ScenarioSetMembersUpdate',
 } as const;
 
@@ -4324,6 +4487,13 @@ export const ScenarioSetPublicSchema = {
       description: 'Monotonically increasing version for snapshot tracking',
       default: 1,
     },
+    set_repetitions: {
+      type: 'integer',
+      minimum: 1,
+      title: 'Set Repetitions',
+      description: 'How many times to repeat the entire set during a run',
+      default: 1,
+    },
     id: {
       type: 'string',
       format: 'uuid',
@@ -4333,6 +4503,12 @@ export const ScenarioSetPublicSchema = {
     scenario_count: {
       type: 'integer',
       title: 'Scenario Count',
+      default: 0,
+    },
+    effective_scenario_count: {
+      type: 'integer',
+      title: 'Effective Scenario Count',
+      description: 'Sum(member.repetitions) * set_repetitions — total expanded executions',
       default: 0,
     },
     created_at: {
@@ -4378,6 +4554,19 @@ export const ScenarioSetUpdateSchema = {
       ],
       title: 'Description',
       description: 'What this scenario set covers',
+    },
+    set_repetitions: {
+      anyOf: [
+        {
+          type: 'integer',
+          minimum: 1,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Set Repetitions',
+      description: 'How many times to repeat the entire set during a run',
     },
   },
   type: 'object',
@@ -4555,6 +4744,19 @@ export const ScenarioUpdateSchema = {
       ],
       title: 'Evaluation Criteria Override',
       description: 'Custom judge prompt section that overrides default criteria',
+    },
+    agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Id',
+      description: 'Agent this scenario belongs to (test suite pool for that agent)',
     },
   },
   type: 'object',

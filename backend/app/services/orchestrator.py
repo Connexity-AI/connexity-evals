@@ -559,16 +559,18 @@ async def run_scenario_with_evaluation(
 def compute_aggregate_metrics(
     results: list[ScenarioResult],
 ) -> AggregateMetrics:
-    total = len(results)
-    if total == 0:
+    total_executions = len(results)
+    if total_executions == 0:
         return AggregateMetrics(
             total_scenarios=0,
+            total_executions=0,
             passed_count=0,
             failed_count=0,
             error_count=0,
             pass_rate=0.0,
         )
 
+    unique_scenario_count = len({r.scenario_id for r in results})
     passed = sum(1 for r in results if r.passed is True)
     errored = sum(1 for r in results if r.error_message is not None)
     failed = sum(1 for r in results if r.passed is False and r.error_message is None)
@@ -605,11 +607,12 @@ def compute_aggregate_metrics(
     total_cost_usd = sum(cost_values) if cost_values else None
 
     return AggregateMetrics(
-        total_scenarios=total,
+        total_scenarios=unique_scenario_count,
+        total_executions=total_executions,
         passed_count=passed,
         failed_count=failed,
         error_count=errored,
-        pass_rate=passed / total if total > 0 else 0.0,
+        pass_rate=passed / total_executions if total_executions > 0 else 0.0,
         latency_p50_ms=statistics.median(latencies) if latencies else None,
         latency_p95_ms=statistics.quantiles(latencies, n=20)[18]
         if len(latencies) >= 20
@@ -647,6 +650,9 @@ async def _execute_single_scenario(
     semaphore: asyncio.Semaphore,
     cancel_event: asyncio.Event,
     metrics_owner_id: uuid.UUID | None = None,
+    *,
+    repetition_index: int = 0,
+    set_repetition_index: int = 0,
 ) -> ScenarioResult:
     from sqlmodel import Session
 
@@ -662,6 +668,8 @@ async def _execute_single_scenario(
             result_in=ScenarioResultCreate(
                 run_id=run_id,
                 scenario_id=scenario.id,
+                repetition_index=repetition_index,
+                set_repetition_index=set_repetition_index,
             ),
         )
         result_id = result.id
@@ -881,6 +889,21 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 logger.error("Run %s not found or not in executable state", run_id)
                 return
 
+            scenario_set = crud.get_scenario_set(
+                session=session, scenario_set_id=run.scenario_set_id
+            )
+            if not scenario_set:
+                logger.error("Run %s references missing scenario set", run_id)
+                crud.update_run(
+                    session=session,
+                    db_run=run,
+                    run_in=RunUpdate(
+                        status=RunStatus.FAILED,
+                        completed_at=datetime.now(UTC),
+                    ),
+                )
+                return
+
             crud.update_run(
                 session=session,
                 db_run=run,
@@ -889,9 +912,10 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 ),
             )
 
-            scenarios = crud.get_scenarios_for_set(
+            execution_plan = crud.get_scenarios_for_set(
                 session=session, scenario_set_id=run.scenario_set_id
             )
+            set_repetitions = scenario_set.set_repetitions
 
             config = RunConfig.model_validate(run.config) if run.config else RunConfig()
             agent_endpoint_url = run.agent_endpoint_url
@@ -902,18 +926,20 @@ async def execute_run(run_id: uuid.UUID) -> None:
             agent_provider = run.agent_provider
             metrics_owner_id = run.created_by
 
-        state.progress.total_scenarios = len(scenarios)
+        per_pass_total = sum(entry.repetitions for entry in execution_plan)
+        total_expanded = per_pass_total * set_repetitions
+        state.progress.total_scenarios = total_expanded
         run_manager.emit(
             run_id,
             "run_started",
-            {"run_id": str(run_id), "total_scenarios": len(scenarios)},
+            {"run_id": str(run_id), "total_scenarios": total_expanded},
         )
 
         semaphore = asyncio.Semaphore(config.concurrency)
         tasks = [
             _execute_single_scenario(
                 run_id=run_id,
-                scenario=scenario,
+                scenario=entry.scenario,
                 agent_endpoint_url=agent_endpoint_url,
                 config=config,
                 agent_mode=agent_mode,
@@ -924,8 +950,12 @@ async def execute_run(run_id: uuid.UUID) -> None:
                 semaphore=semaphore,
                 cancel_event=state.cancel_event,
                 metrics_owner_id=metrics_owner_id,
+                repetition_index=rep,
+                set_repetition_index=set_rep,
             )
-            for scenario in scenarios
+            for set_rep in range(set_repetitions)
+            for entry in execution_plan
+            for rep in range(entry.repetitions)
         ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)

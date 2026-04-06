@@ -1,9 +1,11 @@
 from unittest.mock import AsyncMock, patch
 
 from fastapi.testclient import TestClient
+from sqlmodel import Session
 
 from app.core.config import settings
 from app.tests.services.scenario_generator.conftest import MOCK_LLM_RESPONSE
+from app.tests.utils.eval import create_test_agent
 
 
 async def _mock_generate(request):  # type: ignore[no-untyped-def]
@@ -53,6 +55,29 @@ def test_generate_scenarios_persists_drafts(
     for scenario in data["scenarios"]:
         assert scenario["status"] == "draft"
         assert scenario["id"] is not None
+
+
+def test_generate_scenarios_with_agent_id(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_agent(db)
+    with patch(
+        "app.api.routes.scenarios.generate_scenarios",
+        new_callable=AsyncMock,
+        side_effect=_mock_generate,
+    ):
+        r = client.post(
+            f"{settings.API_V1_STR}/scenarios/generate",
+            json={
+                "agent_prompt": "You are a helpful agent.",
+                "persist": True,
+                "agent_id": str(agent.id),
+            },
+            cookies=superuser_auth_cookies,
+        )
+    assert r.status_code == 200
+    for scenario in r.json()["scenarios"]:
+        assert scenario["agent_id"] == str(agent.id)
 
 
 def test_generate_scenarios_no_persist(

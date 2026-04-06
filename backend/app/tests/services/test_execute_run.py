@@ -11,7 +11,13 @@ from app.models.enums import AgentMode, RunStatus, ScenarioStatus, TurnRole
 from app.models.run import Run
 from app.models.scenario import Scenario
 from app.models.scenario_result import ScenarioResult
-from app.models.schemas import ConversationTurn, JudgeVerdict, MetricScore, RunConfig
+from app.models.schemas import (
+    ConversationTurn,
+    JudgeVerdict,
+    MetricScore,
+    RunConfig,
+    ScenarioExecution,
+)
 from app.services.orchestrator import (
     ScenarioRunResult,
     _execute_single_scenario,
@@ -45,6 +51,15 @@ def _make_run(
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
+
+
+def _mock_scenario_set(
+    *, scenario_set_id: uuid.UUID, set_repetitions: int = 1
+) -> MagicMock:
+    m = MagicMock()
+    m.id = scenario_set_id
+    m.set_repetitions = set_repetitions
+    return m
 
 
 def _make_result(
@@ -165,7 +180,14 @@ class TestExecuteSingleScenario:
                 agent_tools=None,
                 semaphore=asyncio.Semaphore(5),
                 cancel_event=asyncio.Event(),
+                repetition_index=2,
+                set_repetition_index=1,
             )
+
+        create_call = mock_crud.create_scenario_result.call_args
+        result_in = create_call.kwargs.get("result_in", create_call[1].get("result_in"))
+        assert result_in.repetition_index == 2
+        assert result_in.set_repetition_index == 1
 
         assert result.passed is True
         mock_run_eval.assert_awaited_once()
@@ -269,7 +291,12 @@ class TestExecuteRun:
         mock_crud = MagicMock()
         mock_crud.get_run.return_value = run
         mock_crud.update_run.return_value = run
-        mock_crud.get_scenarios_for_set.return_value = [scenario]
+        mock_crud.get_scenario_set.return_value = _mock_scenario_set(
+            scenario_set_id=run.scenario_set_id
+        )
+        mock_crud.get_scenarios_for_set.return_value = [
+            ScenarioExecution(scenario=scenario, repetitions=1, position=0)
+        ]
 
         completed_result = _make_result(run.id, scenario.id, passed=True)
         completed_result.agent_latency_p50_ms = 100
@@ -286,6 +313,48 @@ class TestExecuteRun:
         final_data = final_update.kwargs.get("run_in", final_update[1].get("run_in"))
         assert final_data.status == RunStatus.COMPLETED
         assert final_data.aggregate_metrics is not None
+
+    @patch(
+        "app.services.orchestrator._execute_single_scenario",
+        new_callable=AsyncMock,
+    )
+    async def test_expands_tasks_by_set_and_member_repetitions(
+        self, mock_single: AsyncMock
+    ) -> None:
+        s1 = _make_scenario(name="a")
+        s2 = _make_scenario(name="b")
+        run = _make_run()
+
+        mock_crud = MagicMock()
+        mock_crud.get_run.return_value = run
+        mock_crud.update_run.return_value = run
+        mock_crud.get_scenario_set.return_value = _mock_scenario_set(
+            scenario_set_id=run.scenario_set_id, set_repetitions=2
+        )
+        mock_crud.get_scenarios_for_set.return_value = [
+            ScenarioExecution(scenario=s1, repetitions=2, position=0),
+            ScenarioExecution(scenario=s2, repetitions=1, position=1),
+        ]
+
+        mock_single.return_value = _make_result(run.id, s1.id, passed=True)
+
+        manager = RunManager()
+
+        p1, p2, p3, p4 = _patch_db_and_crud(mock_crud, manager)
+        with p1, p2, p3, p4:
+            await execute_run(run.id)
+
+        # (2 + 1) member reps * 2 set reps = 6 tasks
+        assert mock_single.await_count == 6
+        seen = {
+            (
+                c.kwargs["repetition_index"],
+                c.kwargs["set_repetition_index"],
+                c.kwargs["scenario"].id,
+            )
+            for c in mock_single.call_args_list
+        }
+        assert len(seen) == 6
 
     @patch(
         "app.services.orchestrator._execute_single_scenario",
@@ -333,7 +402,12 @@ class TestExecuteRun:
         mock_crud = MagicMock()
         mock_crud.get_run.return_value = run
         mock_crud.update_run.return_value = run
-        mock_crud.get_scenarios_for_set.return_value = [scenario]
+        mock_crud.get_scenario_set.return_value = _mock_scenario_set(
+            scenario_set_id=run.scenario_set_id
+        )
+        mock_crud.get_scenarios_for_set.return_value = [
+            ScenarioExecution(scenario=scenario, repetitions=1, position=0)
+        ]
 
         result = _make_result(run.id, scenario.id, passed=False)
         manager = RunManager()
@@ -363,6 +437,9 @@ class TestExecuteRun:
         mock_crud = MagicMock()
         mock_crud.get_run.return_value = run
         mock_crud.update_run.return_value = run
+        mock_crud.get_scenario_set.return_value = _mock_scenario_set(
+            scenario_set_id=run.scenario_set_id
+        )
         mock_crud.get_scenarios_for_set.side_effect = RuntimeError("db error")
 
         manager = RunManager()

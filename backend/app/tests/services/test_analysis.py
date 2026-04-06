@@ -45,6 +45,7 @@ from app.services.analysis import (
 def _make_aggregate_metrics(**overrides: object) -> AggregateMetrics:
     defaults = {
         "total_scenarios": 10,
+        "total_executions": 10,
         "passed_count": 8,
         "failed_count": 2,
         "error_count": 0,

@@ -145,6 +145,7 @@ def _parse_aggregate_metrics(run: Run) -> AggregateMetrics:
     # Fallback: empty metrics if somehow missing on a completed run
     return AggregateMetrics(
         total_scenarios=0,
+        total_executions=0,
         passed_count=0,
         failed_count=0,
         error_count=0,

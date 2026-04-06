@@ -9,7 +9,7 @@ from app.models import (
     ScenarioStatus,
     ScenarioUpdate,
 )
-from app.tests.utils.eval import create_test_scenario
+from app.tests.utils.eval import create_test_agent, create_test_scenario
 
 
 def test_create_scenario(db: Session) -> None:
@@ -52,6 +52,22 @@ def test_list_scenarios_filter_by_difficulty(db: Session) -> None:
     items, count = crud.list_scenarios(session=db, difficulty=Difficulty.HARD)
     assert count >= 1
     assert all(s.difficulty == Difficulty.HARD for s in items)
+
+
+def test_list_scenarios_filter_by_agent_id(db: Session) -> None:
+    agent = create_test_agent(db)
+    crud.create_scenario(
+        session=db,
+        scenario_in=ScenarioCreate(
+            name="agent-bound",
+            tags=["agent-filter"],
+            agent_id=agent.id,
+        ),
+    )
+    create_test_scenario(db, tags=["unbound"])
+    items, count = crud.list_scenarios(session=db, agent_id=agent.id)
+    assert count >= 1
+    assert all(s.agent_id == agent.id for s in items)
 
 
 def test_list_scenarios_filter_by_status(db: Session) -> None:

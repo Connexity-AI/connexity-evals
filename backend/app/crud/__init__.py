@@ -53,6 +53,8 @@ from app.crud.scenario_set import (  # noqa: F401
     list_scenarios_in_set,
     remove_scenario_from_set,
     replace_scenarios_in_set,
+    sum_member_repetitions_in_set,
+    sum_member_repetitions_in_sets,
     update_scenario_set,
     validate_scenario_ids,
 )

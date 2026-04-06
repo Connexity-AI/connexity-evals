@@ -380,6 +380,7 @@ class TestComputeAggregate:
     def test_aggregate_deltas(self) -> None:
         b_metrics = AggregateMetrics(
             total_scenarios=3,
+            total_executions=3,
             passed_count=2,
             failed_count=1,
             error_count=0,
@@ -391,6 +392,7 @@ class TestComputeAggregate:
         )
         c_metrics = AggregateMetrics(
             total_scenarios=3,
+            total_executions=3,
             passed_count=3,
             failed_count=0,
             error_count=0,
@@ -451,6 +453,7 @@ class TestComputeVerdict:
     ) -> AggregateComparison:
         b_metrics = AggregateMetrics(
             total_scenarios=10,
+            total_executions=10,
             passed_count=int(b_pass_rate * 10),
             failed_count=10 - int(b_pass_rate * 10),
             error_count=0,
@@ -460,6 +463,7 @@ class TestComputeVerdict:
         )
         c_metrics = AggregateMetrics(
             total_scenarios=10,
+            total_executions=10,
             passed_count=int(c_pass_rate * 10),
             failed_count=10 - int(c_pass_rate * 10),
             error_count=0,

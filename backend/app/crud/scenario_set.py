@@ -9,9 +9,12 @@ from app.models import (
     ScenarioSet,
     ScenarioSetCreate,
     ScenarioSetMember,
+    ScenarioSetMemberEntry,
+    ScenarioSetMemberPublic,
     ScenarioSetUpdate,
 )
 from app.models.enums import ScenarioStatus
+from app.models.schemas import ScenarioExecution
 
 
 def validate_scenario_ids(
@@ -31,22 +34,22 @@ def validate_scenario_ids(
 def create_scenario_set(
     *, session: Session, scenario_set_in: ScenarioSetCreate
 ) -> ScenarioSet:
-    create_data = scenario_set_in.model_dump(exclude={"scenario_ids"})
+    create_data = scenario_set_in.model_dump(exclude={"members"})
     db_obj = ScenarioSet.model_validate(create_data)
     session.add(db_obj)
     session.flush()  # generate id without committing — members use the same transaction
 
-    if scenario_set_in.scenario_ids:
-        missing = validate_scenario_ids(
-            session=session, scenario_ids=scenario_set_in.scenario_ids
-        )
+    if scenario_set_in.members:
+        ids = [m.scenario_id for m in scenario_set_in.members]
+        missing = validate_scenario_ids(session=session, scenario_ids=ids)
         if missing:
             raise ValueError(f"Scenarios not found: {missing}")
-        for position, scenario_id in enumerate(scenario_set_in.scenario_ids):
+        for position, entry in enumerate(scenario_set_in.members):
             member = ScenarioSetMember(
                 scenario_set_id=db_obj.id,
-                scenario_id=scenario_id,
+                scenario_id=entry.scenario_id,
                 position=position,
+                repetitions=entry.repetitions,
             )
             session.add(member)
 
@@ -111,17 +114,32 @@ def add_scenarios_to_set(
     *,
     session: Session,
     db_scenario_set: ScenarioSet,
-    scenario_ids: list[uuid.UUID],
+    members: list[ScenarioSetMemberEntry],
 ) -> ScenarioSet:
+    scenario_ids = [m.scenario_id for m in members]
+    if len(scenario_ids) != len(set(scenario_ids)):
+        msg = "Duplicate scenario_id in request body"
+        raise ValueError(msg)
     missing = validate_scenario_ids(session=session, scenario_ids=scenario_ids)
     if missing:
         raise ValueError(f"Scenarios not found: {missing}")
+    existing = set(
+        session.exec(
+            select(ScenarioSetMember.scenario_id).where(
+                ScenarioSetMember.scenario_set_id == db_scenario_set.id,
+                col(ScenarioSetMember.scenario_id).in_(scenario_ids),
+            )
+        ).all()
+    )
+    if existing:
+        raise ValueError(f"Scenarios already in set: {sorted(existing)}")
     next_pos = _next_position(session=session, scenario_set_id=db_scenario_set.id)
-    for i, scenario_id in enumerate(scenario_ids):
+    for i, entry in enumerate(members):
         member = ScenarioSetMember(
             scenario_set_id=db_scenario_set.id,
-            scenario_id=scenario_id,
+            scenario_id=entry.scenario_id,
             position=next_pos + i,
+            repetitions=entry.repetitions,
         )
         session.add(member)
     _bump_version(session=session, scenario_set=db_scenario_set)
@@ -154,8 +172,9 @@ def replace_scenarios_in_set(
     *,
     session: Session,
     db_scenario_set: ScenarioSet,
-    scenario_ids: list[uuid.UUID],
+    members: list[ScenarioSetMemberEntry],
 ) -> ScenarioSet:
+    scenario_ids = [m.scenario_id for m in members]
     missing = validate_scenario_ids(session=session, scenario_ids=scenario_ids)
     if missing:
         raise ValueError(f"Scenarios not found: {missing}")
@@ -170,11 +189,12 @@ def replace_scenarios_in_set(
     session.flush()
 
     # Insert new members
-    for position, scenario_id in enumerate(scenario_ids):
+    for position, entry in enumerate(members):
         member = ScenarioSetMember(
             scenario_set_id=db_scenario_set.id,
-            scenario_id=scenario_id,
+            scenario_id=entry.scenario_id,
             position=position,
+            repetitions=entry.repetitions,
         )
         session.add(member)
 
@@ -188,6 +208,18 @@ def count_scenarios_in_set(*, session: Session, scenario_set_id: uuid.UUID) -> i
     return session.exec(
         select(func.count()).where(ScenarioSetMember.scenario_set_id == scenario_set_id)
     ).one()
+
+
+def sum_member_repetitions_in_set(
+    *, session: Session, scenario_set_id: uuid.UUID
+) -> int:
+    """Sum of repetitions across all members (one set pass, before set_repetitions)."""
+    total = session.exec(
+        select(func.coalesce(func.sum(ScenarioSetMember.repetitions), 0)).where(
+            ScenarioSetMember.scenario_set_id == scenario_set_id
+        )
+    ).one()
+    return int(total)
 
 
 def count_scenarios_in_sets(
@@ -204,38 +236,65 @@ def count_scenarios_in_sets(
     return {row[0]: row[1] for row in rows}
 
 
+def sum_member_repetitions_in_sets(
+    *, session: Session, scenario_set_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, int]:
+    """Batch-fetch sum of member repetitions per set (one set pass, before set_repetitions)."""
+    if not scenario_set_ids:
+        return {}
+    rows = session.exec(
+        select(
+            ScenarioSetMember.scenario_set_id,
+            func.coalesce(func.sum(ScenarioSetMember.repetitions), 0),
+        )
+        .where(col(ScenarioSetMember.scenario_set_id).in_(scenario_set_ids))
+        .group_by(ScenarioSetMember.scenario_set_id)
+    ).all()
+    result = {sid: 0 for sid in scenario_set_ids}
+    for sid, total in rows:
+        result[sid] = int(total)
+    return result
+
+
 def list_scenarios_in_set(
     *,
     session: Session,
     scenario_set_id: uuid.UUID,
     skip: int = 0,
     limit: int = 100,
-) -> tuple[list[Scenario], int]:
-    base = (
-        select(Scenario)
-        .join(ScenarioSetMember, Scenario.id == ScenarioSetMember.scenario_id)
-        .where(ScenarioSetMember.scenario_set_id == scenario_set_id)
-    )
+) -> tuple[list[ScenarioSetMemberPublic], int]:
     count = session.exec(
         select(func.count())
         .select_from(ScenarioSetMember)
         .where(ScenarioSetMember.scenario_set_id == scenario_set_id)
     ).one()
-    items = list(
+    rows = list(
         session.exec(
-            base.order_by(ScenarioSetMember.position).offset(skip).limit(limit)
+            select(ScenarioSetMember)
+            .where(ScenarioSetMember.scenario_set_id == scenario_set_id)
+            .order_by(ScenarioSetMember.position)
+            .offset(skip)
+            .limit(limit)
         ).all()
     )
-    return items, count
+    public = [
+        ScenarioSetMemberPublic(
+            scenario_id=m.scenario_id,
+            position=m.position,
+            repetitions=m.repetitions,
+        )
+        for m in rows
+    ]
+    return public, count
 
 
 def get_scenarios_for_set(
     *, session: Session, scenario_set_id: uuid.UUID
-) -> list[Scenario]:
-    """Get all active scenarios for a set, ordered by position."""
+) -> list[ScenarioExecution]:
+    """Get all active scenarios for a set, ordered by position, with member repetitions."""
 
     statement = (
-        select(Scenario)
+        select(Scenario, ScenarioSetMember.repetitions, ScenarioSetMember.position)
         .join(ScenarioSetMember, Scenario.id == ScenarioSetMember.scenario_id)
         .where(
             ScenarioSetMember.scenario_set_id == scenario_set_id,
@@ -243,4 +302,8 @@ def get_scenarios_for_set(
         )
         .order_by(ScenarioSetMember.position)
     )
-    return list(session.exec(statement).all())
+    rows = session.exec(statement).all()
+    return [
+        ScenarioExecution(scenario=row[0], repetitions=row[1], position=row[2])
+        for row in rows
+    ]

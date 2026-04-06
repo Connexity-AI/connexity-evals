@@ -464,6 +464,7 @@ def test_run_config_with_user_simulator_round_trip():
 def test_aggregate_metrics_minimal():
     metrics = AggregateMetrics(
         total_scenarios=0,
+        total_executions=0,
         passed_count=0,
         failed_count=0,
         error_count=0,
@@ -476,6 +477,7 @@ def test_aggregate_metrics_minimal():
 def test_aggregate_metrics_full():
     metrics = AggregateMetrics(
         total_scenarios=100,
+        total_executions=100,
         passed_count=85,
         failed_count=10,
         error_count=5,
@@ -522,6 +524,7 @@ def test_aggregate_metrics_json_round_trip():
 
     metrics = AggregateMetrics(
         total_scenarios=50,
+        total_executions=50,
         passed_count=45,
         failed_count=3,
         error_count=2,
@@ -531,3 +534,4 @@ def test_aggregate_metrics_json_round_trip():
     raw = json.loads(json_str)
     restored = AggregateMetrics.model_validate(raw)
     assert restored.total_scenarios == 50
+    assert restored.total_executions == 50
