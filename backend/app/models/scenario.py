@@ -8,6 +8,7 @@ from sqlalchemy import Column, Index, Text, text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
+from app.models.agent import Agent
 from app.models.enums import Difficulty, ScenarioStatus
 from app.models.schemas import ExpectedToolCall, Persona
 
@@ -75,6 +76,12 @@ class ScenarioBase(SQLModel):
         default=None,
         description="Custom judge prompt section that overrides default criteria",
     )
+    agent_id: uuid.UUID | None = Field(
+        default=None,
+        foreign_key="agent.id",
+        index=True,
+        description="Agent this scenario belongs to (test suite pool for that agent)",
+    )
 
     @field_validator("persona", mode="before")
     @classmethod
@@ -110,6 +117,7 @@ class Scenario(ScenarioBase, table=True):
     )
 
     # Relationships
+    agent: Agent | None = Relationship(back_populates="scenarios")
     scenario_set_links: list["ScenarioSetMember"] = Relationship(
         back_populates="scenario",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
@@ -157,6 +165,10 @@ class ScenarioUpdate(SQLModel):
     evaluation_criteria_override: str | None = Field(
         default=None,
         description="Custom judge prompt section that overrides default criteria",
+    )
+    agent_id: uuid.UUID | None = Field(
+        default=None,
+        description="Agent this scenario belongs to (test suite pool for that agent)",
     )
 
 

@@ -19,11 +19,12 @@ def _make_result(
     agent_cost_usd: float | None = None,
     platform_cost_usd: float | None = None,
     estimated_cost_usd: float | None = None,
+    scenario_id: uuid.UUID | None = None,
 ) -> ScenarioResult:
     return ScenarioResult(
         id=uuid.uuid4(),
         run_id=uuid.uuid4(),
-        scenario_id=uuid.uuid4(),
+        scenario_id=scenario_id or uuid.uuid4(),
         passed=passed,
         error_message=error_message,
         agent_latency_p50_ms=agent_latency_p50_ms,
@@ -39,6 +40,7 @@ def _make_result(
 def test_empty_results() -> None:
     metrics = compute_aggregate_metrics([])
     assert metrics.total_scenarios == 0
+    assert metrics.total_executions == 0
     assert metrics.passed_count == 0
     assert metrics.failed_count == 0
     assert metrics.error_count == 0
@@ -52,6 +54,7 @@ def test_all_passed() -> None:
         _make_result(passed=True, agent_latency_p50_ms=300),
     ]
     metrics = compute_aggregate_metrics(results)
+    assert metrics.total_executions == 3
     assert metrics.total_scenarios == 3
     assert metrics.passed_count == 3
     assert metrics.failed_count == 0
@@ -65,6 +68,7 @@ def test_all_failed() -> None:
         _make_result(passed=False),
     ]
     metrics = compute_aggregate_metrics(results)
+    assert metrics.total_executions == 2
     assert metrics.total_scenarios == 2
     assert metrics.passed_count == 0
     assert metrics.failed_count == 2
@@ -81,6 +85,7 @@ def test_mixed_results() -> None:
         ),
     ]
     metrics = compute_aggregate_metrics(results)
+    assert metrics.total_executions == 3
     assert metrics.total_scenarios == 3
     assert metrics.passed_count == 1
     assert metrics.failed_count == 1
@@ -189,3 +194,12 @@ def test_cost_breakdown_aggregation() -> None:
     assert metrics.total_agent_cost_usd == pytest.approx(0.015)
     assert metrics.total_platform_cost_usd == pytest.approx(0.005)
     assert metrics.total_estimated_cost_usd == pytest.approx(0.020)
+
+
+def test_unique_scenario_count_vs_total_executions() -> None:
+    sid = uuid.uuid4()
+    results = [_make_result(passed=True, scenario_id=sid) for _ in range(4)]
+    metrics = compute_aggregate_metrics(results)
+    assert metrics.total_executions == 4
+    assert metrics.total_scenarios == 1
+    assert metrics.pass_rate == 1.0

@@ -1,3 +1,5 @@
+import uuid
+
 from pydantic import BaseModel, Field
 
 from app.models.scenario import ScenarioPublic
@@ -21,6 +23,10 @@ class GenerateRequest(BaseModel):
     model: str | None = None
     temperature: float | None = Field(default=None, ge=0.0, le=2.0)
     persist: bool = True
+    agent_id: uuid.UUID | None = Field(
+        default=None,
+        description="When persist=true, bind created scenarios to this agent",
+    )
 
 
 class GenerateResult(BaseModel):

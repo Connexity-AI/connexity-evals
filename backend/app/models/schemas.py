@@ -6,13 +6,19 @@ helpers (:class:`RunConfig`, :class:`UserSimulatorConfig`, :class:`JudgeConfig`)
 live here so API and services share one definition.
 """
 
+from __future__ import annotations
+
 import uuid
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
 from app.models.enums import SimulatorMode, TurnRole
+
+if TYPE_CHECKING:
+    from app.models.scenario import Scenario
 
 # ── Scenario nested types ──────────────────────────────────────────
 
@@ -162,7 +168,7 @@ class UserSimulatorConfig(BaseModel):
     )
 
     @model_validator(mode="after")
-    def scripted_mode_requires_messages(self) -> "UserSimulatorConfig":
+    def scripted_mode_requires_messages(self) -> UserSimulatorConfig:
         if self.mode == SimulatorMode.SCRIPTED and not self.scripted_messages:
             msg = "scripted_messages must be non-empty when mode is 'scripted'"
             raise ValueError(msg)
@@ -331,16 +337,39 @@ class JudgeVerdict(BaseModel):
 # ── Aggregate metrics nested types ─────────────────────────────────
 
 
+@dataclass(frozen=True)
+class ScenarioExecution:
+    """One row in a scenario set execution plan (scenario + member metadata)."""
+
+    scenario: "Scenario"  # noqa: UP037 — avoid circular import with app.models.scenario
+    repetitions: int
+    position: int
+
+
 class AggregateMetrics(BaseModel):
     total_scenarios: int = Field(
-        description="Total number of scenarios executed in the run"
+        description="Number of unique scenarios represented in run results"
+    )
+    total_executions: int = Field(
+        description="Total number of scenario executions (result rows) in the run"
     )
     passed_count: int = Field(description="Number of scenarios that passed")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _legacy_total_executions(cls, data: Any) -> Any:
+        """Runs stored before total_executions used total_scenarios as execution count."""
+        if isinstance(data, dict) and "total_executions" not in data:
+            return {**data, "total_executions": data.get("total_scenarios", 0)}
+        return data
+
     failed_count: int = Field(description="Number of scenarios that failed")
     error_count: int = Field(
         description="Number of scenarios that errored during execution"
     )
-    pass_rate: float = Field(description="Fraction of scenarios that passed (0.0–1.0)")
+    pass_rate: float = Field(
+        description="Fraction of executions that passed (0.0–1.0); denominator is total_executions"
+    )
     latency_p50_ms: float | None = Field(
         default=None, description="Median agent latency across scenarios"
     )

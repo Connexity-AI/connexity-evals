@@ -47,7 +47,10 @@ def test_create_scenario_set_with_scenarios(
         cookies=superuser_auth_cookies,
     )
     assert r2.status_code == 200
-    assert r2.json()["count"] == 2
+    body = r2.json()
+    assert body["count"] == 2
+    assert body["data"][0]["scenario_id"] == str(s1.id)
+    assert body["data"][0]["repetitions"] == 1
 
 
 def test_create_scenario_set_with_invalid_scenario_ids(
@@ -145,7 +148,7 @@ def test_add_scenarios_to_set(
     s1 = create_test_scenario(db)
     r = client.post(
         f"{settings.API_V1_STR}/scenario-sets/{scenario_set.id}/scenarios",
-        json={"scenario_ids": [str(s1.id)]},
+        json={"members": [{"scenario_id": str(s1.id), "repetitions": 1}]},
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
@@ -160,7 +163,7 @@ def test_add_invalid_scenarios_to_set(
     scenario_set = create_test_scenario_set(db)
     r = client.post(
         f"{settings.API_V1_STR}/scenario-sets/{scenario_set.id}/scenarios",
-        json={"scenario_ids": [str(uuid.uuid4())]},
+        json={"members": [{"scenario_id": str(uuid.uuid4()), "repetitions": 1}]},
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 422
@@ -174,7 +177,7 @@ def test_replace_scenarios_in_set(
     scenario_set = create_test_scenario_set(db, scenario_ids=[s1.id])
     r = client.put(
         f"{settings.API_V1_STR}/scenario-sets/{scenario_set.id}/scenarios",
-        json={"scenario_ids": [str(s2.id)]},
+        json={"members": [{"scenario_id": str(s2.id), "repetitions": 1}]},
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
@@ -188,7 +191,7 @@ def test_replace_scenarios_in_set(
         cookies=superuser_auth_cookies,
     )
     assert r2.json()["count"] == 1
-    assert r2.json()["data"][0]["id"] == str(s2.id)
+    assert r2.json()["data"][0]["scenario_id"] == str(s2.id)
 
 
 def test_replace_with_invalid_scenarios(
@@ -198,7 +201,7 @@ def test_replace_with_invalid_scenarios(
     scenario_set = create_test_scenario_set(db, scenario_ids=[s1.id])
     r = client.put(
         f"{settings.API_V1_STR}/scenario-sets/{scenario_set.id}/scenarios",
-        json={"scenario_ids": [str(uuid.uuid4())]},
+        json={"members": [{"scenario_id": str(uuid.uuid4()), "repetitions": 1}]},
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 422

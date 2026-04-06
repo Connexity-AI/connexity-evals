@@ -91,6 +91,7 @@ def test_scenario_set_member():
         position=3,
     )
     assert member.position == 3
+    assert member.repetitions == 1
 
 
 # ── Run ────────────────────────────────────────────────────────────

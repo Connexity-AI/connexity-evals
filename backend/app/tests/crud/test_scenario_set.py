@@ -4,7 +4,7 @@ import pytest
 from sqlmodel import Session
 
 from app import crud
-from app.models import ScenarioSetUpdate
+from app.models import ScenarioSetMemberEntry, ScenarioSetUpdate
 from app.tests.utils.eval import (
     create_test_scenario,
     create_test_scenario_set,
@@ -25,8 +25,9 @@ def test_create_scenario_set_with_scenarios(db: Session) -> None:
         session=db, scenario_set_id=scenario_set.id
     )
     assert count == 2
-    assert scenarios[0].id == s1.id
-    assert scenarios[1].id == s2.id
+    assert scenarios[0].scenario_id == s1.id
+    assert scenarios[1].scenario_id == s2.id
+    assert scenarios[0].repetitions == 1
     assert scenario_set.version == 1
 
 
@@ -65,14 +66,14 @@ def test_add_scenarios_to_set(db: Session) -> None:
     updated = crud.add_scenarios_to_set(
         session=db,
         db_scenario_set=scenario_set,
-        scenario_ids=[scenario.id],
+        members=[ScenarioSetMemberEntry(scenario_id=scenario.id)],
     )
     assert updated.id == scenario_set.id
     scenarios, count = crud.list_scenarios_in_set(
         session=db, scenario_set_id=scenario_set.id
     )
     assert count == 1
-    assert scenarios[0].id == scenario.id
+    assert scenarios[0].scenario_id == scenario.id
 
 
 def test_add_invalid_scenario_to_set(db: Session) -> None:
@@ -81,8 +82,53 @@ def test_add_invalid_scenario_to_set(db: Session) -> None:
         crud.add_scenarios_to_set(
             session=db,
             db_scenario_set=scenario_set,
-            scenario_ids=[uuid.uuid4()],
+            members=[ScenarioSetMemberEntry(scenario_id=uuid.uuid4())],
         )
+
+
+def test_add_scenarios_duplicate_ids_in_request_rejected(db: Session) -> None:
+    scenario_set = create_test_scenario_set(db)
+    scenario = create_test_scenario(db)
+    with pytest.raises(ValueError, match="Duplicate scenario_id"):
+        crud.add_scenarios_to_set(
+            session=db,
+            db_scenario_set=scenario_set,
+            members=[
+                ScenarioSetMemberEntry(scenario_id=scenario.id),
+                ScenarioSetMemberEntry(scenario_id=scenario.id),
+            ],
+        )
+
+
+def test_add_scenario_already_in_set_rejected(db: Session) -> None:
+    scenario = create_test_scenario(db)
+    scenario_set = create_test_scenario_set(db, scenario_ids=[scenario.id])
+    with pytest.raises(ValueError, match="Scenarios already in set"):
+        crud.add_scenarios_to_set(
+            session=db,
+            db_scenario_set=scenario_set,
+            members=[ScenarioSetMemberEntry(scenario_id=scenario.id)],
+        )
+
+
+def test_sum_member_repetitions_in_sets_batch(db: Session) -> None:
+    s1 = create_test_scenario(db)
+    s2 = create_test_scenario(db)
+    set_a = create_test_scenario_set(db, scenario_ids=[s1.id])
+    set_b = create_test_scenario_set(db)
+    crud.replace_scenarios_in_set(
+        session=db,
+        db_scenario_set=set_a,
+        members=[
+            ScenarioSetMemberEntry(scenario_id=s1.id, repetitions=2),
+            ScenarioSetMemberEntry(scenario_id=s2.id, repetitions=3),
+        ],
+    )
+    sums = crud.sum_member_repetitions_in_sets(
+        session=db, scenario_set_ids=[set_a.id, set_b.id]
+    )
+    assert sums[set_a.id] == 5
+    assert sums[set_b.id] == 0
 
 
 def test_remove_scenario_from_set(db: Session) -> None:
@@ -108,14 +154,15 @@ def test_replace_scenarios_in_set(db: Session) -> None:
     updated = crud.replace_scenarios_in_set(
         session=db,
         db_scenario_set=scenario_set,
-        scenario_ids=[s3.id],
+        members=[ScenarioSetMemberEntry(scenario_id=s3.id, repetitions=2)],
     )
     assert updated.id == scenario_set.id
     scenarios, count = crud.list_scenarios_in_set(
         session=db, scenario_set_id=scenario_set.id
     )
     assert count == 1
-    assert scenarios[0].id == s3.id
+    assert scenarios[0].scenario_id == s3.id
+    assert scenarios[0].repetitions == 2
 
 
 def test_replace_with_invalid_scenario_ids(db: Session) -> None:
@@ -125,7 +172,7 @@ def test_replace_with_invalid_scenario_ids(db: Session) -> None:
         crud.replace_scenarios_in_set(
             session=db,
             db_scenario_set=scenario_set,
-            scenario_ids=[uuid.uuid4()],
+            members=[ScenarioSetMemberEntry(scenario_id=uuid.uuid4())],
         )
 
 
@@ -138,9 +185,9 @@ def test_list_scenarios_in_set_ordered(db: Session) -> None:
         session=db, scenario_set_id=scenario_set.id
     )
     assert count == 3
-    assert scenarios[0].id == s3.id
-    assert scenarios[1].id == s1.id
-    assert scenarios[2].id == s2.id
+    assert scenarios[0].scenario_id == s3.id
+    assert scenarios[1].scenario_id == s1.id
+    assert scenarios[2].scenario_id == s2.id
 
 
 def test_list_scenarios_in_set_paginated(db: Session) -> None:
@@ -154,13 +201,13 @@ def test_list_scenarios_in_set_paginated(db: Session) -> None:
     )
     assert count == 3
     assert len(page1) == 2
-    assert page1[0].id == s1.id
+    assert page1[0].scenario_id == s1.id
 
     page2, _ = crud.list_scenarios_in_set(
         session=db, scenario_set_id=scenario_set.id, skip=2, limit=2
     )
     assert len(page2) == 1
-    assert page2[0].id == s3.id
+    assert page2[0].scenario_id == s3.id
 
 
 def test_version_increments_on_add(db: Session) -> None:
@@ -169,7 +216,12 @@ def test_version_increments_on_add(db: Session) -> None:
     s1 = create_test_scenario(db)
     s2 = create_test_scenario(db)
     updated = crud.add_scenarios_to_set(
-        session=db, db_scenario_set=scenario_set, scenario_ids=[s1.id, s2.id]
+        session=db,
+        db_scenario_set=scenario_set,
+        members=[
+            ScenarioSetMemberEntry(scenario_id=s1.id),
+            ScenarioSetMemberEntry(scenario_id=s2.id),
+        ],
     )
     assert updated.version == 2
 
@@ -199,7 +251,9 @@ def test_version_increments_on_replace(db: Session) -> None:
     scenario_set = create_test_scenario_set(db, scenario_ids=[s1.id])
     assert scenario_set.version == 1
     updated = crud.replace_scenarios_in_set(
-        session=db, db_scenario_set=scenario_set, scenario_ids=[s2.id]
+        session=db,
+        db_scenario_set=scenario_set,
+        members=[ScenarioSetMemberEntry(scenario_id=s2.id)],
     )
     assert updated.version == 2
 
@@ -212,10 +266,17 @@ def test_version_increments_multiple_operations(db: Session) -> None:
     assert scenario_set.version == 1
 
     crud.add_scenarios_to_set(
-        session=db, db_scenario_set=scenario_set, scenario_ids=[s1.id, s2.id]
+        session=db,
+        db_scenario_set=scenario_set,
+        members=[
+            ScenarioSetMemberEntry(scenario_id=s1.id),
+            ScenarioSetMemberEntry(scenario_id=s2.id),
+        ],
     )
     crud.replace_scenarios_in_set(
-        session=db, db_scenario_set=scenario_set, scenario_ids=[s3.id]
+        session=db,
+        db_scenario_set=scenario_set,
+        members=[ScenarioSetMemberEntry(scenario_id=s3.id)],
     )
     updated = crud.remove_scenario_from_set(
         session=db, db_scenario_set=scenario_set, scenario_id=s3.id
@@ -250,7 +311,7 @@ def test_get_scenarios_for_set_returns_active_only(db: Session) -> None:
         db, scenario_ids=[active.id, draft.id, archived.id]
     )
     results = crud.get_scenarios_for_set(session=db, scenario_set_id=scenario_set.id)
-    result_ids = [s.id for s in results]
+    result_ids = [entry.scenario.id for entry in results]
     assert active.id in result_ids
     assert draft.id not in result_ids
     assert archived.id not in result_ids
@@ -262,13 +323,45 @@ def test_get_scenarios_for_set_preserves_order(db: Session) -> None:
     s3 = create_test_scenario(db)
     scenario_set = create_test_scenario_set(db, scenario_ids=[s3.id, s1.id, s2.id])
     results = crud.get_scenarios_for_set(session=db, scenario_set_id=scenario_set.id)
-    assert [s.id for s in results] == [s3.id, s1.id, s2.id]
+    assert [e.scenario.id for e in results] == [s3.id, s1.id, s2.id]
+
+
+def test_get_scenarios_for_set_includes_repetitions(db: Session) -> None:
+    s1 = create_test_scenario(db)
+    scenario_set = create_test_scenario_set(db)
+    crud.replace_scenarios_in_set(
+        session=db,
+        db_scenario_set=scenario_set,
+        members=[ScenarioSetMemberEntry(scenario_id=s1.id, repetitions=3)],
+    )
+    results = crud.get_scenarios_for_set(session=db, scenario_set_id=scenario_set.id)
+    assert len(results) == 1
+    assert results[0].repetitions == 3
+    assert results[0].position == 0
 
 
 def test_get_scenarios_for_set_empty(db: Session) -> None:
     scenario_set = create_test_scenario_set(db)
     results = crud.get_scenarios_for_set(session=db, scenario_set_id=scenario_set.id)
     assert results == []
+
+
+def test_sum_member_repetitions_in_set(db: Session) -> None:
+    s1 = create_test_scenario(db)
+    s2 = create_test_scenario(db)
+    scenario_set = create_test_scenario_set(db)
+    crud.replace_scenarios_in_set(
+        session=db,
+        db_scenario_set=scenario_set,
+        members=[
+            ScenarioSetMemberEntry(scenario_id=s1.id, repetitions=2),
+            ScenarioSetMemberEntry(scenario_id=s2.id, repetitions=3),
+        ],
+    )
+    total = crud.sum_member_repetitions_in_set(
+        session=db, scenario_set_id=scenario_set.id
+    )
+    assert total == 5
 
 
 def test_count_scenarios_in_sets_batch(db: Session) -> None:

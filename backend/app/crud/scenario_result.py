@@ -29,6 +29,8 @@ def list_scenario_results(
     limit: int = 100,
     run_id: uuid.UUID | None = None,
     scenario_id: uuid.UUID | None = None,
+    repetition_index: int | None = None,
+    set_repetition_index: int | None = None,
 ) -> tuple[list[ScenarioResult], int]:
     statement = select(ScenarioResult)
     count_statement = select(func.count()).select_from(ScenarioResult)
@@ -40,6 +42,18 @@ def list_scenario_results(
         statement = statement.where(ScenarioResult.scenario_id == scenario_id)
         count_statement = count_statement.where(
             ScenarioResult.scenario_id == scenario_id
+        )
+    if repetition_index is not None:
+        statement = statement.where(ScenarioResult.repetition_index == repetition_index)
+        count_statement = count_statement.where(
+            ScenarioResult.repetition_index == repetition_index
+        )
+    if set_repetition_index is not None:
+        statement = statement.where(
+            ScenarioResult.set_repetition_index == set_repetition_index
+        )
+        count_statement = count_statement.where(
+            ScenarioResult.set_repetition_index == set_repetition_index
         )
 
     count = session.exec(count_statement).one()

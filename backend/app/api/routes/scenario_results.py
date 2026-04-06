@@ -34,6 +34,12 @@ def list_scenario_results(
     limit: int = Query(default=100, ge=1, le=1000),
     run_id: uuid.UUID | None = None,
     scenario_id: uuid.UUID | None = None,
+    repetition_index: int | None = Query(
+        default=None, description="Filter by repetition within a set pass (0-based)"
+    ),
+    set_repetition_index: int | None = Query(
+        default=None, description="Filter by full set pass index (0-based)"
+    ),
 ) -> ScenarioResultsPublic:
     items, count = crud.list_scenario_results(
         session=session,
@@ -41,6 +47,8 @@ def list_scenario_results(
         limit=limit,
         run_id=run_id,
         scenario_id=scenario_id,
+        repetition_index=repetition_index,
+        set_repetition_index=set_repetition_index,
     )
     return ScenarioResultsPublic(data=items, count=count)  # type: ignore[arg-type]
 
