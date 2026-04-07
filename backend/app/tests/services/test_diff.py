@@ -21,7 +21,6 @@ _RUN_DEFAULTS: dict[str, object] = {
     "eval_set_version": 1,
     "agent_system_prompt": None,
     "agent_tools": None,
-    "tools_snapshot": None,
     "agent_model": None,
     "agent_provider": None,
     "config": None,

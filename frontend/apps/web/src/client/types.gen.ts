@@ -1212,8 +1212,10 @@ export type FieldChange = {
 export type GenerateRequest = {
   /**
    * Agent Prompt
+   *
+   * Agent system prompt; optional if agent_id is set (loaded from AgentVersion)
    */
-  agent_prompt: string;
+  agent_prompt?: string | null;
   /**
    * Tools
    */
@@ -1241,9 +1243,15 @@ export type GenerateRequest = {
   /**
    * Agent Id
    *
-   * When persist=true, bind created test cases to this agent
+   * When set, may load prompt/tools from AgentVersion; when persist=true, bind test cases
    */
   agent_id?: string | null;
+  /**
+   * Agent Version
+   *
+   * Version to load config from when agent_id is set; defaults to agent's current version
+   */
+  agent_version?: number | null;
 };
 
 /**
@@ -2068,20 +2076,6 @@ export type RunCreate = {
    * Effective LLM provider for platform agent simulator for this run
    */
   agent_provider?: string | null;
-  /**
-   * Tools Snapshot
-   *
-   * Full tool schema array at run time
-   */
-  tools_snapshot?: Array<{
-    [key: string]: unknown;
-  }> | null;
-  /**
-   * Tools Snapshot Hash
-   *
-   * SHA-256 hash of tools_snapshot for change detection
-   */
-  tools_snapshot_hash?: string | null;
   /**
    * Eval Set Id
    *

@@ -1965,8 +1965,16 @@ export const FieldChangeSchema = {
 export const GenerateRequestSchema = {
   properties: {
     agent_prompt: {
-      type: 'string',
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
       title: 'Agent Prompt',
+      description: 'Agent system prompt; optional if agent_id is set (loaded from AgentVersion)',
     },
     tools: {
       items: {
@@ -1974,7 +1982,6 @@ export const GenerateRequestSchema = {
       },
       type: 'array',
       title: 'Tools',
-      default: [],
     },
     count: {
       type: 'integer',
@@ -1989,7 +1996,6 @@ export const GenerateRequestSchema = {
       },
       type: 'array',
       title: 'Focus Tags',
-      default: [],
     },
     model: {
       anyOf: [
@@ -2031,11 +2037,25 @@ export const GenerateRequestSchema = {
         },
       ],
       title: 'Agent Id',
-      description: 'When persist=true, bind created test cases to this agent',
+      description:
+        'When set, may load prompt/tools from AgentVersion; when persist=true, bind test cases',
+    },
+    agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+          minimum: 1,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Version',
+      description:
+        "Version to load config from when agent_id is set; defaults to agent's current version",
     },
   },
   type: 'object',
-  required: ['agent_prompt'],
   title: 'GenerateRequest',
   description: 'Input for test case generation.',
 } as const;
@@ -3365,33 +3385,6 @@ export const RunCreateSchema = {
       ],
       title: 'Agent Provider',
       description: 'Effective LLM provider for platform agent simulator for this run',
-    },
-    tools_snapshot: {
-      anyOf: [
-        {
-          items: {
-            type: 'object',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Tools Snapshot',
-      description: 'Full tool schema array at run time',
-    },
-    tools_snapshot_hash: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Tools Snapshot Hash',
-      description: 'SHA-256 hash of tools_snapshot for change detection',
     },
     eval_set_id: {
       type: 'string',
