@@ -11,10 +11,10 @@ from app.models.enums import (
     PromptSuggestionStatus,
     TurnRole,
 )
+from app.models.run import Run
 
 if TYPE_CHECKING:
     from app.models.agent import Agent
-    from app.models.run import Run
 
 
 class PromptEditorSessionBase(SQLModel):
@@ -67,7 +67,7 @@ class PromptEditorSession(PromptEditorSessionBase, table=True):
         back_populates="session",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
-    run: "Run | None" = Relationship()
+    run: Run | None = Relationship()
 
 
 class PromptEditorSessionCreate(SQLModel):
