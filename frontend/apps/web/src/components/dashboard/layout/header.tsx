@@ -13,15 +13,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@workspace/ui/components/ui/dropdown-menu';
+
 import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
 
 import { logoutAction } from '@/actions/auth';
 import ThemeToggle from '@/components/dashboard/layout/theme-toggle';
-import { ROUTES } from '@/constants/routes';
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 
 import type { FC } from 'react';
-
-const { SETTINGS } = ROUTES;
 
 const Header: FC = () => {
   const [isPending, startTransition] = useTransition();
@@ -29,7 +28,7 @@ const Header: FC = () => {
   const handleLogout = () => startTransition(() => logoutAction());
 
   return (
-    <header className="flex h-16 items-center justify-between border-b bg-white dark:bg-slate-900 px-6">
+    <header className="flex h-16 items-center justify-between border-b bg-card dark:bg-zinc-900 px-6">
       <div className="flex items-center space-x-4">
         <SidebarTrigger />
       </div>
@@ -46,7 +45,7 @@ const Header: FC = () => {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>
-            <Link href={SETTINGS}>
+            <Link href={UrlGenerator.settings()}>
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>Profile Settings</span>

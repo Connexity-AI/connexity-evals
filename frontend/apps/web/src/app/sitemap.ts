@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 
 import { removeTrailingSlash } from '@/utils/path';
-import { ROUTES } from '@/constants/routes';
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { getPublicEnv } from '@/config/process-env';
 
 export const dynamic = 'force-static';
@@ -10,18 +10,19 @@ export const dynamic = 'force-static';
 const sitemap = (): MetadataRoute.Sitemap => {
   const { SITE_URL } = getPublicEnv();
 
-  // only 1st level routes for now
-  const oneLevelRoutes = Object.values(ROUTES).filter(
-    (v): v is Exclude<typeof v, object> => typeof v === 'string'
-  );
+  const sitemapRoutes = [
+    UrlGenerator.home(),
+    UrlGenerator.login(),
+    UrlGenerator.register(),
+    UrlGenerator.forgotPassword(),
+    UrlGenerator.dashboard(),
+    UrlGenerator.agents(),
+    UrlGenerator.metrics(),
+    UrlGenerator.settings(),
+  ];
 
-  // trim trailing '/' only
-  const trimmedRoutes = Object.values(oneLevelRoutes)
-    .filter((v): v is Exclude<typeof v, object> => typeof v === 'string')
-    .map(removeTrailingSlash);
-
-  const routes = trimmedRoutes.map((route) => ({
-    url: `${SITE_URL}${route}`,
+  const routes = sitemapRoutes.map((route) => ({
+    url: `${SITE_URL}${removeTrailingSlash(route)}`,
     lastModified: new Date().toISOString().split('T')[0],
   }));
 

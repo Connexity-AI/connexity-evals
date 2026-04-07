@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google';
 
 import { Toaster } from '@workspace/ui/components/ui/toaster';
 
+import QueryProvider from '@/components/common/query-provider';
 import ThemeProvider from '@/components/common/theme-provider';
 
 import type React from 'react';
@@ -26,9 +27,15 @@ const RootLayout: FC<Props> = ({ children }) => (
   <html lang="en" suppressHydrationWarning>
     <body className={fontInter.className}>
       <PublicEnv />
-      <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-        {/* Slot with server components */}
-        {children}
+
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <QueryProvider>{children}</QueryProvider>
+
         <Toaster />
       </ThemeProvider>
     </body>

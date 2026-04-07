@@ -5,18 +5,18 @@
 
     /* Backgrounds, Primary, Secondary */
     --var-color-white: theme('colors.white');
-    --var-color-slate-50: theme('colors.slate.50');
-    --var-color-slate-100: theme('colors.slate.100');
-    --var-color-slate-800: theme('colors.slate.800');
-    --var-color-slate-900: theme('colors.slate.900');
+    --var-color-zinc-50: theme('colors.zinc.50');
+    --var-color-zinc-100: theme('colors.zinc.100');
+    --var-color-zinc-800: theme('colors.zinc.800');
+    --var-color-zinc-900: theme('colors.zinc.900');
 
     /* Content / Foregrounds, Ring */
-    --var-color-slate-400: theme('colors.slate.400');
-    --var-color-slate-500: theme('colors.slate.500');
-    --var-color-slate-600: theme('colors.slate.600');
+    --var-color-zinc-400: theme('colors.zinc.400');
+    --var-color-zinc-500: theme('colors.zinc.500');
+    --var-color-zinc-600: theme('colors.zinc.600');
 
     /* Borders / Dividers */
-    --var-color-slate-200: theme('colors.slate.200');
+    --var-color-zinc-200: theme('colors.zinc.200');
 
     /* Destructive actions */
     --var-color-red-500: theme('colors.red.500');

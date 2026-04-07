@@ -23,13 +23,12 @@ import { getApiErrorMessage } from '@/utils/error';
 import { waitMs } from '@/utils/wait';
 import { DELAY } from '@/constants/delay';
 import { EVENTS } from '@/constants/events';
-import { ROUTES } from '@/constants/routes';
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 
 import type { FC } from 'react';
 
 const { DIALOG_PROFILE_DELETE_OPEN } = EVENTS;
 const { DELETE_PROFILE_REDIRECT } = DELAY;
-const { LOGIN } = ROUTES;
 
 const DialogProfileDelete: FC = () => {
   const router = useRouter();
@@ -59,7 +58,7 @@ const DialogProfileDelete: FC = () => {
       await waitMs(DELETE_PROFILE_REDIRECT);
       close();
 
-      router.push(LOGIN);
+      router.push(UrlGenerator.login());
     };
 
     closeDialogAndRedirect();

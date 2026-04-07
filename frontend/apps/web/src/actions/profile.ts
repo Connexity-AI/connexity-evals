@@ -3,12 +3,10 @@
 import { revalidatePath } from 'next/cache';
 
 import { UsersService } from '@/client/sdk.gen';
-import { ROUTES } from '@/constants/routes';
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 
 import type { UpdatePassword, UserUpdateMe } from '@/client/types.gen';
 import type { ApiResult } from '@/types/api';
-
-const { SETTINGS } = ROUTES;
 
 export const profileUpdateAction = async (
   _prevState: ApiResult,
@@ -22,7 +20,7 @@ export const profileUpdateAction = async (
 
   const { response: _, ...result } = apiResponse;
 
-  revalidatePath(SETTINGS);
+  revalidatePath(UrlGenerator.settings());
 
   return result;
 };
@@ -38,7 +36,7 @@ export const profilePasswordUpdateAction = async (
 
   const { response: _, ...result } = apiResponse;
 
-  revalidatePath(SETTINGS);
+  revalidatePath(UrlGenerator.settings());
 
   return result;
 };
