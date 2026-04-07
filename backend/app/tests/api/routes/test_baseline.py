@@ -125,6 +125,73 @@ def test_get_baseline_endpoint(
     assert r.json()["is_baseline"] is True
 
 
+def test_get_baseline_filters_by_agent_version(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    """GET /runs/baseline?agent_version=N only returns baseline for that version."""
+    agent, eval_set = _setup(db)
+
+    # Create a completed run at agent v1 and mark it baseline.
+    run_v1 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    _mark_completed(db, run_v1)
+    crud.set_baseline(session=db, db_run=run_v1)
+
+    base_params = {"agent_id": str(agent.id), "eval_set_id": str(eval_set.id)}
+
+    # Matching version filter → returns the baseline.
+    r = client.get(
+        f"{_PREFIX}/baseline",
+        params={**base_params, "agent_version": 1},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    assert r.json()["id"] == str(run_v1.id)
+    assert r.json()["agent_version"] == 1
+
+    # Non-matching version filter → 404 (baseline exists but for a different version).
+    r = client.get(
+        f"{_PREFIX}/baseline",
+        params={**base_params, "agent_version": 99},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 404
+
+    # Bump agent to v2 via draft→publish and set a new baseline — this clears v1.
+    from app.crud.agent_version import create_or_update_draft, publish_draft
+
+    create_or_update_draft(
+        session=db,
+        agent=agent,
+        draft_data={"endpoint_url": "http://v2.example.com/agent"},
+        created_by=None,
+    )
+    publish_draft(session=db, agent=agent, change_description=None, created_by=None)
+    db.refresh(agent)
+    assert agent.version == 2
+
+    run_v2 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    _mark_completed(db, run_v2)
+    crud.set_baseline(session=db, db_run=run_v2)
+
+    # agent_version=2 matches → returns v2 baseline.
+    r = client.get(
+        f"{_PREFIX}/baseline",
+        params={**base_params, "agent_version": 2},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    assert r.json()["id"] == str(run_v2.id)
+    assert r.json()["agent_version"] == 2
+
+    # agent_version=1 → 404 (v1 baseline was cleared when v2 was set).
+    r = client.get(
+        f"{_PREFIX}/baseline",
+        params={**base_params, "agent_version": 1},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 404
+
+
 def test_get_baseline_endpoint_not_found(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
@@ -197,10 +264,10 @@ def test_get_baseline_run_defaults_to_current_agent_version(db: Session) -> None
     assert got_v1.id == run_v1.id
 
 
-def test_get_baseline_filters_by_agent_version(
+def test_get_baseline_omitted_agent_version_resolves_current(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    """GET /runs/baseline uses agent_version query and current Agent.version when omitted."""
+    """Without agent_version, baseline lookup uses the agent's current version."""
     agent, eval_set = _setup(db)
     run_v1 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
     _mark_completed(db, run_v1)
