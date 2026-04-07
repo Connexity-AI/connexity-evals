@@ -1885,6 +1885,14 @@ export type RunComparison = {
    */
   candidate_run_id: string;
   /**
+   * Baseline Agent Version
+   */
+  baseline_agent_version?: number | null;
+  /**
+   * Candidate Agent Version
+   */
+  candidate_agent_version?: number | null;
+  /**
    * Baseline Run Name
    */
   baseline_run_name?: string | null;
@@ -1980,10 +1988,23 @@ export type RunConfigOutput = {
  * Structured diff of snapshotted run configuration between two runs.
  */
 export type RunConfigDiff = {
+  /**
+   * Baseline Agent Version
+   */
+  baseline_agent_version?: number | null;
+  /**
+   * Candidate Agent Version
+   */
+  candidate_agent_version?: number | null;
   prompt_diff?: PromptDiff | null;
   tool_diff?: ToolDiff | null;
+  /**
+   * Mode Changed
+   */
+  mode_changed?: boolean;
   model_changed?: FieldChange | null;
   provider_changed?: FieldChange | null;
+  endpoint_url_changed?: FieldChange | null;
   judge_model_changed?: FieldChange | null;
   judge_provider_changed?: FieldChange | null;
   /**
@@ -6151,7 +6172,7 @@ export type RunsGetBaselineRunData = {
     /**
      * Agent Version
      *
-     * Only consider baselines for this agent config version
+     * Scope baseline to this agent config version; omit to use the agent's current version
      */
     agent_version?: number | null;
   };

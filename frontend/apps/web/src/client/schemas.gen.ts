@@ -2940,6 +2940,28 @@ export const RunComparisonSchema = {
       format: 'uuid',
       title: 'Candidate Run Id',
     },
+    baseline_agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Baseline Agent Version',
+    },
+    candidate_agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Candidate Agent Version',
+    },
     baseline_run_name: {
       anyOf: [
         {
@@ -3135,6 +3157,28 @@ export const RunConfig_OutputSchema = {
 
 export const RunConfigDiffSchema = {
   properties: {
+    baseline_agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Baseline Agent Version',
+    },
+    candidate_agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Candidate Agent Version',
+    },
     prompt_diff: {
       anyOf: [
         {
@@ -3155,6 +3199,11 @@ export const RunConfigDiffSchema = {
         },
       ],
     },
+    mode_changed: {
+      type: 'boolean',
+      title: 'Mode Changed',
+      default: false,
+    },
     model_changed: {
       anyOf: [
         {
@@ -3166,6 +3215,16 @@ export const RunConfigDiffSchema = {
       ],
     },
     provider_changed: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/FieldChange',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    endpoint_url_changed: {
       anyOf: [
         {
           $ref: '#/components/schemas/FieldChange',
