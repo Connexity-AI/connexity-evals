@@ -186,7 +186,7 @@ def get_baseline_run(
     if agent_version is not None:
         statement = statement.where(Run.agent_version == agent_version)
     else:
-        agent = session.get(Agent, agent_id)
+        agent = session.exec(select(Agent).where(Agent.id == agent_id)).first()
         if agent is None:
             return None
         statement = statement.where(Run.agent_version == agent.version)

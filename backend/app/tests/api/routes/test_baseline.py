@@ -197,6 +197,55 @@ def test_get_baseline_run_defaults_to_current_agent_version(db: Session) -> None
     assert got_v1.id == run_v1.id
 
 
+def test_get_baseline_filters_by_agent_version(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    """GET /runs/baseline uses agent_version query and current Agent.version when omitted."""
+    agent, eval_set = _setup(db)
+    run_v1 = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    _mark_completed(db, run_v1)
+    crud.set_baseline(session=db, db_run=run_v1)
+
+    crud.update_agent(
+        session=db,
+        db_agent=agent,
+        agent_in=AgentUpdate(endpoint_url="http://localhost:7201/agent"),
+    )
+    db.refresh(agent)
+    assert agent.version == 2
+
+    # Default: resolve baseline for agent's *current* version (v2) — none stored
+    r_current = client.get(
+        f"{_PREFIX}/baseline",
+        params={"agent_id": str(agent.id), "eval_set_id": str(eval_set.id)},
+        cookies=superuser_auth_cookies,
+    )
+    assert r_current.status_code == 404
+
+    r_v2 = client.get(
+        f"{_PREFIX}/baseline",
+        params={
+            "agent_id": str(agent.id),
+            "eval_set_id": str(eval_set.id),
+            "agent_version": 2,
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert r_v2.status_code == 404
+
+    r_v1 = client.get(
+        f"{_PREFIX}/baseline",
+        params={
+            "agent_id": str(agent.id),
+            "eval_set_id": str(eval_set.id),
+            "agent_version": 1,
+        },
+        cookies=superuser_auth_cookies,
+    )
+    assert r_v1.status_code == 200
+    assert r_v1.json()["id"] == str(run_v1.id)
+
+
 # ── PATCH /runs/{id} with is_baseline enforcement ────────────────
 
 
