@@ -62,8 +62,8 @@ def list_sessions(
     created_by: uuid.UUID | None,
     skip: int,
     limit: int,
-) -> tuple[list[PromptEditorSession], int]:
-    """List sessions with optional filters; SQL includes message counts (joined, discarded)."""
+) -> tuple[list[tuple[PromptEditorSession, int]], int]:
+    """List sessions with optional filters; each tuple contains (session, message_count)."""
     count_stmt = select(func.count()).select_from(PromptEditorSession)
     if agent_id is not None:
         count_stmt = count_stmt.where(col(PromptEditorSession.agent_id) == agent_id)
@@ -92,7 +92,7 @@ def list_sessions(
         list_stmt = list_stmt.where(col(PromptEditorSession.created_by) == created_by)
 
     rows = session.exec(list_stmt).all()
-    return [row[0] for row in rows], total
+    return [(row[0], row[1]) for row in rows], total
 
 
 def update_session(

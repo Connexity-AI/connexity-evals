@@ -67,7 +67,7 @@ class PromptEditorSession(PromptEditorSessionBase, table=True):
         back_populates="session",
         sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
-    run: "Run" = Relationship()
+    run: "Run | None" = Relationship()
 
 
 class PromptEditorSessionCreate(SQLModel):

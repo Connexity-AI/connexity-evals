@@ -117,7 +117,7 @@ def test_list_sessions(db: Session) -> None:
     user = create_random_user(db)
     create_test_prompt_editor_session(db, agent_id=agent.id, created_by=user.id)
     create_test_prompt_editor_session(db, agent_id=agent.id, created_by=user.id)
-    items, count = crud.list_prompt_editor_sessions(
+    rows, count = crud.list_prompt_editor_sessions(
         session=db,
         agent_id=None,
         created_by=None,
@@ -125,7 +125,10 @@ def test_list_sessions(db: Session) -> None:
         limit=100,
     )
     assert count >= 2
-    assert len(items) >= 2
+    assert len(rows) >= 2
+    # Each row is (session, message_count)
+    for _s, msg_count in rows:
+        assert isinstance(msg_count, int)
 
 
 def test_list_sessions_filter_by_agent(db: Session) -> None:
@@ -135,7 +138,7 @@ def test_list_sessions_filter_by_agent(db: Session) -> None:
     create_test_prompt_editor_session(db, agent_id=agent_a.id, created_by=user.id)
     create_test_prompt_editor_session(db, agent_id=agent_b.id, created_by=user.id)
 
-    items, count = crud.list_prompt_editor_sessions(
+    rows, count = crud.list_prompt_editor_sessions(
         session=db,
         agent_id=agent_a.id,
         created_by=None,
@@ -143,7 +146,7 @@ def test_list_sessions_filter_by_agent(db: Session) -> None:
         limit=100,
     )
     assert count >= 1
-    assert all(s.agent_id == agent_a.id for s in items)
+    assert all(s.agent_id == agent_a.id for s, _ in rows)
 
 
 def test_list_sessions_filter_by_created_by(db: Session) -> None:
@@ -153,7 +156,7 @@ def test_list_sessions_filter_by_created_by(db: Session) -> None:
     create_test_prompt_editor_session(db, agent_id=agent.id, created_by=user_a.id)
     create_test_prompt_editor_session(db, agent_id=agent.id, created_by=user_b.id)
 
-    items, count = crud.list_prompt_editor_sessions(
+    rows, count = crud.list_prompt_editor_sessions(
         session=db,
         agent_id=None,
         created_by=user_a.id,
@@ -161,7 +164,7 @@ def test_list_sessions_filter_by_created_by(db: Session) -> None:
         limit=100,
     )
     assert count >= 1
-    assert all(s.created_by == user_a.id for s in items)
+    assert all(s.created_by == user_a.id for s, _ in rows)
 
 
 def test_list_sessions_ordering(db: Session) -> None:
@@ -170,14 +173,14 @@ def test_list_sessions_ordering(db: Session) -> None:
     older = create_test_prompt_editor_session(db, agent_id=agent.id, created_by=user.id)
     newer = create_test_prompt_editor_session(db, agent_id=agent.id, created_by=user.id)
 
-    items, _ = crud.list_prompt_editor_sessions(
+    rows, _ = crud.list_prompt_editor_sessions(
         session=db,
         agent_id=agent.id,
         created_by=user.id,
         skip=0,
         limit=10,
     )
-    ours = [s for s in items if s.id in (older.id, newer.id)]
+    ours = [s for s, _ in rows if s.id in (older.id, newer.id)]
     assert ours[0].id == newer.id
     assert ours[1].id == older.id
 
@@ -186,14 +189,14 @@ def test_list_sessions_ordering(db: Session) -> None:
         db_session=older,
         session_in=PromptEditorSessionUpdate(title="bump"),
     )
-    items2, _ = crud.list_prompt_editor_sessions(
+    rows2, _ = crud.list_prompt_editor_sessions(
         session=db,
         agent_id=agent.id,
         created_by=user.id,
         skip=0,
         limit=10,
     )
-    ours2 = [s for s in items2 if s.id in (older.id, newer.id)]
+    ours2 = [s for s, _ in rows2 if s.id in (older.id, newer.id)]
     assert ours2[0].id == older.id
     assert ours2[1].id == newer.id
 
