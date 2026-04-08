@@ -25,7 +25,7 @@ const triggerClassName = cn(
 const NewAgentPage = () => {
   return (
     <Tabs defaultValue="prompt" className="flex flex-col h-full">
-      <TabsList className="h-auto w-full justify-start rounded-none bg-transparent p-0 border-b border-border">
+      <TabsList className="h-auto w-full justify-start rounded-none bg-transparent p-0 px-4 border-b border-border">
         {TABS.map((tab) => (
           <TabsTrigger key={tab.id} value={tab.id} className={triggerClassName}>
             {tab.label}

@@ -1,4 +1,4 @@
-import { emptyParser } from '@/common/url-generator/parsers';
+import { emptyParser, newAgentParser } from '@/common/url-generator/parsers';
 import {
   type CreateSerializerOptions,
   type inferParserType,
@@ -19,5 +19,6 @@ export type AuthType = BaseRouteType;
 // ── Dashboard ──
 export type DashboardType = BaseRouteType;
 export type AgentsType = BaseRouteType;
+export type NewAgentType = TypedLinkProps<typeof newAgentParser>;
 export type MetricsType = BaseRouteType;
 export type SettingsType = BaseRouteType;

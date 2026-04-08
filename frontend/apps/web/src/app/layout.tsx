@@ -1,5 +1,6 @@
 import { Inter } from 'next/font/google';
 
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Toaster } from '@workspace/ui/components/ui/toaster';
 
 import QueryProvider from '@/components/common/query-provider';
@@ -34,7 +35,9 @@ const RootLayout: FC<Props> = ({ children }) => (
         enableSystem
         disableTransitionOnChange
       >
-        <QueryProvider>{children}</QueryProvider>
+        <NuqsAdapter>
+          <QueryProvider>{children}</QueryProvider>
+        </NuqsAdapter>
 
         <Toaster />
       </ThemeProvider>

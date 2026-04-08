@@ -1,11 +1,12 @@
 import { createTypedLink } from '@/common/url-generator/typed-links';
-import { emptyParser } from '@/common/url-generator/parsers';
+import { emptyParser, newAgentParser } from '@/common/url-generator/parsers';
 import type { Route } from 'next';
 import type {
   AgentsType,
   AuthType,
   DashboardType,
   MetricsType,
+  NewAgentType,
   SettingsType,
 } from '@/common/url-generator/types';
 
@@ -41,6 +42,11 @@ export class UrlGenerator {
   static agents({ options, values }: AgentsType = {}) {
     const route = '/agents/' as Route;
     return createTypedLink(route, emptyParser, options)(values);
+  }
+
+  static newAgent({ options, values }: NewAgentType = {}) {
+    const route = '/agents/new/' as Route;
+    return createTypedLink(route, newAgentParser, options)(values);
   }
 
   static metrics({ options, values }: MetricsType = {}) {
