@@ -4,7 +4,6 @@ import { UrlGenerator } from '@/common/url-generator/url-generator';
 
 import { SidebarProvider } from '@workspace/ui/components/ui/sidebar';
 
-import Header from '@/components/dashboard/layout/header';
 import Sidebar from '@/components/dashboard/layout/sidebar';
 import { UsersService } from '@/client/sdk.gen';
 
@@ -34,10 +33,7 @@ const AppLayout: FC<Props> = async ({ children }) => {
       <div className="flex min-h-screen w-full">
         <Sidebar currentUser={currentUser} />
 
-        <div className="flex-1 flex flex-col">
-          <Header />
-          {children}
-        </div>
+        <div className="flex-1 flex flex-col">{children}</div>
       </div>
     </SidebarProvider>
   );
