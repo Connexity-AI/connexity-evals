@@ -1,4 +1,4 @@
-import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
+import { NewAgentHeader } from '@/app/(app)/(new-agent)/_components/new-agent-header';
 
 import type { FC, ReactNode } from 'react';
 
@@ -8,9 +8,7 @@ interface Props {
 
 const NewAgentLayout: FC<Props> = ({ children }) => (
   <>
-    <header className="flex h-16 items-center border-b bg-card dark:bg-zinc-900 px-6">
-      <SidebarTrigger />
-    </header>
+    <NewAgentHeader />
     <main className="flex-1 p-6">{children}</main>
   </>
 );
