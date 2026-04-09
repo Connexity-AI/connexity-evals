@@ -1,12 +1,19 @@
+import enum
 import uuid
 
 from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
 
 
+class AuthProvider(str, enum.Enum):
+    email = "email"
+    github = "github"
+
+
 # Shared properties
 class UserBase(SQLModel):
     email: EmailStr = Field(unique=True, index=True, max_length=255)
+    provider: AuthProvider = AuthProvider.email
     is_active: bool = True
     is_superuser: bool = False
     full_name: str | None = Field(default=None, max_length=255)
