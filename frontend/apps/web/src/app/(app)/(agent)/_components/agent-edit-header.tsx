@@ -18,6 +18,7 @@ import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
 
 import { EditableBreadcrumbName } from '@/app/(app)/(agent)/_components/editable-breadcrumb-name';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
+import { useDelayedFlag } from '@/app/(app)/(agent)/_hooks/use-delayed-flag';
 import { useVersions } from '@/app/(app)/(agent)/_context/versions-context';
 import { PlatformHeader } from '@/components/common/platform-header';
 
@@ -26,6 +27,7 @@ export function AgentEditHeader() {
     useAgentEditFormActions();
 
   const { openDrawer } = useVersions();
+  const showSaving = useDelayedFlag(isDraftSaving, 300);
 
   return (
     <PlatformHeader
@@ -53,9 +55,10 @@ export function AgentEditHeader() {
       }
       trailing={
         <div className="flex items-center gap-2">
-          {isDraftSaving && (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Loader2 size={20} className="animate-spin" />
+          {showSaving && (
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Loader2 size={14} className="animate-spin" />
+              Saving...
             </span>
           )}
 

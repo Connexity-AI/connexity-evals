@@ -45,5 +45,3 @@ def authenticate(*, session: Session, email: str, password: str) -> User | None:
     ):
         return None
     return db_user
-
-

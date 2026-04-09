@@ -49,7 +49,10 @@ def create_agent(
 
 
 def create_draft_agent(
-    *, session: Session, name: str = "Untitled Agent", created_by: uuid.UUID | None = None
+    *,
+    session: Session,
+    name: str = "Untitled Agent",
+    created_by: uuid.UUID | None = None,
 ) -> Agent:
     db_obj = Agent(
         name=name,

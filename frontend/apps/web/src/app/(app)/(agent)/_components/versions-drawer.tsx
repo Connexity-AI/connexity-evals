@@ -1,6 +1,6 @@
 'use client';
 
-import { History, RotateCcw, X } from 'lucide-react';
+import { History, X } from 'lucide-react';
 
 import { cn } from '@workspace/ui/lib/utils';
 import {
@@ -15,10 +15,7 @@ import { useVersions } from '@/app/(app)/(agent)/_context/versions-context';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
 import { useAgentVersions } from '@/app/(app)/(agent)/_hooks/use-agent-versions';
 import { useAgentDraft } from '@/app/(app)/(agent)/_hooks/use-agent-draft';
-import { useRollbackAgent } from '@/app/(app)/(agent)/_hooks/use-rollback-agent';
 import { formatTimeAgo } from '@/app/(app)/(agent)/_utils/format-time-ago';
-
-import type { AgentVersionPublic } from '@/client/types.gen';
 
 function parseVersionName(changeDescription: string | null): {
   name: string | null;
@@ -35,25 +32,8 @@ export function VersionsDrawer() {
   const { agentId } = useAgentEditFormActions();
   const { data: versionsData } = useAgentVersions(agentId);
   const { data: draft } = useAgentDraft(agentId, true);
-  const { mutate: rollback, isPending: isRollingBack } = useRollbackAgent(agentId);
-
   const versions = versionsData?.data ?? [];
   const sorted = [...versions].sort((a, b) => (b.version ?? 0) - (a.version ?? 0));
-
-  const handleRollback = (version: AgentVersionPublic) => {
-    const { name } = parseVersionName(version.change_description);
-    rollback(
-      {
-        version: version.version!,
-        change_description: `Rollback to V${version.version}${name ? ` — ${name}` : ''}`,
-      },
-      {
-        onSuccess: () => {
-          selectVersion(null);
-        },
-      }
-    );
-  };
 
   return (
     <Drawer direction="right" open={isDrawerOpen} onOpenChange={(open: boolean) => !open && closeDrawer()}>
@@ -104,11 +84,10 @@ export function VersionsDrawer() {
             )}
             {sorted.map((v) => {
               const isSelected = selectedVersion === v.version;
-              const isLatestPublished = v.version === sorted[0]?.version;
               const { name, description } = parseVersionName(v.change_description);
 
               return (
-                <div key={v.id} className="group relative">
+                <div key={v.id}>
                   <button
                     onClick={() => selectVersion(v.version!)}
                     className={cn(
@@ -134,21 +113,6 @@ export function VersionsDrawer() {
                       </p>
                     )}
                   </button>
-
-                  {/* Rollback button on hover for non-latest versions */}
-                  {!isLatestPublished && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRollback(v);
-                      }}
-                      disabled={isRollingBack}
-                      className="absolute right-3 top-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-[10px] px-2 py-1 rounded border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 bg-background"
-                    >
-                      <RotateCcw className="w-2.5 h-2.5" />
-                      Rollback
-                    </button>
-                  )}
                 </div>
               );
             })}

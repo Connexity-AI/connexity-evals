@@ -38,12 +38,12 @@ export function SettingsTab() {
 
   return (
     <TabsContent value="settings" className="flex-1 mt-0 overflow-auto">
-      <div className="mx-auto px-6 pt-6 pb-2 max-w-xl w-full">
+      <div className="px-6 pt-6 pb-2 max-w-xl">
         <p className="text-xs text-muted-foreground uppercase tracking-wider pb-3 border-b border-border">
           Model
         </p>
       </div>
-      <div className="mx-auto px-6 pb-6 max-w-xl w-full space-y-8">
+      <div className="px-6 pb-6 max-w-xl space-y-8">
         {/* Provider */}
         <FormField
           control={form.control}
