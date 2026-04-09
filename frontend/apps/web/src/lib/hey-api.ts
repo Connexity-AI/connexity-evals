@@ -1,13 +1,12 @@
-import { removeLeadingSlash } from '@/utils/path';
 import { isServer } from '@/utils/runtime';
-import { ROUTES } from '@/constants/routes';
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { getPublicEnv } from '@/config/process-env';
 
 // import { waitMs } from '@/utils/wait';
 
 import type { CreateClientConfig } from '@/client/client.gen';
 
-const { CLIENT_PROXY } = ROUTES.API;
+const CLIENT_PROXY = UrlGenerator.apiClientProxy();
 
 /** Runtime config. Runs and imported both on server and in browser. */
 export const createClientConfig: CreateClientConfig = (config) => {

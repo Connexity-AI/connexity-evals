@@ -1,86 +1,77 @@
 import Link from 'next/link';
 
-import { Home, Settings } from 'lucide-react';
+import { UrlGenerator } from '@/common/url-generator/url-generator';
+import { BarChart3, Bot } from 'lucide-react';
 
 import {
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   Sidebar as UISidebar,
 } from '@workspace/ui/components/ui/sidebar';
 
+import NavUser from '@/components/dashboard/layout/nav-user';
 import WithIsActive from '@/components/dashboard/layout/with-is-active';
-import { ROUTES } from '@/constants/routes';
 
 import type { UserPublic } from '@/client/types.gen';
 import type { FC } from 'react';
 
-const { DASHBOARD, SETTINGS } = ROUTES;
-
 interface Props {
-  currentUser: UserPublic;
+  currentUser?: UserPublic;
 }
 
 const menuItems = [
   {
-    title: 'Dashboard',
-    url: DASHBOARD,
-    icon: Home,
+    title: 'Agents',
+    url: UrlGenerator.agents(),
+    icon: Bot,
   },
-  {
-    title: 'User Settings',
-    url: SETTINGS,
-    icon: Settings,
-  },
-] as const;
+  // {
+  //   title: 'Metrics',
+  //   url: UrlGenerator.metrics(),
+  //   icon: BarChart3,
+  // },
+];
 
 const Sidebar: FC<Props> = async ({ currentUser }) => {
   return (
-    <UISidebar className="border-r bg-white dark:bg-slate-900">
-      <SidebarHeader className="p-6">
-        <Link href={DASHBOARD} className="flex items-center space-x-3">
-          <span className="text-xl font-bold">Connexity Evals</span>
-        </Link>
-      </SidebarHeader>
+    <UISidebar collapsible="icon" className="border-r bg-card dark:bg-zinc-900">
+      {currentUser && (
+        <SidebarContent>
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {menuItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    {/* passes isActive prop */}
+                    <WithIsActive url={item.url}>
+                      <SidebarMenuButton
+                        asChild
+                        tooltip={item.title}
+                        className="text-muted-foreground hover:text-foreground hover:bg-accent dark:hover:bg-zinc-800 data-[state=open]:bg-accent dark:data-[state=open]:bg-zinc-800"
+                      >
+                        <Link href={item.url} className="flex items-center gap-3">
+                          <item.icon className="h-5 w-5" />
+                          <span className="text-base">{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </WithIsActive>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        </SidebarContent>
+      )}
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  {/* passes isActive prop */}
-                  <WithIsActive url={item.url}>
-                    <SidebarMenuButton
-                      asChild
-                      className="text-gray-700 dark:text-gray-300 hover:text-slate-900 hover:bg-gray-100 dark:hover:text-white dark:hover:bg-slate-800 data-[state=open]:bg-gray-100 dark:data-[state=open]:bg-slate-800"
-                    >
-                      <Link href={item.url} className="flex items-center gap-2">
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </WithIsActive>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-
-      <SidebarFooter className="p-6">
-        {currentUser.email && (
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            <p>Logged in as:</p>
-            <p className="font-medium">{currentUser.email}</p>
-          </div>
-        )}
-      </SidebarFooter>
+      {currentUser?.email && (
+        <div className="mt-auto p-2 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+          <NavUser email={currentUser.email} />
+        </div>
+      )}
     </UISidebar>
   );
 };
