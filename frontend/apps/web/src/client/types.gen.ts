@@ -1940,20 +1940,6 @@ export type PromptDiff = {
 };
 
 /**
- * PromptEditBatchStatusUpdate
- */
-export type PromptEditBatchStatusUpdate = {
-  /**
-   * Status
-   */
-  status: 'accepted' | 'declined';
-  /**
-   * Edit Ids
-   */
-  edit_ids?: Array<string> | null;
-};
-
-/**
  * PromptEditPublic
  */
 export type PromptEditPublic = {
@@ -1981,10 +1967,7 @@ export type PromptEditPublic = {
    * Original Content
    */
   original_content: string;
-  /**
-   * Status
-   */
-  status: string;
+  status: PromptEditStatus;
   /**
    * Created At
    */
@@ -1992,14 +1975,18 @@ export type PromptEditPublic = {
 };
 
 /**
- * PromptEditStatusUpdate
+ * PromptEditStatus
  */
-export type PromptEditStatusUpdate = {
-  /**
-   * Status
-   */
-  status: 'accepted' | 'declined';
-};
+export const PromptEditStatus = {
+  PENDING: 'pending',
+  ACCEPTED: 'accepted',
+  DECLINED: 'declined',
+} as const;
+
+/**
+ * PromptEditStatus
+ */
+export type PromptEditStatus = (typeof PromptEditStatus)[keyof typeof PromptEditStatus];
 
 /**
  * PromptEditorMessagePublic
@@ -2028,21 +2015,15 @@ export type PromptEditorMessagePublic = {
    */
   session_id: string;
   /**
-   * Prompt Suggestion
-   *
-   * Suggested prompt text if any
-   */
-  prompt_suggestion: string | null;
-  /**
-   * Suggestion workflow status
-   */
-  suggestion_status: PromptSuggestionStatus | null;
-  /**
    * Created At
    *
    * Created at
    */
   created_at: string;
+  /**
+   * Edits
+   */
+  edits?: Array<PromptEditPublic>;
 };
 
 /**
@@ -2189,21 +2170,6 @@ export type PromptEditorSessionsPublic = {
    */
   count: number;
 };
-
-/**
- * PromptSuggestionStatus
- */
-export const PromptSuggestionStatus = {
-  PENDING: 'pending',
-  ACCEPTED: 'accepted',
-  DECLINED: 'declined',
-} as const;
-
-/**
- * PromptSuggestionStatus
- */
-export type PromptSuggestionStatus =
-  (typeof PromptSuggestionStatus)[keyof typeof PromptSuggestionStatus];
 
 /**
  * PublishRequest
@@ -7815,132 +7781,6 @@ export type PromptEditorChatResponses = {
    */
   200: unknown;
 };
-
-export type PromptEditorUpdateEditStatusData = {
-  body: PromptEditStatusUpdate;
-  path: {
-    /**
-     * Session Id
-     */
-    session_id: string;
-    /**
-     * Message Id
-     */
-    message_id: string;
-    /**
-     * Edit Id
-     */
-    edit_id: string;
-  };
-  query?: never;
-  url: '/api/v1/prompt-editor/sessions/{session_id}/messages/{message_id}/edits/{edit_id}';
-};
-
-export type PromptEditorUpdateEditStatusErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorUpdateEditStatusError =
-  PromptEditorUpdateEditStatusErrors[keyof PromptEditorUpdateEditStatusErrors];
-
-export type PromptEditorUpdateEditStatusResponses = {
-  /**
-   * Successful Response
-   */
-  200: PromptEditPublic;
-};
-
-export type PromptEditorUpdateEditStatusResponse =
-  PromptEditorUpdateEditStatusResponses[keyof PromptEditorUpdateEditStatusResponses];
-
-export type PromptEditorBatchUpdateEditStatusData = {
-  body: PromptEditBatchStatusUpdate;
-  path: {
-    /**
-     * Session Id
-     */
-    session_id: string;
-    /**
-     * Message Id
-     */
-    message_id: string;
-  };
-  query?: never;
-  url: '/api/v1/prompt-editor/sessions/{session_id}/messages/{message_id}/edits';
-};
-
-export type PromptEditorBatchUpdateEditStatusErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorBatchUpdateEditStatusError =
-  PromptEditorBatchUpdateEditStatusErrors[keyof PromptEditorBatchUpdateEditStatusErrors];
-
-export type PromptEditorBatchUpdateEditStatusResponses = {
-  /**
-   * Response Prompt-Editor-Batch Update Edit Status
-   *
-   * Successful Response
-   */
-  200: Array<PromptEditPublic>;
-};
-
-export type PromptEditorBatchUpdateEditStatusResponse =
-  PromptEditorBatchUpdateEditStatusResponses[keyof PromptEditorBatchUpdateEditStatusResponses];
 
 export type PromptEditorGetPresetsData = {
   body?: never;
