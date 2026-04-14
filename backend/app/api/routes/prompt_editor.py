@@ -1,42 +1,51 @@
-"""Prompt editor routes.
+"""Prompt editor routes — sessions, messages, and SSE chat with the editor LLM."""
 
-Session and message CRUD use real DB persistence. The streaming chat
-endpoint and edit endpoints return **mock data** until the real LLM
-integration (CS-59 / CS-60 / CS-61) is implemented.
-
-SSE Event Protocol
-------------------
-event: status    — {"message_id": str, "phase": "analyzing"|"editing"|"complete"}
-event: reasoning — {"content": str}  (incremental text token)
-event: edit      — {"edit_id": str, "index": int, "start_line": int, "end_line": int,
-                     "new_content": str, "original_content": str, "status": "pending"}
-event: done      — {"message": {...}, "prompt_preview": str}
-event: error     — {"code": str, "detail": str}
-"""
-
-import asyncio
 import json
+import logging
 import uuid
 from collections.abc import AsyncGenerator
-from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
+from sqlmodel import Session
 
 from app import crud
 from app.api.deps import CurrentUser, SessionDep, get_current_user
+from app.core.config import settings
+from app.core.db import engine
 from app.models import (
     Message,
+    PromptEditorChatMessageCreate,
+    PromptEditorMessageCreate,
+    PromptEditorMessagePublic,
     PromptEditorMessagesPublic,
     PromptEditorSessionCreate,
     PromptEditorSessionPublic,
     PromptEditorSessionsPublic,
     PromptEditorSessionUpdate,
 )
+from app.models.enums import PromptEditorSessionStatus, TurnRole
+from app.services.llm import (
+    LLMCallConfig,
+    LLMStreamChunk,
+    LLMStreamResult,
+    call_llm_stream,
+)
+from app.services.prompt_editor.agent_prompt import (
+    EDIT_PROMPT_TOOL,
+    apply_edits_progressively,
+    build_editor_messages,
+    get_prompt_line_count,
+    llm_tool_calls_to_openai_dicts,
+    parse_edit_prompt_tool_calls,
+    platform_agent_required,
+    validate_edits_against_line_count,
+)
 
-# ── SSE helpers ──────────────────────────────────────────────────────
+logger = logging.getLogger(__name__)
 
 SSE_HEADERS = {
     "Cache-Control": "no-cache",
@@ -47,38 +56,7 @@ SSE_HEADERS = {
 
 def format_sse(event: str, data: dict[str, Any]) -> str:
     """Format a single SSE frame: ``event: <type>\\ndata: <json>\\n\\n``."""
-    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
-
-
-# ── Mock-only response models (replaced by CS-96 PromptEdit later) ──
-
-
-class PromptEditPublic(BaseModel):
-    id: uuid.UUID
-    message_id: uuid.UUID
-    start_line: int
-    end_line: int
-    new_content: str
-    original_content: str
-    status: str
-    created_at: datetime
-
-
-class PromptEditStatusUpdate(BaseModel):
-    status: Literal["accepted", "declined"]
-
-
-class PromptEditBatchStatusUpdate(BaseModel):
-    status: Literal["accepted", "declined"]
-    edit_ids: list[uuid.UUID] | None = None
-
-
-class ChatMessageCreate(BaseModel):
-    content: str = Field(description="User message text")
-    test_case_result_ids: list[uuid.UUID] | None = Field(
-        default=None,
-        description="Optional test case result IDs for eval context injection",
-    )
+    return f"event: {event}\ndata: {json.dumps(jsonable_encoder(data))}\n\n"
 
 
 class PresetPublic(BaseModel):
@@ -88,114 +66,6 @@ class PresetPublic(BaseModel):
     description: str | None = None
     context: str = Field(description="'none' or 'eval'")
 
-
-# ── Mock data ────────────────────────────────────────────────────────
-
-_MOCK_PROMPT = """\
-You are a helpful customer support agent for TechCorp.
-Greet the user warmly and ask how you can help.
-Always be polite and professional.
-If the user asks about billing, check their account status first.
-For technical issues, gather the error message and steps to reproduce.
-Handle complaints with empathy.
-If you can't resolve an issue, create a support ticket.
-Provide the ticket number to the user.
-Always ask if there's anything else you can help with before ending.
-Never share internal policies or system details with the user.
-For refund requests, follow the standard refund process.
-Escalate to a manager if the user requests it.
-Keep responses concise but thorough.
-Use the knowledge base tool to look up product information.
-Log all interactions for quality assurance."""
-
-_MOCK_REASONING_CHUNKS = [
-    "I've reviewed your ",
-    "customer support agent prompt ",
-    "and found several areas ",
-    "for improvement:\n\n",
-    "1. **Missing error escalation path** — ",
-    "Lines 5-6 handle technical issues ",
-    "and complaints separately, ",
-    "but there's no clear criteria ",
-    "for when to escalate beyond ",
-    "creating a support ticket. ",
-    "The agent needs specific thresholds.\n\n",
-    "2. **Vague complaint handling** — ",
-    'Line 6 says "Handle complaints with empathy" ',
-    "but doesn't give the agent ",
-    "actionable strategies. ",
-    "Adding specific de-escalation steps ",
-    "would make this much more effective.\n\n",
-    "3. **No frustrated user protocol** — ",
-    "The prompt lacks guidance ",
-    "for handling angry or frustrated users, ",
-    "which is one of the most common scenarios ",
-    "in customer support.\n\n",
-    "Let me make these ",
-    "targeted improvements.",
-]
-
-_MOCK_EDITS_DATA: list[dict[str, Any]] = [
-    {
-        "start_line": 5,
-        "end_line": 6,
-        "new_content": (
-            "For technical issues, gather the error message, steps to reproduce, "
-            "and the user's environment details.\n"
-            "If the issue persists after basic troubleshooting, escalate to Tier 2 "
-            "support with a summary.\n"
-            "Handle complaints with empathy: acknowledge the user's frustration, "
-            "apologize for the inconvenience, and propose a concrete resolution."
-        ),
-        "original_content": (
-            "For technical issues, gather the error message and steps to reproduce.\n"
-            "Handle complaints with empathy."
-        ),
-    },
-    {
-        "start_line": 10,
-        "end_line": 9,
-        "new_content": (
-            "If the user is frustrated or angry, remain calm and use "
-            "de-escalation techniques:\n"
-            "- Acknowledge their feelings explicitly\n"
-            "- Avoid defensive language\n"
-            "- Offer to transfer to a senior agent if they request it"
-        ),
-        "original_content": "",
-    },
-    {
-        "start_line": 11,
-        "end_line": 11,
-        "new_content": (
-            "For refund requests, verify the purchase date and check eligibility "
-            "against the 30-day refund policy before processing."
-        ),
-        "original_content": "For refund requests, follow the standard refund process.",
-    },
-]
-
-_MOCK_PROMPT_PREVIEW = """\
-You are a helpful customer support agent for TechCorp.
-Greet the user warmly and ask how you can help.
-Always be polite and professional.
-If the user asks about billing, check their account status first.
-For technical issues, gather the error message, steps to reproduce, and the user's environment details.
-If the issue persists after basic troubleshooting, escalate to Tier 2 support with a summary.
-Handle complaints with empathy: acknowledge the user's frustration, apologize for the inconvenience, and propose a concrete resolution.
-If you can't resolve an issue, create a support ticket.
-Provide the ticket number to the user.
-Always ask if there's anything else you can help with before ending.
-If the user is frustrated or angry, remain calm and use de-escalation techniques:
-- Acknowledge their feelings explicitly
-- Avoid defensive language
-- Offer to transfer to a senior agent if they request it
-Never share internal policies or system details with the user.
-For refund requests, verify the purchase date and check eligibility against the 30-day refund policy before processing.
-Escalate to a manager if the user requests it.
-Keep responses concise but thorough.
-Use the knowledge base tool to look up product information.
-Log all interactions for quality assurance."""
 
 _MOCK_PRESETS: list[PresetPublic] = [
     PresetPublic(
@@ -262,19 +132,27 @@ _MOCK_PRESETS: list[PresetPublic] = [
     ),
 ]
 
-# In-memory store for mock edits (keyed by edit UUID).
-# Populated by the mock SSE generator, read by accept/reject endpoints.
-_mock_edits: dict[uuid.UUID, PromptEditPublic] = {}
-
-# ── Router ───────────────────────────────────────────────────────────
-
 router = APIRouter(
     prefix="/prompt-editor",
     tags=["prompt-editor"],
     dependencies=[Depends(get_current_user)],
 )
 
-# ── Session CRUD (real DB) ───────────────────────────────────────────
+
+def _session_public(pe_session: Any, message_count: int) -> PromptEditorSessionPublic:
+    return PromptEditorSessionPublic(
+        id=pe_session.id,
+        agent_id=pe_session.agent_id,
+        created_by=pe_session.created_by,
+        run_id=pe_session.run_id,
+        title=pe_session.title,
+        status=pe_session.status,
+        base_prompt=pe_session.base_prompt,
+        edited_prompt=pe_session.edited_prompt,
+        created_at=pe_session.created_at,
+        updated_at=pe_session.updated_at,
+        message_count=message_count,
+    )
 
 
 @router.post("/sessions/", response_model=PromptEditorSessionPublic)
@@ -289,17 +167,7 @@ def create_session(
         )
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
-    return PromptEditorSessionPublic(
-        id=pe_session.id,
-        agent_id=pe_session.agent_id,
-        created_by=pe_session.created_by,
-        run_id=pe_session.run_id,
-        title=pe_session.title,
-        status=pe_session.status,
-        created_at=pe_session.created_at,
-        updated_at=pe_session.updated_at,
-        message_count=0,
-    )
+    return _session_public(pe_session, message_count=0)
 
 
 @router.get("/sessions/", response_model=PromptEditorSessionsPublic)
@@ -317,20 +185,7 @@ def list_sessions(
         skip=skip,
         limit=limit,
     )
-    data = [
-        PromptEditorSessionPublic(
-            id=s.id,
-            agent_id=s.agent_id,
-            created_by=s.created_by,
-            run_id=s.run_id,
-            title=s.title,
-            status=s.status,
-            created_at=s.created_at,
-            updated_at=s.updated_at,
-            message_count=cnt,
-        )
-        for s, cnt in rows
-    ]
+    data = [_session_public(s, cnt) for s, cnt in rows]
     return PromptEditorSessionsPublic(data=data, count=total)
 
 
@@ -341,17 +196,7 @@ def get_session(
     pe_session = crud.get_prompt_editor_session(session=session, session_id=session_id)
     if not pe_session:
         raise HTTPException(status_code=404, detail="Session not found")
-    return PromptEditorSessionPublic(
-        id=pe_session.id,
-        agent_id=pe_session.agent_id,
-        created_by=pe_session.created_by,
-        run_id=pe_session.run_id,
-        title=pe_session.title,
-        status=pe_session.status,
-        created_at=pe_session.created_at,
-        updated_at=pe_session.updated_at,
-        message_count=len(pe_session.messages),
-    )
+    return _session_public(pe_session, message_count=len(pe_session.messages))
 
 
 @router.patch("/sessions/{session_id}", response_model=PromptEditorSessionPublic)
@@ -366,17 +211,7 @@ def update_session(
     updated = crud.update_prompt_editor_session(
         session=session, db_session=pe_session, session_in=session_in
     )
-    return PromptEditorSessionPublic(
-        id=updated.id,
-        agent_id=updated.agent_id,
-        created_by=updated.created_by,
-        run_id=updated.run_id,
-        title=updated.title,
-        status=updated.status,
-        created_at=updated.created_at,
-        updated_at=updated.updated_at,
-        message_count=len(updated.messages),
-    )
+    return _session_public(updated, message_count=len(updated.messages))
 
 
 @router.delete("/sessions/{session_id}", response_model=Message)
@@ -386,9 +221,6 @@ def delete_session(session: SessionDep, session_id: uuid.UUID) -> Message:
         raise HTTPException(status_code=404, detail="Session not found")
     crud.delete_prompt_editor_session(session=session, db_session=pe_session)
     return Message(message="Session deleted successfully")
-
-
-# ── Messages (real DB for listing) ───────────────────────────────────
 
 
 @router.get(
@@ -407,94 +239,183 @@ def list_messages(
     items, total = crud.list_prompt_editor_messages(
         session=session, session_id=session_id, skip=skip, limit=limit
     )
-    return PromptEditorMessagesPublic(data=items, count=total)  # type: ignore[arg-type]
-
-
-# ── Mock SSE streaming chat ─────────────────────────────────────────
+    public_items = [
+        PromptEditorMessagePublic.model_validate(m, from_attributes=True) for m in items
+    ]
+    return PromptEditorMessagesPublic(data=public_items, count=total)
 
 
 @router.post("/sessions/{session_id}/messages")
 async def chat(
     request: Request,
+    session: SessionDep,
     session_id: uuid.UUID,
-    body: ChatMessageCreate,
+    body: PromptEditorChatMessageCreate,
 ) -> StreamingResponse:
-    """Stream the editor agent's response as semantic SSE events.
+    """Stream the editor agent response (reasoning + full-text edit snapshots).
 
-    Returns ``text/event-stream`` with events: ``status``, ``reasoning``,
-    ``edit``, ``done``, and ``error``.
+    The SSE generator outlives the FastAPI dependency scope (``get_db`` closes
+    the SQLAlchemy ``Session`` once this function returns the
+    ``StreamingResponse``).  Therefore we:
 
-    **Currently returns mock data** — real LLM integration pending CS-60.
+    1. Read all data we need *before* returning and copy it into plain Python
+       objects so the generator never touches the original session.
+    2. Open a **new** ``Session`` inside the generator for the DB writes that
+       happen after the LLM stream completes.
     """
-    message_id = uuid.uuid4()
-    user_content = body.content
-    now = datetime.now(UTC)
+    pe_session = crud.get_prompt_editor_session(session=session, session_id=session_id)
+    if not pe_session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    if pe_session.status != PromptEditorSessionStatus.ACTIVE:
+        raise HTTPException(status_code=400, detail="Session is archived")
+
+    agent = crud.get_agent(session=session, agent_id=pe_session.agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    try:
+        platform_agent_required(agent)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+    prior_messages, _ = crud.list_prompt_editor_messages(
+        session=session, session_id=session_id, skip=0, limit=500
+    )
+
+    # Extract scalar data and detach ORM objects the generator will need
+    # BEFORE the commit inside create_prompt_editor_message expires them.
+    base_prompt = pe_session.base_prompt or ""
+    session.expunge(agent)
+    for msg in prior_messages:
+        session.expunge(msg)
+
+    try:
+        crud.create_prompt_editor_message(
+            session=session,
+            message_in=PromptEditorMessageCreate(
+                session_id=session_id,
+                role=TurnRole.USER,
+                content=body.content,
+            ),
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
     async def event_generator() -> AsyncGenerator[str, None]:
-        # Phase 1 — Analysing (stream reasoning tokens)
-        yield format_sse(
-            "status",
-            {"message_id": str(message_id), "phase": "analyzing"},
+        try:
+            llm_messages = build_editor_messages(
+                agent=agent,
+                session_messages=prior_messages,
+                user_message=body.content,
+                current_prompt=body.current_prompt,
+                eval_context=None,
+            )
+        except Exception as exc:
+            logger.exception("build_editor_messages failed: %s", exc)
+            yield format_sse(
+                "error", {"detail": f"Failed to build LLM messages: {exc}"}
+            )
+            return
+
+        yield format_sse("status", {"phase": "analyzing"})
+
+        llm_config = LLMCallConfig(
+            tools=[EDIT_PROMPT_TOOL],
+            max_tokens=8192,
+            temperature=0.35,
         )
 
-        full_reasoning = ""
-        for chunk in _MOCK_REASONING_CHUNKS:
-            if await request.is_disconnected():
+        stream_result: LLMStreamResult | None = None
+        try:
+            stream = call_llm_stream(llm_messages, llm_config, app_settings=settings)
+            async for item in stream:
+                if await request.is_disconnected():
+                    return
+                if isinstance(item, LLMStreamChunk) and item.content:
+                    yield format_sse("reasoning", {"content": item.content})
+                elif isinstance(item, LLMStreamResult):
+                    stream_result = item
+        except ValueError as exc:
+            logger.warning("LLM configuration error: %s", exc)
+            yield format_sse("error", {"detail": str(exc)})
+            return
+        except Exception as exc:
+            logger.exception("LLM stream failed: %s", exc)
+            yield format_sse("error", {"detail": f"LLM call failed: {exc}"})
+            return
+
+        if stream_result is None:
+            yield format_sse("error", {"detail": "Stream ended without a final result"})
+            return
+
+        raw_edits = parse_edit_prompt_tool_calls(stream_result.tool_calls)
+        line_count = get_prompt_line_count(body.current_prompt)
+        valid_edits = validate_edits_against_line_count(raw_edits, line_count)
+
+        if valid_edits:
+            yield format_sse("status", {"phase": "editing"})
+            snapshots = apply_edits_progressively(body.current_prompt, valid_edits)
+            total = len(snapshots)
+            for idx, snap in enumerate(snapshots):
+                if await request.is_disconnected():
+                    return
+                yield format_sse(
+                    "edit",
+                    {
+                        "edited_prompt": snap,
+                        "edit_index": idx,
+                        "total_edits": total,
+                    },
+                )
+            final_prompt = snapshots[-1]
+        else:
+            final_prompt = body.current_prompt
+
+        tool_calls_payload = (
+            llm_tool_calls_to_openai_dicts(stream_result.tool_calls)
+            if stream_result.tool_calls
+            else None
+        )
+
+        # Open a fresh DB session for the post-stream writes; the
+        # dependency-scoped session is already closed at this point.
+        with Session(engine) as db:
+            try:
+                assistant_msg = crud.create_prompt_editor_message(
+                    session=db,
+                    message_in=PromptEditorMessageCreate(
+                        session_id=session_id,
+                        role=TurnRole.ASSISTANT,
+                        content=stream_result.full_content,
+                        tool_calls=tool_calls_payload,
+                    ),
+                )
+            except ValueError as exc:
+                logger.warning("Failed to persist assistant message: %s", exc)
+                yield format_sse("error", {"detail": str(exc)})
                 return
-            full_reasoning += chunk
-            await asyncio.sleep(0.08)
-            yield format_sse("reasoning", {"content": chunk})
 
-        # Phase 2 — Editing (emit proposed edits)
-        await asyncio.sleep(0.3)
-        yield format_sse("status", {"phase": "editing"})
-
-        edits_payload: list[dict[str, Any]] = []
-        for idx, edit_data in enumerate(_MOCK_EDITS_DATA):
-            if await request.is_disconnected():
+            fresh_pe_session = crud.get_prompt_editor_session(
+                session=db, session_id=session_id
+            )
+            if fresh_pe_session is None:
+                yield format_sse("error", {"detail": "Session not found after stream"})
                 return
-            edit_id = uuid.uuid4()
-            edit_event: dict[str, Any] = {
-                "edit_id": str(edit_id),
-                "index": idx,
-                "start_line": edit_data["start_line"],
-                "end_line": edit_data["end_line"],
-                "new_content": edit_data["new_content"],
-                "original_content": edit_data["original_content"],
-                "status": "pending",
-            }
-            edits_payload.append(edit_event)
-
-            _mock_edits[edit_id] = PromptEditPublic(
-                id=edit_id,
-                message_id=message_id,
-                start_line=edit_data["start_line"],
-                end_line=edit_data["end_line"],
-                new_content=edit_data["new_content"],
-                original_content=edit_data["original_content"],
-                status="pending",
-                created_at=now,
+            crud.update_prompt_editor_session_edited_prompt(
+                session=db,
+                db_session=fresh_pe_session,
+                edited_prompt=final_prompt,
             )
 
-            await asyncio.sleep(0.2)
-            yield format_sse("edit", edit_event)
-
-        # Phase 3 — Complete
-        yield format_sse("status", {"phase": "complete"})
-
-        done_data: dict[str, Any] = {
-            "message": {
-                "id": str(message_id),
-                "session_id": str(session_id),
-                "role": "assistant",
-                "content": full_reasoning,
-                "edits": edits_payload,
-                "created_at": now.isoformat(),
-            },
-            "user_content": user_content,
-            "prompt_preview": _MOCK_PROMPT_PREVIEW,
-        }
-        yield format_sse("done", done_data)
+            yield format_sse("status", {"phase": "complete"})
+            message_public = PromptEditorMessagePublic.model_validate(
+                assistant_msg, from_attributes=True
+            )
+            done_payload = {
+                "message": message_public.model_dump(mode="json"),
+                "edited_prompt": final_prompt,
+                "base_prompt": base_prompt,
+            }
+            yield format_sse("done", done_payload)
 
     return StreamingResponse(
         event_generator(),
@@ -503,66 +424,12 @@ async def chat(
     )
 
 
-# ── Mock edit accept / reject ────────────────────────────────────────
-
-
-@router.patch(
-    "/sessions/{session_id}/messages/{message_id}/edits/{edit_id}",
-    response_model=PromptEditPublic,
-)
-def update_edit_status(
-    session_id: uuid.UUID,
-    message_id: uuid.UUID,
-    edit_id: uuid.UUID,
-    body: PromptEditStatusUpdate,
-) -> PromptEditPublic:
-    """Accept or decline a single proposed edit (mock)."""
-    _ = session_id, message_id
-    edit = _mock_edits.get(edit_id)
-    if edit is None:
-        raise HTTPException(status_code=404, detail="Edit not found")
-    edit.status = body.status
-    return edit
-
-
-@router.patch(
-    "/sessions/{session_id}/messages/{message_id}/edits",
-    response_model=list[PromptEditPublic],
-)
-def batch_update_edit_status(
-    session_id: uuid.UUID,
-    message_id: uuid.UUID,
-    body: PromptEditBatchStatusUpdate,
-) -> list[PromptEditPublic]:
-    """Accept or decline multiple edits at once (mock).
-
-    If ``edit_ids`` is null, applies to every pending edit on the message.
-    """
-    _ = session_id
-    target_ids = body.edit_ids
-    results: list[PromptEditPublic] = []
-    for eid, edit in _mock_edits.items():
-        if edit.message_id != message_id:
-            continue
-        if target_ids is not None and eid not in target_ids:
-            continue
-        if edit.status != "pending":
-            continue
-        edit.status = body.status
-        results.append(edit)
-    return results
-
-
-# ── Presets ───────────────────────────────────────────────────────────
-
-
 @router.get("/presets", response_model=list[PresetPublic])
 def get_presets(
     agent_id: uuid.UUID | None = Query(
         default=None,
-        description="Agent ID for contextual filtering (ignored in mock)",
+        description="Agent ID for contextual filtering (ignored until CS-63)",
     ),
 ) -> list[PresetPublic]:
-    """Return available presets. Mock returns all without filtering."""
     _ = agent_id
     return _MOCK_PRESETS

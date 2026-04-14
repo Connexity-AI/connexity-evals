@@ -119,9 +119,6 @@ import type {
   LoginTestTokenData,
   LoginTestTokenErrors,
   LoginTestTokenResponses,
-  PromptEditorBatchUpdateEditStatusData,
-  PromptEditorBatchUpdateEditStatusErrors,
-  PromptEditorBatchUpdateEditStatusResponses,
   PromptEditorChatData,
   PromptEditorChatErrors,
   PromptEditorChatResponses,
@@ -143,9 +140,6 @@ import type {
   PromptEditorListSessionsData,
   PromptEditorListSessionsErrors,
   PromptEditorListSessionsResponses,
-  PromptEditorUpdateEditStatusData,
-  PromptEditorUpdateEditStatusErrors,
-  PromptEditorUpdateEditStatusResponses,
   PromptEditorUpdateSessionData,
   PromptEditorUpdateSessionErrors,
   PromptEditorUpdateSessionResponses,
@@ -2079,12 +2073,7 @@ export class PromptEditorService {
   /**
    * Chat
    *
-   * Stream the editor agent's response as semantic SSE events.
-   *
-   * Returns ``text/event-stream`` with events: ``status``, ``reasoning``,
-   * ``edit``, ``done``, and ``error``.
-   *
-   * **Currently returns mock data** — real LLM integration pending CS-60.
+   * Stream the editor agent response (reasoning + full-text edit snapshots).
    */
   public static promptEditorChat<ThrowOnError extends boolean = false>(
     options: Options<PromptEditorChatData, ThrowOnError>
@@ -2112,71 +2101,7 @@ export class PromptEditorService {
   }
 
   /**
-   * Update Edit Status
-   *
-   * Accept or decline a single proposed edit (mock).
-   */
-  public static promptEditorUpdateEditStatus<ThrowOnError extends boolean = false>(
-    options: Options<PromptEditorUpdateEditStatusData, ThrowOnError>
-  ) {
-    return (options.client ?? client).patch<
-      PromptEditorUpdateEditStatusResponses,
-      PromptEditorUpdateEditStatusErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/prompt-editor/sessions/{session_id}/messages/{message_id}/edits/{edit_id}',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  /**
-   * Batch Update Edit Status
-   *
-   * Accept or decline multiple edits at once (mock).
-   *
-   * If ``edit_ids`` is null, applies to every pending edit on the message.
-   */
-  public static promptEditorBatchUpdateEditStatus<ThrowOnError extends boolean = false>(
-    options: Options<PromptEditorBatchUpdateEditStatusData, ThrowOnError>
-  ) {
-    return (options.client ?? client).patch<
-      PromptEditorBatchUpdateEditStatusResponses,
-      PromptEditorBatchUpdateEditStatusErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/prompt-editor/sessions/{session_id}/messages/{message_id}/edits',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  /**
    * Get Presets
-   *
-   * Return available presets. Mock returns all without filtering.
    */
   public static promptEditorGetPresets<ThrowOnError extends boolean = false>(
     options?: Options<PromptEditorGetPresetsData, ThrowOnError>

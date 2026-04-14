@@ -1181,35 +1181,6 @@ export const CauseAnalysisItemSchema = {
   title: 'CauseAnalysisItem',
 } as const;
 
-export const ChatMessageCreateSchema = {
-  properties: {
-    content: {
-      type: 'string',
-      title: 'Content',
-      description: 'User message text',
-    },
-    test_case_result_ids: {
-      anyOf: [
-        {
-          items: {
-            type: 'string',
-            format: 'uuid',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Test Case Result Ids',
-      description: 'Optional test case result IDs for eval context injection',
-    },
-  },
-  type: 'object',
-  required: ['content'],
-  title: 'ChatMessageCreate',
-} as const;
-
 export const ConfigPublicSchema = {
   properties: {
     project_name: {
@@ -3011,14 +2982,19 @@ export const PromptDiffSchema = {
   title: 'PromptDiff',
 } as const;
 
-export const PromptEditBatchStatusUpdateSchema = {
+export const PromptEditorChatMessageCreateSchema = {
   properties: {
-    status: {
+    content: {
       type: 'string',
-      enum: ['accepted', 'declined'],
-      title: 'Status',
+      title: 'Content',
+      description: 'User message text',
     },
-    edit_ids: {
+    current_prompt: {
+      type: 'string',
+      title: 'Current Prompt',
+      description: 'Current prompt text as shown in the editor (includes manual edits)',
+    },
+    test_case_result_ids: {
       anyOf: [
         {
           items: {
@@ -3031,77 +3007,14 @@ export const PromptEditBatchStatusUpdateSchema = {
           type: 'null',
         },
       ],
-      title: 'Edit Ids',
+      title: 'Test Case Result Ids',
+      description: 'Optional test case result IDs for eval context injection (CS-64)',
     },
   },
   type: 'object',
-  required: ['status'],
-  title: 'PromptEditBatchStatusUpdate',
-} as const;
-
-export const PromptEditPublicSchema = {
-  properties: {
-    id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Id',
-    },
-    message_id: {
-      type: 'string',
-      format: 'uuid',
-      title: 'Message Id',
-    },
-    start_line: {
-      type: 'integer',
-      title: 'Start Line',
-    },
-    end_line: {
-      type: 'integer',
-      title: 'End Line',
-    },
-    new_content: {
-      type: 'string',
-      title: 'New Content',
-    },
-    original_content: {
-      type: 'string',
-      title: 'Original Content',
-    },
-    status: {
-      type: 'string',
-      title: 'Status',
-    },
-    created_at: {
-      type: 'string',
-      format: 'date-time',
-      title: 'Created At',
-    },
-  },
-  type: 'object',
-  required: [
-    'id',
-    'message_id',
-    'start_line',
-    'end_line',
-    'new_content',
-    'original_content',
-    'status',
-    'created_at',
-  ],
-  title: 'PromptEditPublic',
-} as const;
-
-export const PromptEditStatusUpdateSchema = {
-  properties: {
-    status: {
-      type: 'string',
-      enum: ['accepted', 'declined'],
-      title: 'Status',
-    },
-  },
-  type: 'object',
-  required: ['status'],
-  title: 'PromptEditStatusUpdate',
+  required: ['content', 'current_prompt'],
+  title: 'PromptEditorChatMessageCreate',
+  description: 'Body for POST /prompt-editor/sessions/{id}/messages (SSE chat).',
 } as const;
 
 export const PromptEditorMessagePublicSchema = {
@@ -3127,29 +3040,6 @@ export const PromptEditorMessagePublicSchema = {
       title: 'Session Id',
       description: 'Session id',
     },
-    prompt_suggestion: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Prompt Suggestion',
-      description: 'Suggested prompt text if any',
-    },
-    suggestion_status: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/PromptSuggestionStatus',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      description: 'Suggestion workflow status',
-    },
     created_at: {
       type: 'string',
       format: 'date-time',
@@ -3158,15 +3048,7 @@ export const PromptEditorMessagePublicSchema = {
     },
   },
   type: 'object',
-  required: [
-    'role',
-    'content',
-    'id',
-    'session_id',
-    'prompt_suggestion',
-    'suggestion_status',
-    'created_at',
-  ],
+  required: ['role', 'content', 'id', 'session_id', 'created_at'],
   title: 'PromptEditorMessagePublic',
 } as const;
 
@@ -3282,6 +3164,30 @@ export const PromptEditorSessionPublicSchema = {
       title: 'Run Id',
       description: 'Linked run id if any',
     },
+    base_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Base Prompt',
+      description: 'Original prompt snapshot at session start',
+    },
+    edited_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Edited Prompt',
+      description: 'Current prompt state on server',
+    },
     created_at: {
       type: 'string',
       format: 'date-time',
@@ -3301,7 +3207,17 @@ export const PromptEditorSessionPublicSchema = {
     },
   },
   type: 'object',
-  required: ['id', 'agent_id', 'created_by', 'run_id', 'created_at', 'updated_at', 'message_count'],
+  required: [
+    'id',
+    'agent_id',
+    'created_by',
+    'run_id',
+    'base_prompt',
+    'edited_prompt',
+    'created_at',
+    'updated_at',
+    'message_count',
+  ],
   title: 'PromptEditorSessionPublic',
 } as const;
 
@@ -3361,12 +3277,6 @@ export const PromptEditorSessionsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'PromptEditorSessionsPublic',
-} as const;
-
-export const PromptSuggestionStatusSchema = {
-  type: 'string',
-  enum: ['pending', 'accepted', 'declined'],
-  title: 'PromptSuggestionStatus',
 } as const;
 
 export const PublishRequestSchema = {

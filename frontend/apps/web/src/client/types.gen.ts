@@ -673,24 +673,6 @@ export type CauseAnalysisItem = {
 };
 
 /**
- * ChatMessageCreate
- */
-export type ChatMessageCreate = {
-  /**
-   * Content
-   *
-   * User message text
-   */
-  content: string;
-  /**
-   * Test Case Result Ids
-   *
-   * Optional test case result IDs for eval context injection
-   */
-  test_case_result_ids?: Array<string> | null;
-};
-
-/**
  * ConfigPublic
  */
 export type ConfigPublic = {
@@ -1904,65 +1886,29 @@ export type PromptDiff = {
 };
 
 /**
- * PromptEditBatchStatusUpdate
+ * PromptEditorChatMessageCreate
+ *
+ * Body for POST /prompt-editor/sessions/{id}/messages (SSE chat).
  */
-export type PromptEditBatchStatusUpdate = {
+export type PromptEditorChatMessageCreate = {
   /**
-   * Status
+   * Content
+   *
+   * User message text
    */
-  status: 'accepted' | 'declined';
+  content: string;
   /**
-   * Edit Ids
+   * Current Prompt
+   *
+   * Current prompt text as shown in the editor (includes manual edits)
    */
-  edit_ids?: Array<string> | null;
-};
-
-/**
- * PromptEditPublic
- */
-export type PromptEditPublic = {
+  current_prompt: string;
   /**
-   * Id
+   * Test Case Result Ids
+   *
+   * Optional test case result IDs for eval context injection (CS-64)
    */
-  id: string;
-  /**
-   * Message Id
-   */
-  message_id: string;
-  /**
-   * Start Line
-   */
-  start_line: number;
-  /**
-   * End Line
-   */
-  end_line: number;
-  /**
-   * New Content
-   */
-  new_content: string;
-  /**
-   * Original Content
-   */
-  original_content: string;
-  /**
-   * Status
-   */
-  status: string;
-  /**
-   * Created At
-   */
-  created_at: string;
-};
-
-/**
- * PromptEditStatusUpdate
- */
-export type PromptEditStatusUpdate = {
-  /**
-   * Status
-   */
-  status: 'accepted' | 'declined';
+  test_case_result_ids?: Array<string> | null;
 };
 
 /**
@@ -1991,16 +1937,6 @@ export type PromptEditorMessagePublic = {
    * Session id
    */
   session_id: string;
-  /**
-   * Prompt Suggestion
-   *
-   * Suggested prompt text if any
-   */
-  prompt_suggestion: string | null;
-  /**
-   * Suggestion workflow status
-   */
-  suggestion_status: PromptSuggestionStatus | null;
   /**
    * Created At
    *
@@ -2090,6 +2026,18 @@ export type PromptEditorSessionPublic = {
    */
   run_id: string | null;
   /**
+   * Base Prompt
+   *
+   * Original prompt snapshot at session start
+   */
+  base_prompt: string | null;
+  /**
+   * Edited Prompt
+   *
+   * Current prompt state on server
+   */
+  edited_prompt: string | null;
+  /**
    * Created At
    *
    * Created at
@@ -2153,21 +2101,6 @@ export type PromptEditorSessionsPublic = {
    */
   count: number;
 };
-
-/**
- * PromptSuggestionStatus
- */
-export const PromptSuggestionStatus = {
-  PENDING: 'pending',
-  ACCEPTED: 'accepted',
-  DECLINED: 'declined',
-} as const;
-
-/**
- * PromptSuggestionStatus
- */
-export type PromptSuggestionStatus =
-  (typeof PromptSuggestionStatus)[keyof typeof PromptSuggestionStatus];
 
 /**
  * PublishRequest
@@ -7779,7 +7712,7 @@ export type PromptEditorListMessagesResponse =
   PromptEditorListMessagesResponses[keyof PromptEditorListMessagesResponses];
 
 export type PromptEditorChatData = {
-  body: ChatMessageCreate;
+  body: PromptEditorChatMessageCreate;
   path: {
     /**
      * Session Id
@@ -7830,132 +7763,6 @@ export type PromptEditorChatResponses = {
   200: unknown;
 };
 
-export type PromptEditorUpdateEditStatusData = {
-  body: PromptEditStatusUpdate;
-  path: {
-    /**
-     * Session Id
-     */
-    session_id: string;
-    /**
-     * Message Id
-     */
-    message_id: string;
-    /**
-     * Edit Id
-     */
-    edit_id: string;
-  };
-  query?: never;
-  url: '/api/v1/prompt-editor/sessions/{session_id}/messages/{message_id}/edits/{edit_id}';
-};
-
-export type PromptEditorUpdateEditStatusErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorUpdateEditStatusError =
-  PromptEditorUpdateEditStatusErrors[keyof PromptEditorUpdateEditStatusErrors];
-
-export type PromptEditorUpdateEditStatusResponses = {
-  /**
-   * Successful Response
-   */
-  200: PromptEditPublic;
-};
-
-export type PromptEditorUpdateEditStatusResponse =
-  PromptEditorUpdateEditStatusResponses[keyof PromptEditorUpdateEditStatusResponses];
-
-export type PromptEditorBatchUpdateEditStatusData = {
-  body: PromptEditBatchStatusUpdate;
-  path: {
-    /**
-     * Session Id
-     */
-    session_id: string;
-    /**
-     * Message Id
-     */
-    message_id: string;
-  };
-  query?: never;
-  url: '/api/v1/prompt-editor/sessions/{session_id}/messages/{message_id}/edits';
-};
-
-export type PromptEditorBatchUpdateEditStatusErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type PromptEditorBatchUpdateEditStatusError =
-  PromptEditorBatchUpdateEditStatusErrors[keyof PromptEditorBatchUpdateEditStatusErrors];
-
-export type PromptEditorBatchUpdateEditStatusResponses = {
-  /**
-   * Response Prompt-Editor-Batch Update Edit Status
-   *
-   * Successful Response
-   */
-  200: Array<PromptEditPublic>;
-};
-
-export type PromptEditorBatchUpdateEditStatusResponse =
-  PromptEditorBatchUpdateEditStatusResponses[keyof PromptEditorBatchUpdateEditStatusResponses];
-
 export type PromptEditorGetPresetsData = {
   body?: never;
   path?: never;
@@ -7963,7 +7770,7 @@ export type PromptEditorGetPresetsData = {
     /**
      * Agent Id
      *
-     * Agent ID for contextual filtering (ignored in mock)
+     * Agent ID for contextual filtering (ignored until CS-63)
      */
     agent_id?: string | null;
   };

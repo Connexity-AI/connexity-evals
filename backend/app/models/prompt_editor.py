@@ -1,16 +1,13 @@
 import uuid
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from pydantic import ConfigDict
 from sqlalchemy import Column, Text, text
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.models.enums import (
-    PromptEditorSessionStatus,
-    PromptSuggestionStatus,
-    TurnRole,
-)
+from app.models.enums import PromptEditorSessionStatus, TurnRole
 from app.models.run import Run
 
 if TYPE_CHECKING:
@@ -49,6 +46,16 @@ class PromptEditorSession(PromptEditorSessionBase, table=True):
         default=None,
         foreign_key="run.id",
         description="Optional eval run for context injection",
+    )
+    base_prompt: str | None = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+        description="Snapshot of agent draft system_prompt at session creation (diff baseline)",
+    )
+    edited_prompt: str | None = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+        description="Current prompt state (null = same as base_prompt)",
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
@@ -100,6 +107,10 @@ class PromptEditorSessionPublic(PromptEditorSessionBase):
     agent_id: uuid.UUID = Field(description="Agent id")
     created_by: uuid.UUID = Field(description="Owner user id")
     run_id: uuid.UUID | None = Field(description="Linked run id if any")
+    base_prompt: str | None = Field(
+        description="Original prompt snapshot at session start"
+    )
+    edited_prompt: str | None = Field(description="Current prompt state on server")
     created_at: datetime = Field(description="Created at")
     updated_at: datetime = Field(description="Updated at")
     message_count: int = Field(description="Number of messages in the session")
@@ -129,14 +140,10 @@ class PromptEditorMessage(PromptEditorMessageBase, table=True):
         index=True,
         description="Parent session",
     )
-    prompt_suggestion: str | None = Field(
+    tool_calls: list[dict[str, Any]] | None = Field(
         default=None,
-        sa_column=Column(Text, nullable=True),
-        description="Extracted prompt text when the assistant suggests an update",
-    )
-    suggestion_status: PromptSuggestionStatus | None = Field(
-        default=None,
-        description="pending / accepted / declined when a suggestion exists",
+        sa_column=Column(JSONB, nullable=True),
+        description="OpenAI-style tool_calls from assistant turn for history replay",
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
@@ -150,22 +157,31 @@ class PromptEditorMessageCreate(SQLModel):
     session_id: uuid.UUID = Field(description="Session to append to")
     role: TurnRole = Field(description="Message role")
     content: str = Field(description="Message body")
-    prompt_suggestion: str | None = Field(
+    tool_calls: list[dict[str, Any]] | None = Field(
         default=None,
-        description="Optional extracted prompt suggestion",
+        description="OpenAI-style tool_calls for assistant messages",
     )
 
 
 class PromptEditorMessagePublic(PromptEditorMessageBase):
     id: uuid.UUID = Field(description="Message id")
     session_id: uuid.UUID = Field(description="Session id")
-    prompt_suggestion: str | None = Field(description="Suggested prompt text if any")
-    suggestion_status: PromptSuggestionStatus | None = Field(
-        description="Suggestion workflow status"
-    )
     created_at: datetime = Field(description="Created at")
 
 
 class PromptEditorMessagesPublic(SQLModel):
     data: list[PromptEditorMessagePublic] = Field(description="Messages")
     count: int = Field(description="Total messages in the query")
+
+
+class PromptEditorChatMessageCreate(SQLModel):
+    """Body for POST /prompt-editor/sessions/{id}/messages (SSE chat)."""
+
+    content: str = Field(description="User message text")
+    current_prompt: str = Field(
+        description="Current prompt text as shown in the editor (includes manual edits)",
+    )
+    test_case_result_ids: list[uuid.UUID] | None = Field(
+        default=None,
+        description="Optional test case result IDs for eval context injection (CS-64)",
+    )

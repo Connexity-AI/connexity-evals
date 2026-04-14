@@ -14,6 +14,7 @@ from app.tests.utils.eval import (
     create_test_agent,
     create_test_case_fixture,
     create_test_eval_set,
+    create_test_platform_agent,
     create_test_prompt_editor_message,
     create_test_prompt_editor_session,
     create_test_run,
@@ -47,6 +48,29 @@ def test_create_session_auto_title(db: Session) -> None:
     )
     assert s.title is not None
     assert s.title.startswith("Session ")
+
+
+def test_create_session_base_prompt_from_platform_agent(db: Session) -> None:
+    agent = create_test_platform_agent(db, system_prompt="Hello from published row")
+    user = create_random_user(db)
+    session_in = PromptEditorSessionCreate(agent_id=agent.id)
+    s = crud.create_prompt_editor_session(
+        session=db, session_in=session_in, created_by=user.id
+    )
+    assert s.base_prompt == "Hello from published row"
+    assert s.edited_prompt is None
+
+
+def test_update_session_edited_prompt(db: Session) -> None:
+    agent = create_test_agent(db)
+    user = create_random_user(db)
+    s = create_test_prompt_editor_session(db, agent_id=agent.id, created_by=user.id)
+    updated = crud.update_prompt_editor_session_edited_prompt(
+        session=db,
+        db_session=s,
+        edited_prompt="new prompt text",
+    )
+    assert updated.edited_prompt == "new prompt text"
 
 
 def test_create_session_with_run_id(db: Session) -> None:
