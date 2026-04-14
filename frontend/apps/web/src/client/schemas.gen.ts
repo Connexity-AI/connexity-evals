@@ -91,18 +91,6 @@ export const AgentCreateSchema = {
       title: 'Agent Provider',
       description: 'LLM provider for platform agent simulator (e.g. openai, anthropic)',
     },
-    agent_temperature: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Agent Temperature',
-      description: 'Sampling temperature for platform agent simulator (0.0–2.0)',
-    },
     agent_metadata: {
       anyOf: [
         {
@@ -119,19 +107,6 @@ export const AgentCreateSchema = {
   type: 'object',
   required: ['name'],
   title: 'AgentCreate',
-} as const;
-
-export const AgentCreateDraftSchema = {
-  properties: {
-    name: {
-      type: 'string',
-      maxLength: 255,
-      title: 'Name',
-      default: 'Untitled Agent',
-    },
-  },
-  type: 'object',
-  title: 'AgentCreateDraft',
 } as const;
 
 export const AgentDraftUpdateSchema = {
@@ -203,17 +178,6 @@ export const AgentDraftUpdateSchema = {
         },
       ],
       title: 'Agent Provider',
-    },
-    agent_temperature: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Agent Temperature',
     },
   },
   type: 'object',
@@ -317,18 +281,6 @@ export const AgentPublicSchema = {
       ],
       title: 'Agent Provider',
       description: 'LLM provider for platform agent simulator (e.g. openai, anthropic)',
-    },
-    agent_temperature: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Agent Temperature',
-      description: 'Sampling temperature for platform agent simulator (0.0–2.0)',
     },
     agent_metadata: {
       anyOf: [
@@ -563,18 +515,6 @@ export const AgentUpdateSchema = {
       title: 'Agent Provider',
       description: 'LLM provider for platform agent simulator',
     },
-    agent_temperature: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Agent Temperature',
-      description: 'Sampling temperature for platform agent simulator (0.0–2.0)',
-    },
     agent_metadata: {
       anyOf: [
         {
@@ -763,17 +703,6 @@ export const AgentVersionPublicSchema = {
       ],
       title: 'Agent Provider',
     },
-    agent_temperature: {
-      anyOf: [
-        {
-          type: 'number',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Agent Temperature',
-    },
     change_description: {
       anyOf: [
         {
@@ -815,7 +744,6 @@ export const AgentVersionPublicSchema = {
     'tools',
     'agent_model',
     'agent_provider',
-    'agent_temperature',
     'change_description',
     'created_by',
     'created_at',
@@ -1251,35 +1179,6 @@ export const CauseAnalysisItemSchema = {
   type: 'object',
   required: ['metric', 'direction', 'likely_cause', 'confidence', 'reasoning'],
   title: 'CauseAnalysisItem',
-} as const;
-
-export const ChatMessageCreateSchema = {
-  properties: {
-    content: {
-      type: 'string',
-      title: 'Content',
-      description: 'User message text',
-    },
-    test_case_result_ids: {
-      anyOf: [
-        {
-          items: {
-            type: 'string',
-            format: 'uuid',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Test Case Result Ids',
-      description: 'Optional test case result IDs for eval context injection',
-    },
-  },
-  type: 'object',
-  required: ['content'],
-  title: 'ChatMessageCreate',
 } as const;
 
 export const ConfigPublicSchema = {
@@ -3083,61 +2982,39 @@ export const PromptDiffSchema = {
   title: 'PromptDiff',
 } as const;
 
-export const PromptEditPublicSchema = {
+export const PromptEditorChatMessageCreateSchema = {
   properties: {
-    id: {
+    content: {
       type: 'string',
-      format: 'uuid',
-      title: 'Id',
+      title: 'Content',
+      description: 'User message text',
     },
-    message_id: {
+    current_prompt: {
       type: 'string',
-      format: 'uuid',
-      title: 'Message Id',
+      title: 'Current Prompt',
+      description: 'Current prompt text as shown in the editor (includes manual edits)',
     },
-    start_line: {
-      type: 'integer',
-      title: 'Start Line',
-    },
-    end_line: {
-      type: 'integer',
-      title: 'End Line',
-    },
-    new_content: {
-      type: 'string',
-      title: 'New Content',
-    },
-    original_content: {
-      type: 'string',
-      title: 'Original Content',
-    },
-    status: {
-      $ref: '#/components/schemas/PromptEditStatus',
-    },
-    created_at: {
-      type: 'string',
-      format: 'date-time',
-      title: 'Created At',
+    test_case_result_ids: {
+      anyOf: [
+        {
+          items: {
+            type: 'string',
+            format: 'uuid',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Test Case Result Ids',
+      description: 'Optional test case result IDs for eval context injection (CS-64)',
     },
   },
   type: 'object',
-  required: [
-    'id',
-    'message_id',
-    'start_line',
-    'end_line',
-    'new_content',
-    'original_content',
-    'status',
-    'created_at',
-  ],
-  title: 'PromptEditPublic',
-} as const;
-
-export const PromptEditStatusSchema = {
-  type: 'string',
-  enum: ['pending', 'accepted', 'declined'],
-  title: 'PromptEditStatus',
+  required: ['content', 'current_prompt'],
+  title: 'PromptEditorChatMessageCreate',
+  description: 'Body for POST /prompt-editor/sessions/{id}/messages (SSE chat).',
 } as const;
 
 export const PromptEditorMessagePublicSchema = {
@@ -3168,13 +3045,6 @@ export const PromptEditorMessagePublicSchema = {
       format: 'date-time',
       title: 'Created At',
       description: 'Created at',
-    },
-    edits: {
-      items: {
-        $ref: '#/components/schemas/PromptEditPublic',
-      },
-      type: 'array',
-      title: 'Edits',
     },
   },
   type: 'object',
@@ -3294,6 +3164,30 @@ export const PromptEditorSessionPublicSchema = {
       title: 'Run Id',
       description: 'Linked run id if any',
     },
+    base_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Base Prompt',
+      description: 'Original prompt snapshot at session start',
+    },
+    edited_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Edited Prompt',
+      description: 'Current prompt state on server',
+    },
     created_at: {
       type: 'string',
       format: 'date-time',
@@ -3313,7 +3207,17 @@ export const PromptEditorSessionPublicSchema = {
     },
   },
   type: 'object',
-  required: ['id', 'agent_id', 'created_by', 'run_id', 'created_at', 'updated_at', 'message_count'],
+  required: [
+    'id',
+    'agent_id',
+    'created_by',
+    'run_id',
+    'base_prompt',
+    'edited_prompt',
+    'created_at',
+    'updated_at',
+    'message_count',
+  ],
   title: 'PromptEditorSessionPublic',
 } as const;
 
@@ -5893,6 +5797,18 @@ export const UserPublicSchema = {
     provider: {
       $ref: '#/components/schemas/AuthProvider',
       default: 'email',
+    },
+    oauth_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Oauth Id',
     },
     is_active: {
       type: 'boolean',

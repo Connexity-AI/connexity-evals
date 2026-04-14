@@ -6,9 +6,6 @@ import type {
   AgentsCreateAgentData,
   AgentsCreateAgentErrors,
   AgentsCreateAgentResponses,
-  AgentsCreateDraftAgentData,
-  AgentsCreateDraftAgentErrors,
-  AgentsCreateDraftAgentResponses,
   AgentsDeleteAgentData,
   AgentsDeleteAgentErrors,
   AgentsDeleteAgentResponses,
@@ -98,9 +95,15 @@ import type {
   EvalSetsUpdateEvalSetResponses,
   HealthHealthData,
   HealthHealthResponses,
+  LoginAuthGithubCallbackData,
+  LoginAuthGithubCallbackErrors,
+  LoginAuthGithubCallbackResponses,
   LoginLoginAccessTokenData,
   LoginLoginAccessTokenErrors,
   LoginLoginAccessTokenResponses,
+  LoginLoginGithubData,
+  LoginLoginGithubErrors,
+  LoginLoginGithubResponses,
   LoginLogoutData,
   LoginLogoutErrors,
   LoginLogoutResponses,
@@ -396,6 +399,37 @@ export class LoginService {
       ...options,
     });
   }
+
+  /**
+   * Login Github
+   *
+   * Redirect to GitHub login page
+   * Must initiate OAuth flow from backend
+   */
+  public static loginGithub<ThrowOnError extends boolean = false>(
+    options?: Options<LoginLoginGithubData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      LoginLoginGithubResponses,
+      LoginLoginGithubErrors,
+      ThrowOnError
+    >({ url: '/api/v1/login/github', ...options });
+  }
+
+  /**
+   * Auth Github Callback
+   *
+   * GitHub OAuth callback, GitHub will call this endpoint
+   */
+  public static authGithubCallback<ThrowOnError extends boolean = false>(
+    options?: Options<LoginAuthGithubCallbackData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      LoginAuthGithubCallbackResponses,
+      LoginAuthGithubCallbackErrors,
+      ThrowOnError
+    >({ url: '/api/v1/auth/github/callback', ...options });
+  }
 }
 
 export class UsersService {
@@ -579,34 +613,6 @@ export class AgentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/',
-      ...options,
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
-    });
-  }
-
-  /**
-   * Create Draft Agent
-   */
-  public static createDraftAgent<ThrowOnError extends boolean = false>(
-    options: Options<AgentsCreateDraftAgentData, ThrowOnError>
-  ) {
-    return (options.client ?? client).post<
-      AgentsCreateDraftAgentResponses,
-      AgentsCreateDraftAgentErrors,
-      ThrowOnError
-    >({
-      security: [
-        {
-          in: 'cookie',
-          name: 'auth_cookie',
-          type: 'apiKey',
-        },
-        { scheme: 'bearer', type: 'http' },
-      ],
-      url: '/api/v1/agents/draft',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -2067,12 +2073,7 @@ export class PromptEditorService {
   /**
    * Chat
    *
-   * Stream the editor agent's response as semantic SSE events.
-   *
-   * Returns ``text/event-stream`` with events: ``status``, ``reasoning``,
-   * ``edit``, ``done``, and ``error``.
-   *
-   * **Currently returns mock data** — real LLM integration pending.
+   * Stream the editor agent response (reasoning + full-text edit snapshots).
    */
   public static promptEditorChat<ThrowOnError extends boolean = false>(
     options: Options<PromptEditorChatData, ThrowOnError>
@@ -2101,8 +2102,6 @@ export class PromptEditorService {
 
   /**
    * Get Presets
-   *
-   * Return available presets. Mock returns all without filtering.
    */
   public static promptEditorGetPresets<ThrowOnError extends boolean = false>(
     options?: Options<PromptEditorGetPresetsData, ThrowOnError>

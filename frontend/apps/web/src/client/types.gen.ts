@@ -57,12 +57,6 @@ export type AgentCreate = {
    */
   agent_provider?: string | null;
   /**
-   * Agent Temperature
-   *
-   * Sampling temperature for platform agent simulator (0.0–2.0)
-   */
-  agent_temperature?: number | null;
-  /**
    * Agent Metadata
    *
    * Arbitrary key-value metadata about the agent
@@ -70,16 +64,6 @@ export type AgentCreate = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
-};
-
-/**
- * AgentCreateDraft
- */
-export type AgentCreateDraft = {
-  /**
-   * Name
-   */
-  name?: string;
 };
 
 /**
@@ -111,10 +95,6 @@ export type AgentDraftUpdate = {
    * Agent Provider
    */
   agent_provider?: string | null;
-  /**
-   * Agent Temperature
-   */
-  agent_temperature?: number | null;
 };
 
 /**
@@ -179,12 +159,6 @@ export type AgentPublic = {
    * LLM provider for platform agent simulator (e.g. openai, anthropic)
    */
   agent_provider?: string | null;
-  /**
-   * Agent Temperature
-   *
-   * Sampling temperature for platform agent simulator (0.0–2.0)
-   */
-  agent_temperature?: number | null;
   /**
    * Agent Metadata
    *
@@ -324,12 +298,6 @@ export type AgentUpdate = {
    */
   agent_provider?: string | null;
   /**
-   * Agent Temperature
-   *
-   * Sampling temperature for platform agent simulator (0.0–2.0)
-   */
-  agent_temperature?: number | null;
-  /**
    * Agent Metadata
    *
    * Arbitrary key-value metadata about the agent
@@ -410,10 +378,6 @@ export type AgentVersionPublic = {
    * Agent Provider
    */
   agent_provider: string | null;
-  /**
-   * Agent Temperature
-   */
-  agent_temperature: number | null;
   /**
    * Change Description
    */
@@ -706,24 +670,6 @@ export type CauseAnalysisItem = {
    * Reasoning
    */
   reasoning: string;
-};
-
-/**
- * ChatMessageCreate
- */
-export type ChatMessageCreate = {
-  /**
-   * Content
-   *
-   * User message text
-   */
-  content: string;
-  /**
-   * Test Case Result Ids
-   *
-   * Optional test case result IDs for eval context injection
-   */
-  test_case_result_ids?: Array<string> | null;
 };
 
 /**
@@ -1940,53 +1886,30 @@ export type PromptDiff = {
 };
 
 /**
- * PromptEditPublic
+ * PromptEditorChatMessageCreate
+ *
+ * Body for POST /prompt-editor/sessions/{id}/messages (SSE chat).
  */
-export type PromptEditPublic = {
+export type PromptEditorChatMessageCreate = {
   /**
-   * Id
+   * Content
+   *
+   * User message text
    */
-  id: string;
+  content: string;
   /**
-   * Message Id
+   * Current Prompt
+   *
+   * Current prompt text as shown in the editor (includes manual edits)
    */
-  message_id: string;
+  current_prompt: string;
   /**
-   * Start Line
+   * Test Case Result Ids
+   *
+   * Optional test case result IDs for eval context injection (CS-64)
    */
-  start_line: number;
-  /**
-   * End Line
-   */
-  end_line: number;
-  /**
-   * New Content
-   */
-  new_content: string;
-  /**
-   * Original Content
-   */
-  original_content: string;
-  status: PromptEditStatus;
-  /**
-   * Created At
-   */
-  created_at: string;
+  test_case_result_ids?: Array<string> | null;
 };
-
-/**
- * PromptEditStatus
- */
-export const PromptEditStatus = {
-  PENDING: 'pending',
-  ACCEPTED: 'accepted',
-  DECLINED: 'declined',
-} as const;
-
-/**
- * PromptEditStatus
- */
-export type PromptEditStatus = (typeof PromptEditStatus)[keyof typeof PromptEditStatus];
 
 /**
  * PromptEditorMessagePublic
@@ -2020,10 +1943,6 @@ export type PromptEditorMessagePublic = {
    * Created at
    */
   created_at: string;
-  /**
-   * Edits
-   */
-  edits?: Array<PromptEditPublic>;
 };
 
 /**
@@ -2106,6 +2025,18 @@ export type PromptEditorSessionPublic = {
    * Linked run id if any
    */
   run_id: string | null;
+  /**
+   * Base Prompt
+   *
+   * Original prompt snapshot at session start
+   */
+  base_prompt: string | null;
+  /**
+   * Edited Prompt
+   *
+   * Current prompt state on server
+   */
+  edited_prompt: string | null;
   /**
    * Created At
    *
@@ -3625,6 +3556,10 @@ export type UserPublic = {
   email: string;
   provider?: AuthProvider;
   /**
+   * Oauth Id
+   */
+  oauth_id?: string | null;
+  /**
    * Is Active
    */
   is_active?: boolean;
@@ -4035,6 +3970,103 @@ export type LoginLogoutResponses = {
   200: unknown;
 };
 
+export type LoginLoginGithubData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/login/github';
+};
+
+export type LoginLoginGithubErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type LoginLoginGithubError = LoginLoginGithubErrors[keyof LoginLoginGithubErrors];
+
+export type LoginLoginGithubResponses = {
+  /**
+   * Response Login-Login Github
+   *
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type LoginAuthGithubCallbackData = {
+  body?: never;
+  path?: never;
+  query?: never;
+  url: '/api/v1/auth/github/callback';
+};
+
+export type LoginAuthGithubCallbackErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type LoginAuthGithubCallbackError =
+  LoginAuthGithubCallbackErrors[keyof LoginAuthGithubCallbackErrors];
+
+export type LoginAuthGithubCallbackResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
 export type UsersRegisterUserData = {
   body: UserRegister;
   path?: never;
@@ -4392,57 +4424,6 @@ export type AgentsCreateAgentResponses = {
 
 export type AgentsCreateAgentResponse =
   AgentsCreateAgentResponses[keyof AgentsCreateAgentResponses];
-
-export type AgentsCreateDraftAgentData = {
-  body: AgentCreateDraft;
-  path?: never;
-  query?: never;
-  url: '/api/v1/agents/draft';
-};
-
-export type AgentsCreateDraftAgentErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type AgentsCreateDraftAgentError =
-  AgentsCreateDraftAgentErrors[keyof AgentsCreateDraftAgentErrors];
-
-export type AgentsCreateDraftAgentResponses = {
-  /**
-   * Successful Response
-   */
-  200: AgentPublic;
-};
-
-export type AgentsCreateDraftAgentResponse =
-  AgentsCreateDraftAgentResponses[keyof AgentsCreateDraftAgentResponses];
 
 export type AgentsDiffAgentVersionsData = {
   body?: never;
@@ -7731,7 +7712,7 @@ export type PromptEditorListMessagesResponse =
   PromptEditorListMessagesResponses[keyof PromptEditorListMessagesResponses];
 
 export type PromptEditorChatData = {
-  body: ChatMessageCreate;
+  body: PromptEditorChatMessageCreate;
   path: {
     /**
      * Session Id
@@ -7789,7 +7770,7 @@ export type PromptEditorGetPresetsData = {
     /**
      * Agent Id
      *
-     * Agent ID for contextual filtering (ignored in mock)
+     * Agent ID for contextual filtering (ignored until CS-63)
      */
     agent_id?: string | null;
   };

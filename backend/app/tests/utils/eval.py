@@ -6,6 +6,7 @@ from app import crud
 from app.models import (
     Agent,
     AgentCreate,
+    AgentMode,
     EvalSet,
     EvalSetCreate,
     EvalSetMemberEntry,
@@ -28,6 +29,20 @@ def create_test_agent(session: Session) -> Agent:
         name=f"test-agent-{uuid.uuid4().hex[:8]}",
         endpoint_url="http://localhost:8080/agent",
         description="Test agent for automated tests",
+    )
+    return crud.create_agent(session=session, agent_in=agent_in)
+
+
+def create_test_platform_agent(
+    session: Session, *, system_prompt: str = "You are a test bot."
+) -> Agent:
+    agent_in = AgentCreate(
+        name=f"plat-agent-{uuid.uuid4().hex[:8]}",
+        mode=AgentMode.PLATFORM,
+        system_prompt=system_prompt,
+        agent_model="gpt-4o-mini",
+        agent_provider="openai",
+        description="Platform test agent",
     )
     return crud.create_agent(session=session, agent_in=agent_in)
 

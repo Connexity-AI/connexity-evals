@@ -79,7 +79,6 @@ from app.models.enums import (  # noqa: F401
     Difficulty,
     MetricTier,
     PromptEditorSessionStatus,
-    PromptSuggestionStatus,
     RunStatus,
     ScoreType,
     SimulatorMode,
@@ -104,6 +103,7 @@ from app.models.eval_set import (  # noqa: F401
 
 # ── Prompt editor (chat) ───────────────────────────────────────────
 from app.models.prompt_editor import (  # noqa: F401
+    PromptEditorChatMessageCreate,
     PromptEditorMessage,
     PromptEditorMessageBase,
     PromptEditorMessageCreate,
