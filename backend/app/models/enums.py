@@ -59,7 +59,7 @@ class PromptEditorSessionStatus(StrEnum):
     ARCHIVED = "archived"
 
 
-class PromptEditStatus(StrEnum):
+class PromptSuggestionStatus(StrEnum):
     PENDING = "pending"
     ACCEPTED = "accepted"
     DECLINED = "declined"
