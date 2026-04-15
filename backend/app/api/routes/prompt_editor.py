@@ -22,14 +22,23 @@ from app.models import (
     PromptEditorMessageCreate,
     PromptEditorMessagePublic,
     PromptEditorMessagesPublic,
+    PromptEditorSessionBasePromptUpdate,
     PromptEditorSessionCreate,
     PromptEditorSessionPublic,
     PromptEditorSessionsPublic,
     PromptEditorSessionUpdate,
 )
 from app.models.enums import PromptEditorSessionStatus, TurnRole
-from app.services.prompt_editor import EditorInput, EditorResult, PromptEditor
-from app.services.prompt_editor.agent_prompt import platform_agent_required
+from app.services.prompt_editor import (
+    EditorInput,
+    EditorResult,
+    Preset,
+    PromptEditor,
+    build_eval_context,
+    format_eval_context_for_prompt,
+    get_available_presets,
+    platform_agent_required,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +55,8 @@ def format_sse(event: str, data: dict[str, Any]) -> str:
 
 
 class PresetPublic(BaseModel):
+    """API shape for a preset (excludes internal ``requires`` gates)."""
+
     id: str
     label: str
     message: str
@@ -53,69 +64,15 @@ class PresetPublic(BaseModel):
     context: str = Field(description="'none' or 'eval'")
 
 
-_MOCK_PRESETS: list[PresetPublic] = [
-    PresetPublic(
-        id="help_create_agent",
-        label="Help me create an agent",
-        message=(
-            "I want to create a system prompt for a Voice AI agent from scratch. "
-            "Start the interview and guide me through the process."
-        ),
-        description="Start from scratch with guided prompt creation",
-        context="none",
-    ),
-    PresetPublic(
-        id="improve_prompt",
-        label="Improve my prompt",
-        message=(
-            "Review my current prompt and suggest improvements. Focus on "
-            "clarity, structure, and effectiveness."
-        ),
-        description="Get suggestions to enhance your existing prompt",
-        context="none",
-    ),
-    PresetPublic(
-        id="make_concise",
-        label="Make my prompt more concise",
-        message=(
-            "My prompt feels too verbose. Trim unnecessary repetition and "
-            "tighten the instructions while preserving all key behaviors."
-        ),
-        description="Reduce verbosity while keeping key behaviors",
-        context="none",
-    ),
-    PresetPublic(
-        id="add_examples",
-        label="Add examples",
-        message=(
-            "Add concrete input/output examples to my prompt that demonstrate "
-            "the expected behavior. Pick scenarios that cover common and edge cases."
-        ),
-        description="Add input/output examples for clearer behavior",
-        context="none",
-    ),
-    PresetPublic(
-        id="suggest_from_evals",
-        label="Suggest improvements from eval results",
-        message=(
-            "Analyze the eval results for this agent and suggest targeted prompt "
-            "improvements to address failing test cases and low-scoring metrics."
-        ),
-        description="Data-driven suggestions based on eval performance",
-        context="eval",
-    ),
-    PresetPublic(
-        id="review_tools",
-        label="Review my tool definitions",
-        message=(
-            "Review my agent's tool definitions and suggest improvements to "
-            "their names, descriptions, and parameter schemas. Also check if the "
-            "prompt gives adequate guidance on when and how to use each tool."
-        ),
-        description="Optimize tool names, descriptions, and usage guidance",
-        context="none",
-    ),
-]
+def _preset_to_public(preset: Preset) -> PresetPublic:
+    return PresetPublic(
+        id=preset.id,
+        label=preset.label,
+        message=preset.message,
+        description=preset.description,
+        context=preset.context.value,
+    )
+
 
 router = APIRouter(
     prefix="/prompt-editor",
@@ -199,6 +156,27 @@ def update_session(
     return _session_public(updated, message_count=len(updated.messages))
 
 
+@router.patch(
+    "/sessions/{session_id}/base-prompt",
+    response_model=PromptEditorSessionPublic,
+)
+def update_session_base_prompt(
+    session: SessionDep,
+    session_id: uuid.UUID,
+    body: PromptEditorSessionBasePromptUpdate,
+) -> PromptEditorSessionPublic:
+    """Set ``base_prompt`` (diff baseline), e.g. after the agent draft is saved."""
+    pe_session = crud.get_prompt_editor_session(session=session, session_id=session_id)
+    if not pe_session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    updated = crud.update_prompt_editor_session_base_prompt(
+        session=session,
+        db_session=pe_session,
+        base_prompt=body.base_prompt,
+    )
+    return _session_public(updated, message_count=len(updated.messages))
+
+
 @router.delete("/sessions/{session_id}", response_model=Message)
 def delete_session(session: SessionDep, session_id: uuid.UUID) -> Message:
     pe_session = crud.get_prompt_editor_session(session=session, session_id=session_id)
@@ -266,6 +244,16 @@ async def chat(
         session=session, session_id=session_id, skip=0, limit=500
     )
 
+    eval_ctx = await build_eval_context(
+        db_session=session,
+        agent=agent,
+        run_id=pe_session.run_id,
+        test_case_result_ids=body.test_case_result_ids,
+    )
+    eval_context_str = (
+        format_eval_context_for_prompt(eval_ctx) if eval_ctx is not None else None
+    )
+
     # Extract scalar data and detach ORM objects the generator will need
     # BEFORE the commit inside create_prompt_editor_message expires them.
     base_prompt = pe_session.base_prompt or ""
@@ -293,7 +281,7 @@ async def chat(
                     session_messages=prior_messages,
                     user_message=body.content,
                     current_prompt=body.current_prompt,
-                    eval_context=None,
+                    eval_context=eval_context_str,
                     llm_provider=body.provider,
                     llm_model=body.model,
                 )
@@ -375,10 +363,11 @@ async def chat(
 
 @router.get("/presets", response_model=list[PresetPublic])
 def get_presets(
-    agent_id: uuid.UUID | None = Query(
-        default=None,
-        description="Agent ID for contextual filtering (ignored until CS-63)",
-    ),
+    session: SessionDep,
+    agent_id: uuid.UUID = Query(description="Agent ID for contextual filtering"),
 ) -> list[PresetPublic]:
-    _ = agent_id
-    return _MOCK_PRESETS
+    agent = crud.get_agent(session=session, agent_id=agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    presets = get_available_presets(agent=agent, session=session)
+    return [_preset_to_public(p) for p in presets]

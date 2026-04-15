@@ -111,6 +111,7 @@ from app.models.prompt_editor import (  # noqa: F401
     PromptEditorMessagesPublic,
     PromptEditorSession,
     PromptEditorSessionBase,
+    PromptEditorSessionBasePromptUpdate,
     PromptEditorSessionCreate,
     PromptEditorSessionPublic,
     PromptEditorSessionsPublic,

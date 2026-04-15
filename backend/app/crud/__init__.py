@@ -66,6 +66,9 @@ from app.crud.prompt_editor_session import (
     update_session as update_prompt_editor_session,  # noqa: F401
 )
 from app.crud.prompt_editor_session import (
+    update_session_base_prompt as update_prompt_editor_session_base_prompt,  # noqa: F401
+)
+from app.crud.prompt_editor_session import (
     update_session_edited_prompt as update_prompt_editor_session_edited_prompt,  # noqa: F401
 )
 from app.crud.run import (  # noqa: F401

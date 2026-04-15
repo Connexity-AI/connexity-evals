@@ -73,6 +73,18 @@ def test_update_session_edited_prompt(db: Session) -> None:
     assert updated.edited_prompt == "new prompt text"
 
 
+def test_update_session_base_prompt(db: Session) -> None:
+    agent = create_test_agent(db)
+    user = create_random_user(db)
+    s = create_test_prompt_editor_session(db, agent_id=agent.id, created_by=user.id)
+    updated = crud.update_prompt_editor_session_base_prompt(
+        session=db,
+        db_session=s,
+        base_prompt="saved draft text",
+    )
+    assert updated.base_prompt == "saved draft text"
+
+
 def test_create_session_with_run_id(db: Session) -> None:
     agent = create_test_agent(db)
     user = create_random_user(db)
