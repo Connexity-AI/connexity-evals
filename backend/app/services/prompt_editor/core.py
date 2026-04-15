@@ -53,6 +53,8 @@ class EditorInput:
     user_message: str
     current_prompt: str
     eval_context: str | None = None
+    llm_provider: str | None = None
+    llm_model: str | None = None
 
 
 @dataclass
@@ -114,6 +116,8 @@ class PromptEditor:
             tools=tools,
             max_tokens=16384 if self._creating else 8192,
             temperature=0.35,
+            provider=self._inp.llm_provider,
+            model=self._inp.llm_model,
         )
 
         stream_result: LLMStreamResult | None = None

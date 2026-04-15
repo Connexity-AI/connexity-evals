@@ -294,6 +294,8 @@ async def chat(
                     user_message=body.content,
                     current_prompt=body.current_prompt,
                     eval_context=None,
+                    llm_provider=body.provider,
+                    llm_model=body.model,
                 )
             )
         except Exception as exc:
