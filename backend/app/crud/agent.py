@@ -87,7 +87,10 @@ def list_agents(
     count = session.exec(select(func.count()).select_from(Agent)).one()
     items = list(
         session.exec(
-            select(Agent).order_by(col(Agent.updated_at).desc()).offset(skip).limit(limit)
+            select(Agent)
+            .order_by(col(Agent.updated_at).desc())
+            .offset(skip)
+            .limit(limit)
         ).all()
     )
     return items, count
