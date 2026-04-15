@@ -152,6 +152,10 @@ export function EditableDiffView({
       editorRef.current = editor;
       const modifiedEditor = editor.getModifiedEditor();
 
+      // Disable word-based suggestions on the modified (editable) side.
+      // This option lives on the inner editor, not the diff editor's prop bag.
+      modifiedEditor.updateOptions({ wordBasedSuggestions: 'off' });
+
       const recomputeCounts = () => {
         const lineChanges = editor.getLineChanges();
         const total = modifiedEditor.getModel()?.getLineCount() ?? 0;
@@ -294,6 +298,15 @@ export function EditableDiffView({
             wordWrap: 'on',
             automaticLayout: true,
             renderLineHighlight: 'none',
+            // Disable IntelliSense — there's no language server for plaintext
+            // prompts, and word-based suggestions get in the user's way.
+            // `wordBasedSuggestions` is an inner-editor option and is applied
+            // imperatively in handleMount instead of through this prop bag.
+            quickSuggestions: false,
+            suggestOnTriggerCharacters: false,
+            parameterHints: { enabled: false },
+            snippetSuggestions: 'none',
+            tabCompletion: 'off',
             renderIndicators: true,
             scrollbar: {
               verticalScrollbarSize: 8,

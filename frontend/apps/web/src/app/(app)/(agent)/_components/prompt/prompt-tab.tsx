@@ -32,7 +32,7 @@ export function PromptTab() {
   const { data: agent } = useAgent(agentId);
   const { data: draft } = useAgentDraft(agentId, agent?.has_draft === true);
   const { suggestedPrompt, clearSuggestion } = useAiSuggestion();
-  const { basePrompt } = usePromptEditorSession(agentId);
+  const { basePrompt, updateBasePrompt } = usePromptEditorSession(agentId);
   const diffScrollRef = useRef<HTMLDivElement>(null);
 
   const resolveContent = (versionId: DiffVersionId): string => {
@@ -73,6 +73,9 @@ export function PromptTab() {
         shouldDirty: true,
         shouldTouch: true,
       });
+      // Advance the session's diff baseline so the next chat turn shows a
+      // fresh delta from what the user just agreed to, not from session start.
+      void updateBasePrompt(editedPrompt);
       clearSuggestion();
     };
 

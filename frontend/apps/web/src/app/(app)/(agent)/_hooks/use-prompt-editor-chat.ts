@@ -65,6 +65,10 @@ export function usePromptEditorChat({
 
   const streamingIdRef = useRef<string | null>(null);
   const latestEditedRef = useRef<string | null>(null);
+  // Synchronous guard against re-entry. `phase`/`isStreaming` can't protect
+  // the window before `createSession` resolves, so a double-click on the
+  // suggestion button would otherwise fire two sendMessage calls in parallel.
+  const inFlightRef = useRef(false);
 
   const persisted: ChatMessage[] = useMemo(() => {
     const rows = messagesQuery.data?.data ?? [];
@@ -87,226 +91,221 @@ export function usePromptEditorChat({
     async (content: string, currentPrompt: string, model: string | null) => {
       const trimmed = content.trim();
       if (!trimmed) return;
-
-      setStreamError(null);
-      latestEditedRef.current = null;
-
-      let activeSessionId = sessionId;
-
-      if (!activeSessionId) {
-        console.log('[chat] no session, creating one');
-        try {
-          activeSessionId = await createSession();
-          console.log('[chat] session created', { sessionId: activeSessionId });
-        } catch (error) {
-          console.error('[chat] createSession failed', error);
-          setStreamError(error instanceof Error ? error.message : 'Failed to create session');
-          return;
-        }
-      }
-
-      const now = new Date().toISOString();
-
-      const userBubble: ChatMessage = {
-        id: `live-user-${Date.now()}`,
-        role: 'user',
-        content: trimmed,
-        createdAt: now,
-      };
-
-      const assistantId = `live-assistant-${Date.now()}`;
-      streamingIdRef.current = assistantId;
-
-      const assistantBubble: ChatMessage = {
-        id: assistantId,
-        role: 'assistant',
-        content: '',
-        createdAt: now,
-        isStreaming: true,
-      };
-
-      setLiveMessages((previous) => [...previous, userBubble, assistantBubble]);
-      setPhase('analyzing');
-
-      let reasoningChunks = 0;
-      let editEvents = 0;
-
-      const handleSseEvent = ({ data, event }: SseEventPayload) => {
-        if (!event || typeof data !== 'object' || data === null) return;
-
-        switch (event) {
-          case 'status': {
-            // TODO: discrimination union
-            // TODO: remove console.logs
-            const nextPhase = (data as StatusData).phase;
-
-            console.log('[chat] sse <- status', { phase: nextPhase });
-            if (nextPhase) setPhase(nextPhase);
-            return;
-          }
-
-          case 'reasoning': {
-            const chunk = (data as ReasoningData).content ?? '';
-
-            reasoningChunks += 1;
-
-            if (reasoningChunks === 1 || reasoningChunks % 20 === 0) {
-              console.log('[chat] sse <- reasoning', {
-                chunkIndex: reasoningChunks,
-                chunkLen: chunk.length,
-              });
-            }
-
-            setLiveMessages((previous) =>
-              previous.map((message) =>
-                message.id === streamingIdRef.current
-                  ? { ...message, content: message.content + chunk }
-                  : message
-              )
-            );
-            return;
-          }
-
-          case 'edit': {
-            const editData = data as EditData;
-
-            const editedPrompt = editData.edited_prompt;
-
-            editEvents += 1;
-
-            console.log('[chat] sse <- edit', {
-              editIndex: editData.edit_index,
-              totalEdits: editData.total_edits,
-              promptLen: typeof editedPrompt === 'string' ? editedPrompt.length : 0,
-            });
-
-            if (typeof editedPrompt === 'string' && editedPrompt !== currentPrompt) {
-              latestEditedRef.current = editedPrompt;
-              onEditedPrompt(editedPrompt);
-            }
-
-            return;
-          }
-
-          case 'done': {
-            const doneData = data as DoneData;
-
-            const { message } = doneData;
-
-            const rawFinalPrompt = doneData.edited_prompt ?? latestEditedRef.current;
-            // Only surface a suggestion when the backend actually changed the
-            // prompt. The backend echoes current_prompt unchanged on no-op
-            // turns (e.g. when the LLM asks a clarifying question), so
-            // falling through would spuriously open the diff viewer with
-            // "No differences".
-            const isActualChange =
-              editEvents > 0 && rawFinalPrompt !== null && rawFinalPrompt !== currentPrompt;
-            console.log('[chat] sse <- done', {
-              messageId: message.id,
-              finalPromptLen: rawFinalPrompt?.length ?? 0,
-              reasoningChunks,
-              editEvents,
-              isActualChange,
-            });
-
-            setLiveMessages((previous) =>
-              previous.map((chatMessage) =>
-                chatMessage.id === streamingIdRef.current
-                  ? { ...chatMessage, content: message.content, isStreaming: false }
-                  : chatMessage
-              )
-            );
-
-            if (isActualChange) {
-              onSuggestion({
-                prompt: rawFinalPrompt,
-                messageId: message.id,
-              });
-            }
-
-            void queryClient.invalidateQueries({
-              queryKey: promptEditorKeys.messages(activeSessionId!),
-            });
-
-            setLiveMessages([]);
-
-            streamingIdRef.current = null;
-
-            latestEditedRef.current = null;
-
-            setPhase('complete');
-
-            return;
-          }
-
-          case 'error': {
-            const errorPayload = data as ErrorData;
-            console.error('[chat] sse <- error', errorPayload);
-
-            setStreamError(errorPayload.detail ?? errorPayload.code ?? 'Unknown error');
-
-            setPhase('idle');
-
-            return;
-          }
-        }
-      };
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
 
       try {
-        console.log('[chat] POST /messages', { sessionId: activeSessionId });
+        setStreamError(null);
+        latestEditedRef.current = null;
 
-        const { stream } = await client.sse.post({
-          security: [
-            { in: 'cookie', name: 'auth_cookie', type: 'apiKey' },
-            { scheme: 'bearer', type: 'http' },
-          ],
+        let activeSessionId = sessionId;
 
-          url: '/api/v1/prompt-editor/sessions/{session_id}/messages',
-          path: { session_id: activeSessionId },
-          body: {
-            content: trimmed,
-            current_prompt: currentPrompt,
-            model: model && model.trim() ? model : null,
-          },
-          headers: { 'Content-Type': 'application/json' },
-
-          onSseEvent: handleSseEvent,
-          onSseError: (sseError) => {
-            console.error('[chat] SSE error', sseError);
-          },
-
-          sseMaxRetryAttempts: 0,
-        });
-
-        let finished = false;
-
-        while (!finished) {
-          const { done } = await stream.next();
-          if (done) finished = true;
+        if (!activeSessionId) {
+          console.log('[chat] no session, creating one');
+          try {
+            activeSessionId = await createSession();
+            console.log('[chat] session created', { sessionId: activeSessionId });
+          } catch (error) {
+            console.error('[chat] createSession failed', error);
+            setStreamError(error instanceof Error ? error.message : 'Failed to create session');
+            return;
+          }
         }
 
-        console.log('[chat] stream drained', {
-          sessionId: activeSessionId,
-          reasoningChunks,
-          editEvents,
-        });
-      } catch (error) {
-        console.error('[chat] sendMessage caught error', error);
+        const now = new Date().toISOString();
 
-        const message = error instanceof Error ? error.message : 'Streaming failed';
-        const isSessionGone = /SSE failed: 404\b/.test(message);
+        const userBubble: ChatMessage = {
+          id: `live-user-${Date.now()}`,
+          role: 'user',
+          content: trimmed,
+          createdAt: now,
+        };
 
-        if (isSessionGone) {
-          onSessionStale();
-          setStreamError('Previous chat session was removed. Please try again.');
-        } else {
-          setStreamError(message);
+        const assistantId = `live-assistant-${Date.now()}`;
+        streamingIdRef.current = assistantId;
+
+        const assistantBubble: ChatMessage = {
+          id: assistantId,
+          role: 'assistant',
+          content: '',
+          createdAt: now,
+          isStreaming: true,
+        };
+
+        setLiveMessages((previous) => [...previous, userBubble, assistantBubble]);
+        setPhase('analyzing');
+
+        let reasoningChunks = 0;
+        let editEvents = 0;
+
+        const handleSseEvent = ({ data, event }: SseEventPayload) => {
+          if (!event || typeof data !== 'object' || data === null) return;
+
+          switch (event) {
+            case 'status': {
+              // TODO: discrimination union
+              // TODO: remove console.logs
+              const nextPhase = (data as StatusData).phase;
+
+              console.log('[chat] sse <- status', { phase: nextPhase });
+              if (nextPhase) setPhase(nextPhase);
+              return;
+            }
+
+            case 'reasoning': {
+              const chunk = (data as ReasoningData).content ?? '';
+
+              reasoningChunks += 1;
+
+              if (reasoningChunks === 1 || reasoningChunks % 20 === 0) {
+                console.log('[chat] sse <- reasoning', {
+                  chunkIndex: reasoningChunks,
+                  chunkLen: chunk.length,
+                });
+              }
+
+              setLiveMessages((previous) =>
+                previous.map((message) =>
+                  message.id === streamingIdRef.current
+                    ? { ...message, content: message.content + chunk }
+                    : message
+                )
+              );
+              return;
+            }
+
+            case 'edit': {
+              const editData = data as EditData;
+
+              const editedPrompt = editData.edited_prompt;
+
+              editEvents += 1;
+
+              if (typeof editedPrompt === 'string' && editedPrompt !== currentPrompt) {
+                latestEditedRef.current = editedPrompt;
+                onEditedPrompt(editedPrompt);
+              }
+
+              return;
+            }
+
+            case 'done': {
+              const doneData = data as DoneData;
+
+              const { message } = doneData;
+
+              const rawFinalPrompt = doneData.edited_prompt ?? latestEditedRef.current;
+              // Only surface a suggestion when the backend actually changed the
+              // prompt. The backend echoes current_prompt unchanged on no-op
+              // turns (e.g. when the LLM asks a clarifying question), so
+              // falling through would spuriously open the diff viewer with
+              // "No differences".
+              const isActualChange =
+                editEvents > 0 && rawFinalPrompt !== null && rawFinalPrompt !== currentPrompt;
+
+              setLiveMessages((previous) =>
+                previous.map((chatMessage) =>
+                  chatMessage.id === streamingIdRef.current
+                    ? { ...chatMessage, content: message.content, isStreaming: false }
+                    : chatMessage
+                )
+              );
+
+              if (isActualChange) {
+                onSuggestion({
+                  prompt: rawFinalPrompt,
+                  messageId: message.id,
+                });
+              }
+
+              void queryClient.invalidateQueries({
+                queryKey: promptEditorKeys.messages(activeSessionId!),
+              });
+
+              setLiveMessages([]);
+
+              streamingIdRef.current = null;
+
+              latestEditedRef.current = null;
+
+              setPhase('complete');
+
+              return;
+            }
+
+            case 'error': {
+              const errorPayload = data as ErrorData;
+              console.error('[chat] sse <- error', errorPayload);
+
+              setStreamError(errorPayload.detail ?? errorPayload.code ?? 'Unknown error');
+
+              setPhase('idle');
+
+              return;
+            }
+          }
+        };
+
+        try {
+          console.log('[chat] POST /messages', { sessionId: activeSessionId });
+
+          const { stream } = await client.sse.post({
+            security: [
+              { in: 'cookie', name: 'auth_cookie', type: 'apiKey' },
+              { scheme: 'bearer', type: 'http' },
+            ],
+
+            url: '/api/v1/prompt-editor/sessions/{session_id}/messages',
+            path: { session_id: activeSessionId },
+            body: {
+              content: trimmed,
+              current_prompt: currentPrompt,
+              model: model && model.trim() ? model : null,
+            },
+            headers: { 'Content-Type': 'application/json' },
+
+            onSseEvent: handleSseEvent,
+            onSseError: (sseError) => {
+              console.error('[chat] SSE error', sseError);
+            },
+
+            sseMaxRetryAttempts: 0,
+          });
+
+          let finished = false;
+
+          while (!finished) {
+            const { done } = await stream.next();
+            if (done) finished = true;
+          }
+
+          console.log('[chat] stream drained', {
+            sessionId: activeSessionId,
+            reasoningChunks,
+            editEvents,
+          });
+        } catch (error) {
+          console.error('[chat] sendMessage caught error', error);
+
+          const message = error instanceof Error ? error.message : 'Streaming failed';
+          const isSessionGone = /SSE failed: 404\b/.test(message);
+
+          if (isSessionGone) {
+            onSessionStale();
+            setStreamError('Previous chat session was removed. Please try again.');
+          } else {
+            setStreamError(message);
+          }
+          setPhase('idle');
+
+          setLiveMessages((previous) =>
+            previous.filter((msg) => msg.id !== streamingIdRef.current)
+          );
+
+          streamingIdRef.current = null;
         }
-        setPhase('idle');
-
-        setLiveMessages((previous) => previous.filter((msg) => msg.id !== streamingIdRef.current));
-
-        streamingIdRef.current = null;
+      } finally {
+        inFlightRef.current = false;
       }
     },
     [sessionId, createSession, onSessionStale, onSuggestion, onEditedPrompt, queryClient]

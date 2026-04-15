@@ -89,6 +89,7 @@ export function useAgentChatbot() {
   );
 
   return {
+    agentId,
     sessionId,
     isSessionLoading,
     sessionError,
