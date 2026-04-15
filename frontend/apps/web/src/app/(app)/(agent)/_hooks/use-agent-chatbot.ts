@@ -13,7 +13,8 @@ import { DEFAULT_ASSISTANT_MODEL_ID } from '@/config/assistant-models';
 import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 
 const IMPROVE_PROMPT_MESSAGE = 'Review my agent prompt and suggest improvements.';
-const CREATE_PROMPT_MESSAGE = 'Help me create an agent prompt from scratch.';
+const CREATE_PROMPT_MESSAGE =
+  'I want to create a system prompt for a Voice AI agent from scratch. Start the interview and guide me through the process.';
 
 export function useAgentChatbot() {
   const { agentId } = useAgentEditFormActions();
@@ -62,9 +63,9 @@ export function useAgentChatbot() {
     async (content: string) => {
       const currentPrompt = form.getValues().prompt ?? '';
 
-      await underlyingSendMessage(content, currentPrompt);
+      await underlyingSendMessage(content, currentPrompt, model);
     },
-    [form, underlyingSendMessage]
+    [form, underlyingSendMessage, model]
   );
 
   const createNewSession = useCallback(() => {

@@ -84,7 +84,7 @@ export function usePromptEditorChat({
   const isStreaming = phase === 'analyzing' || phase === 'editing';
 
   const sendMessage = useCallback(
-    async (content: string, currentPrompt: string) => {
+    async (content: string, currentPrompt: string, model: string | null) => {
       const trimmed = content.trim();
       if (!trimmed) return;
 
@@ -263,7 +263,11 @@ export function usePromptEditorChat({
 
           url: '/api/v1/prompt-editor/sessions/{session_id}/messages',
           path: { session_id: activeSessionId },
-          body: { content: trimmed, current_prompt: currentPrompt },
+          body: {
+            content: trimmed,
+            current_prompt: currentPrompt,
+            model: model && model.trim() ? model : null,
+          },
           headers: { 'Content-Type': 'application/json' },
 
           onSseEvent: handleSseEvent,
