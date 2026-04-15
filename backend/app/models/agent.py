@@ -72,6 +72,10 @@ class AgentBase(SQLModel):
         max_length=64,
         description="LLM provider for platform agent simulator (e.g. openai, anthropic)",
     )
+    agent_temperature: float | None = Field(
+        default=None,
+        description="Sampling temperature for platform agent simulator (0.0–2.0)",
+    )
     agent_metadata: dict[str, Any] | None = Field(
         default=None,
         sa_column=Column("metadata", JSONB, nullable=True),
@@ -80,12 +84,19 @@ class AgentBase(SQLModel):
 
     @model_validator(mode="after")
     def validate_mode_fields(self) -> "AgentBase":
-        validate_agent_mode_requirements(
-            mode=self.mode,
-            endpoint_url=self.endpoint_url,
-            system_prompt=self.system_prompt,
-            agent_model=self.agent_model,
+        # Skip validation for table models (drafts may have incomplete fields)
+        has_any_mode_field = (
+            self.endpoint_url is not None
+            or self.system_prompt is not None
+            or self.agent_model is not None
         )
+        if has_any_mode_field:
+            validate_agent_mode_requirements(
+                mode=self.mode,
+                endpoint_url=self.endpoint_url,
+                system_prompt=self.system_prompt,
+                agent_model=self.agent_model,
+            )
         return self
 
 
@@ -132,7 +143,19 @@ class Agent(AgentBase, table=True):
 
 
 class AgentCreate(AgentBase):
-    pass
+    @model_validator(mode="after")
+    def validate_mode_fields(self) -> "AgentCreate":
+        validate_agent_mode_requirements(
+            mode=self.mode,
+            endpoint_url=self.endpoint_url,
+            system_prompt=self.system_prompt,
+            agent_model=self.agent_model,
+        )
+        return self
+
+
+class AgentCreateDraft(SQLModel):
+    name: str = Field(default="Untitled Agent", max_length=255)
 
 
 class AgentUpdate(SQLModel):
@@ -166,6 +189,10 @@ class AgentUpdate(SQLModel):
         default=None,
         max_length=64,
         description="LLM provider for platform agent simulator",
+    )
+    agent_temperature: float | None = Field(
+        default=None,
+        description="Sampling temperature for platform agent simulator (0.0–2.0)",
     )
     agent_metadata: dict[str, Any] | None = Field(
         default=None, description="Arbitrary key-value metadata about the agent"

@@ -16,12 +16,17 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@workspace/ui": "workspace:*",
     "@hookform/resolvers": "5.2.2",
+    "@tanstack/react-query": "5.96.2",
+    "@tanstack/react-table": "8.21.3",
+    "@workspace/ui": "workspace:*",
+    "date-fns": "4.1.0",
+    "diff": "^8.0.4",
     "lucide-react": "0.562.0",
     "next": "16.2.0",
     "next-public-env": "1.1.0",
     "next-themes": "0.4.6",
+    "nuqs": "2.8.9",
     "object-treeify": "5.0.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -31,13 +36,14 @@
     "zod": "4.3.5"
   },
   "devDependencies": {
-    "@workspace/eslint-config": "workspace:*",
-    "@workspace/typescript-config": "workspace:*",
     "@hey-api/openapi-ts": "0.88.0",
+    "@types/diff": "8.0.0",
     "@types/node": "25.0.3",
     "@types/react": "19.2.7",
     "@types/react-dom": "19.2.3",
     "@types/set-cookie-parser": "2.4.10",
+    "@workspace/eslint-config": "workspace:*",
+    "@workspace/typescript-config": "workspace:*",
     "typescript": "5.9.3"
   }
 }

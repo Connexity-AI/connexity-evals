@@ -1,11 +1,11 @@
 import uuid
 
 from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.crud import agent_version as agent_version_crud
 from app.models import Agent, AgentCreate, AgentUpdate
-from app.models.agent import validate_agent_mode_requirements
+from app.models.enums import AgentMode, AgentVersionStatus
 
 _VERSIONABLE_FIELDS = frozenset(
     {
@@ -47,6 +47,36 @@ def create_agent(
     return db_obj
 
 
+def create_draft_agent(
+    *,
+    session: Session,
+    name: str = "Untitled Agent",
+    created_by: uuid.UUID | None = None,
+) -> Agent:
+    db_obj = Agent(
+        name=name,
+        mode=AgentMode.PLATFORM,
+        version=0,
+        has_draft=True,
+    )
+    session.add(db_obj)
+    session.flush()
+
+    from app.models import AgentVersion
+
+    draft = AgentVersion(
+        agent_id=db_obj.id,
+        version=None,
+        status=AgentVersionStatus.DRAFT,
+        mode=AgentMode.PLATFORM,
+        created_by=created_by,
+    )
+    session.add(draft)
+    session.commit()
+    session.refresh(db_obj)
+    return db_obj
+
+
 def get_agent(*, session: Session, agent_id: uuid.UUID) -> Agent | None:
     return session.get(Agent, agent_id)
 
@@ -55,7 +85,14 @@ def list_agents(
     *, session: Session, skip: int = 0, limit: int = 100
 ) -> tuple[list[Agent], int]:
     count = session.exec(select(func.count()).select_from(Agent)).one()
-    items = list(session.exec(select(Agent).offset(skip).limit(limit)).all())
+    items = list(
+        session.exec(
+            select(Agent)
+            .order_by(col(Agent.updated_at).desc())
+            .offset(skip)
+            .limit(limit)
+        ).all()
+    )
     return items, count
 
 
@@ -94,14 +131,6 @@ def update_agent(
     # Apply identity changes directly to agent
     if identity_data:
         locked.sqlmodel_update(identity_data)
-        # If there are no versionable changes, validate the current agent state
-        if not has_versionable_change:
-            validate_agent_mode_requirements(
-                mode=locked.mode,
-                endpoint_url=locked.endpoint_url,
-                system_prompt=locked.system_prompt,
-                agent_model=locked.agent_model,
-            )
         session.add(locked)
 
     # Send versionable changes to draft

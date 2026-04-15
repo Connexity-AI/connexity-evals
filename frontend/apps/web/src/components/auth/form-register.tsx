@@ -1,14 +1,7 @@
 'use client';
 
-import { startTransition, useActionState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-
-import { Alert, AlertDescription } from '@workspace/ui/components/ui/alert';
 import { Button } from '@workspace/ui/components/ui/button';
 import {
   Form,
@@ -20,153 +13,147 @@ import {
 } from '@workspace/ui/components/ui/form';
 import { Input } from '@workspace/ui/components/ui/input';
 
-import { registerAction } from '@/actions/auth';
-import { registerFormSchema } from '@/schemas/forms';
-import { isErrorApiResult, isSuccessApiResult } from '@/utils/api';
-import { getApiErrorMessage } from '@/utils/error';
-import { ROUTES } from '@/constants/routes';
+import { useRegister } from '@/hooks/use-register';
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 
-import { ApiResult } from '@/types/api';
-import type { RegisterFormValues } from '@/types/forms';
-import type { FC, FormEvent } from 'react';
+import type { FC } from 'react';
 
-const { LOGIN } = ROUTES;
-
-const defaultValues: RegisterFormValues = {
-  email: '',
-  full_name: '',
-  password: '',
-  confirm_password: '',
-} as const;
-
-const resolver = zodResolver(registerFormSchema);
+const INPUT_CLASS =
+  'h-auto border-border bg-input-background px-3 py-2.5 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-2 focus-visible:ring-ring/30';
 
 const FormRegister: FC = () => {
-  const router = useRouter();
-  const form = useForm<RegisterFormValues>({ resolver, defaultValues });
+  const { form, onSubmit, error, success, isPending } = useRegister();
 
-  const initialState: ApiResult = { data: undefined };
-
-  const [state, formAction, isPending] = useActionState(registerAction, initialState);
-
-  const isError = isErrorApiResult(state);
-  const isSuccess = isSuccessApiResult(state);
-
-  useEffect(() => {
-    if (!isSuccess) return;
-
-    router.push(LOGIN);
-  }, [isSuccess, router]);
-
-  const validateAndSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    form.handleSubmit(() => {
-      const formElement = event.target as HTMLFormElement;
-      const formData = new FormData(formElement);
-
-      startTransition(() => formAction(formData));
-    })(event);
-  };
+  if (success) {
+    return (
+      <div className="flex flex-col gap-4 text-center">
+        <h1 className="text-2xl font-semibold tracking-tight">Registration successful</h1>
+        <p className="text-sm text-muted-foreground">
+          Your account has been created. You can now sign in.
+        </p>
+        <Link
+          href={UrlGenerator.login()}
+          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Back to sign in
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <Form {...form}>
-      <form action={formAction} onSubmit={validateAndSubmit} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="you@example.com" {...field} disabled={isPending} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <>
+      {error && (
+        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
-        <FormField
-          control={form.control}
-          name="full_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Full Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Enter your name" {...field} disabled={isPending} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    className={INPUT_CLASS}
+                    {...field}
+                    type="email"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input
-                  type="password"
-                  placeholder="Choose a password"
-                  {...field}
-                  disabled={isPending}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="full_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Full Name</FormLabel>
+                <FormControl>
+                  <Input
+                    className={INPUT_CLASS}
+                    {...field}
+                    placeholder="Enter your name"
+                    autoComplete="name"
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="confirm_password"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Confirm password</FormLabel>
-              <FormControl>
-                <Input
-                  type="password"
-                  placeholder="Confirm password"
-                  {...field}
-                  disabled={isPending}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input
+                    className={INPUT_CLASS}
+                    {...field}
+                    type="password"
+                    placeholder="At least 6 characters"
+                    autoComplete="new-password"
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {isSuccess && (
-          <p className="text-sm font-medium text-green-600">
-            Registration successful. Redirecting...
-          </p>
-        )}
+          <FormField
+            control={form.control}
+            name="confirm_password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Confirm Password</FormLabel>
+                <FormControl>
+                  <Input
+                    className={INPUT_CLASS}
+                    {...field}
+                    type="password"
+                    placeholder="Repeat your password"
+                    autoComplete="new-password"
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {isError && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{getApiErrorMessage(state.error)}</AlertDescription>
-          </Alert>
-        )}
+          <Button
+            type="submit"
+            className="w-full px-4 py-2 h-auto hover:bg-primary/90"
+            disabled={isPending}
+          >
+            {isPending ? 'Creating account...' : 'Sign up'}
+          </Button>
+        </form>
+      </Form>
 
-        <p className="text-sm">
-          Already have an account?{' '}
-          <Link href={LOGIN} className="text-teal-600 hover:text-teal-700 hover:underline">
-            Log in
-          </Link>
-        </p>
-
-        <Button
-          type="submit"
-          disabled={isPending}
-          className="w-full h-12 bg-teal-600 hover:bg-teal-700 font-medium"
+      <p className="text-center text-sm text-muted-foreground">
+        Already have an account?{' '}
+        <Link
+          href={UrlGenerator.login()}
+          className="font-medium text-primary underline-offset-4 hover:underline"
         >
-          {isPending ? 'Registering...' : 'Create Account'}
-        </Button>
-      </form>
-    </Form>
+          Sign in
+        </Link>
+      </p>
+    </>
   );
 };
 
