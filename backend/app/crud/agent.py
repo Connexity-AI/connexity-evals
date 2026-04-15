@@ -1,7 +1,7 @@
 import uuid
 
 from sqlalchemy import func
-from sqlmodel import Session, select
+from sqlmodel import Session, col, select
 
 from app.crud import agent_version as agent_version_crud
 from app.models import Agent, AgentCreate, AgentUpdate
@@ -87,7 +87,7 @@ def list_agents(
     count = session.exec(select(func.count()).select_from(Agent)).one()
     items = list(
         session.exec(
-            select(Agent).order_by(Agent.updated_at.desc()).offset(skip).limit(limit)
+            select(Agent).order_by(col(Agent.updated_at).desc()).offset(skip).limit(limit)
         ).all()
     )
     return items, count
