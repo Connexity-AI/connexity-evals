@@ -9,7 +9,7 @@ from sqlmodel import Session
 
 from app import crud
 from app.core.config import settings
-from app.models import PromptEditorMessageCreate
+from app.models import PromptEditorMessageCreate, RunStatus, RunUpdate
 from app.models.enums import TurnRole
 from app.services.llm import (
     LLMCallConfig,
@@ -19,8 +19,10 @@ from app.services.llm import (
 )
 from app.tests.utils.eval import (
     create_test_agent,
+    create_test_eval_set,
     create_test_platform_agent,
     create_test_prompt_editor_session,
+    create_test_run,
 )
 
 PREFIX = f"{settings.API_V1_STR}/prompt-editor"
@@ -751,22 +753,47 @@ def test_chat_tool_calls_reflected_in_edits(
 # ── Presets ──────────────────────────────────────────────────────────
 
 
-def test_get_presets(
+def test_get_presets_requires_agent_id(
     client: TestClient, superuser_auth_cookies: dict[str, str]
 ) -> None:
     r = client.get(f"{PREFIX}/presets", cookies=superuser_auth_cookies)
-    assert r.status_code == 200
-    presets = r.json()
-    assert len(presets) == 6
-    ids = {p["id"] for p in presets}
-    assert "improve_prompt" in ids
-    assert "suggest_from_evals" in ids
+    assert r.status_code == 422
 
 
-def test_get_presets_with_agent_id(
+def test_get_presets_agent_not_found(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.get(
+        f"{PREFIX}/presets",
+        params={"agent_id": str(uuid.uuid4())},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 404
+
+
+def test_get_presets_unauthenticated(client: TestClient, db: Session) -> None:
+    agent = create_test_platform_agent(db)
+    r = client.get(f"{PREFIX}/presets", params={"agent_id": str(agent.id)})
+    assert r.status_code in (401, 403)
+
+
+def test_get_presets_endpoint_agent_only_help_create(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:
-    """agent_id param is accepted but currently ignored."""
+    agent = create_test_agent(db)
+    r = client.get(
+        f"{PREFIX}/presets",
+        params={"agent_id": str(agent.id)},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    presets = r.json()
+    assert [p["id"] for p in presets] == ["help_create_agent"]
+
+
+def test_get_presets_platform_agent_filtered(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
     agent = create_test_platform_agent(db)
     r = client.get(
         f"{PREFIX}/presets",
@@ -774,7 +801,32 @@ def test_get_presets_with_agent_id(
         cookies=superuser_auth_cookies,
     )
     assert r.status_code == 200
-    assert len(r.json()) == 6
+    ids = [p["id"] for p in r.json()]
+    assert ids == ["improve_prompt", "make_concise", "add_examples"]
+    assert all("requires" not in p for p in r.json())
+
+
+def test_get_presets_includes_suggest_from_evals_after_completed_run(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_platform_agent(db)
+    eval_set = create_test_eval_set(db)
+    run = create_test_run(db, agent_id=agent.id, eval_set_id=eval_set.id)
+    crud.update_run(
+        session=db,
+        db_run=run,
+        run_in=RunUpdate(status=RunStatus.COMPLETED),
+    )
+    r = client.get(
+        f"{PREFIX}/presets",
+        params={"agent_id": str(agent.id)},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    ids = [p["id"] for p in r.json()]
+    assert "suggest_from_evals" in ids
+    eval_preset = next(p for p in r.json() if p["id"] == "suggest_from_evals")
+    assert eval_preset["context"] == "eval"
 
 
 # ── Auth ─────────────────────────────────────────────────────────────

@@ -1863,6 +1863,8 @@ export type Persona = {
 
 /**
  * PresetPublic
+ *
+ * API shape for a preset (excludes internal ``requires`` gates).
  */
 export type PresetPublic = {
   /**
@@ -2009,6 +2011,20 @@ export type PromptEditorMessagesPublic = {
    * Total messages in the query
    */
   count: number;
+};
+
+/**
+ * PromptEditorSessionBasePromptUpdate
+ *
+ * Body for PATCH /prompt-editor/sessions/{id}/base-prompt.
+ */
+export type PromptEditorSessionBasePromptUpdate = {
+  /**
+   * Base Prompt
+   *
+   * New diff baseline for this session (e.g. after saving the agent draft). Typically matches the current draft system_prompt.
+   */
+  base_prompt: string;
 };
 
 /**
@@ -7644,6 +7660,62 @@ export type PromptEditorUpdateSessionResponses = {
 export type PromptEditorUpdateSessionResponse =
   PromptEditorUpdateSessionResponses[keyof PromptEditorUpdateSessionResponses];
 
+export type PromptEditorUpdateSessionBasePromptData = {
+  body: PromptEditorSessionBasePromptUpdate;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}/base-prompt';
+};
+
+export type PromptEditorUpdateSessionBasePromptErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorUpdateSessionBasePromptError =
+  PromptEditorUpdateSessionBasePromptErrors[keyof PromptEditorUpdateSessionBasePromptErrors];
+
+export type PromptEditorUpdateSessionBasePromptResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorSessionPublic;
+};
+
+export type PromptEditorUpdateSessionBasePromptResponse =
+  PromptEditorUpdateSessionBasePromptResponses[keyof PromptEditorUpdateSessionBasePromptResponses];
+
 export type PromptEditorListMessagesData = {
   body?: never;
   path: {
@@ -7764,13 +7836,13 @@ export type PromptEditorChatResponses = {
 export type PromptEditorGetPresetsData = {
   body?: never;
   path?: never;
-  query?: {
+  query: {
     /**
      * Agent Id
      *
-     * Agent ID for contextual filtering (ignored until CS-63)
+     * Agent ID for contextual filtering
      */
-    agent_id?: string | null;
+    agent_id: string;
   };
   url: '/api/v1/prompt-editor/presets';
 };

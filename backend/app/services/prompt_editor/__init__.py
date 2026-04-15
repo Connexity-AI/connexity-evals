@@ -11,6 +11,7 @@ from app.services.prompt_editor.eval_context import (
     build_eval_context,
     format_eval_context_for_prompt,
 )
+from app.services.prompt_editor.presets import Preset, get_available_presets
 
 __all__ = [
     "EditorInput",
@@ -19,5 +20,7 @@ __all__ = [
     "PromptEditor",
     "build_eval_context",
     "format_eval_context_for_prompt",
+    "get_available_presets",
     "platform_agent_required",
+    "Preset",
 ]

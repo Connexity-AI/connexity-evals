@@ -3003,6 +3003,7 @@ export const PresetPublicSchema = {
   type: 'object',
   required: ['id', 'label', 'message', 'context'],
   title: 'PresetPublic',
+  description: 'API shape for a preset (excludes internal ``requires`` gates).',
 } as const;
 
 export const PromptDiffSchema = {
@@ -3169,6 +3170,21 @@ export const PromptEditorMessagesPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'PromptEditorMessagesPublic',
+} as const;
+
+export const PromptEditorSessionBasePromptUpdateSchema = {
+  properties: {
+    base_prompt: {
+      type: 'string',
+      title: 'Base Prompt',
+      description:
+        'New diff baseline for this session (e.g. after saving the agent draft). Typically matches the current draft system_prompt.',
+    },
+  },
+  type: 'object',
+  required: ['base_prompt'],
+  title: 'PromptEditorSessionBasePromptUpdate',
+  description: 'Body for PATCH /prompt-editor/sessions/{id}/base-prompt.',
 } as const;
 
 export const PromptEditorSessionCreateSchema = {
