@@ -175,6 +175,39 @@ def test_update_session(
     assert r.json()["title"] == "New title"
 
 
+def test_update_session_base_prompt(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_platform_agent(db)
+    created = _create_session_via_api(client, superuser_auth_cookies, agent.id)
+    assert created["base_prompt"] is not None
+    r = client.patch(
+        f"{PREFIX}/sessions/{created['id']}/base-prompt",
+        json={"base_prompt": "updated baseline after draft save"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["base_prompt"] == "updated baseline after draft save"
+    r2 = client.get(
+        f"{PREFIX}/sessions/{created['id']}",
+        cookies=superuser_auth_cookies,
+    )
+    assert r2.status_code == 200
+    assert r2.json()["base_prompt"] == "updated baseline after draft save"
+
+
+def test_update_session_base_prompt_not_found(
+    client: TestClient, superuser_auth_cookies: dict[str, str]
+) -> None:
+    r = client.patch(
+        f"{PREFIX}/sessions/{uuid.uuid4()}/base-prompt",
+        json={"base_prompt": "x"},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 404
+
+
 def test_archive_session(
     client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
 ) -> None:

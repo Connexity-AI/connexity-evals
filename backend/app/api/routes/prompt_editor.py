@@ -22,6 +22,7 @@ from app.models import (
     PromptEditorMessageCreate,
     PromptEditorMessagePublic,
     PromptEditorMessagesPublic,
+    PromptEditorSessionBasePromptUpdate,
     PromptEditorSessionCreate,
     PromptEditorSessionPublic,
     PromptEditorSessionsPublic,
@@ -201,6 +202,27 @@ def update_session(
         raise HTTPException(status_code=404, detail="Session not found")
     updated = crud.update_prompt_editor_session(
         session=session, db_session=pe_session, session_in=session_in
+    )
+    return _session_public(updated, message_count=len(updated.messages))
+
+
+@router.patch(
+    "/sessions/{session_id}/base-prompt",
+    response_model=PromptEditorSessionPublic,
+)
+def update_session_base_prompt(
+    session: SessionDep,
+    session_id: uuid.UUID,
+    body: PromptEditorSessionBasePromptUpdate,
+) -> PromptEditorSessionPublic:
+    """Set ``base_prompt`` (diff baseline), e.g. after the agent draft is saved."""
+    pe_session = crud.get_prompt_editor_session(session=session, session_id=session_id)
+    if not pe_session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    updated = crud.update_prompt_editor_session_base_prompt(
+        session=session,
+        db_session=pe_session,
+        base_prompt=body.base_prompt,
     )
     return _session_public(updated, message_count=len(updated.messages))
 

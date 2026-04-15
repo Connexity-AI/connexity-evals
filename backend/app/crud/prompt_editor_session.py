@@ -129,3 +129,13 @@ def update_session_edited_prompt(
     session.commit()
     session.refresh(db_session)
     return db_session
+
+
+def update_session_base_prompt(
+    *, session: Session, db_session: PromptEditorSession, base_prompt: str
+) -> PromptEditorSession:
+    db_session.base_prompt = base_prompt
+    session.add(db_session)
+    session.commit()
+    session.refresh(db_session)
+    return db_session

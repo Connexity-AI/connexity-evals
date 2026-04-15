@@ -102,6 +102,17 @@ class PromptEditorSessionUpdate(SQLModel):
     )
 
 
+class PromptEditorSessionBasePromptUpdate(SQLModel):
+    """Body for PATCH /prompt-editor/sessions/{id}/base-prompt."""
+
+    base_prompt: str = Field(
+        description=(
+            "New diff baseline for this session (e.g. after saving the agent draft). "
+            "Typically matches the current draft system_prompt."
+        ),
+    )
+
+
 class PromptEditorSessionPublic(PromptEditorSessionBase):
     id: uuid.UUID = Field(description="Session id")
     agent_id: uuid.UUID = Field(description="Agent id")
