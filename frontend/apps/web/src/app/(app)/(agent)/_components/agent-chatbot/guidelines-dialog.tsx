@@ -42,7 +42,7 @@ export function GuidelinesDialog({ agentId, open, onOpenChange }: GuidelinesDial
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl w-[90vw] h-[85vh] flex flex-col gap-0 p-0">
+      <DialogContent className="left-0 top-0 translate-x-0 translate-y-0 w-screen h-screen max-w-none rounded-none border-0 sm:rounded-none flex flex-col gap-0 p-0">
         <DialogHeader className="p-6 pb-4 border-b">
           <div className="flex items-center gap-2">
             <DialogTitle>Assistant Guidelines</DialogTitle>

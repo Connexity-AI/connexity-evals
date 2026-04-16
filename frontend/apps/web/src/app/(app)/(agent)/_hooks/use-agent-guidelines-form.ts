@@ -20,7 +20,7 @@ type GuidelinesFormValues = z.infer<typeof guidelinesSchema>;
 interface UseAgentGuidelinesFormOptions {
   agentId: string;
   enabled: boolean;
-  onSaved?: () => void;
+  onSaved: () => void;
 }
 
 export function useAgentGuidelinesForm({
@@ -70,7 +70,7 @@ export function useAgentGuidelinesForm({
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(agentKeys.guidelines(agentId), updated);
-      onSaved?.();
+      onSaved();
     },
   });
 
@@ -90,6 +90,7 @@ export function useAgentGuidelinesForm({
     onSuccess: (updated) => {
       queryClient.setQueryData(agentKeys.guidelines(agentId), updated);
       form.reset({ guidelines: updated.guidelines });
+      onSaved();
     },
   });
 
