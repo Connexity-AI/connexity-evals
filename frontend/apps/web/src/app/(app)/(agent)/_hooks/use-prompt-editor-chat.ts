@@ -6,38 +6,19 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { client } from '@/client/client.gen';
 import { promptEditorKeys } from '@/constants/query-keys';
+import { sseEventSchema } from '@/app/(app)/(agent)/_schemas/prompt-editor-chat-sse';
+import {
+  appendTurnToMessagesCache,
+  makeAssistantBubble,
+  makeUserBubble,
+  seedEmptyMessagesCache,
+  toChatMessages,
+} from '@/app/(app)/(agent)/_utils/prompt-editor-chat';
 import { usePromptEditorMessages } from './use-prompt-editor-messages';
 
-import type { PromptEditorMessagePublic, PromptEditorMessagesPublic } from '@/client/types.gen';
+import type { ChatMessage, ChatPhase } from '@/app/(app)/(agent)/_schemas/prompt-editor-chat-sse';
 
-export type ChatPhase = 'idle' | 'analyzing' | 'editing' | 'complete';
-
-export type ChatMessage = {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-  createdAt: string;
-  isStreaming?: boolean;
-};
-
-type SseEventPayload = {
-  data: unknown;
-  event?: string;
-};
-
-type StatusData = { message_id?: string; phase: ChatPhase };
-type ReasoningData = { content: string };
-type EditData = {
-  edited_prompt: string;
-  edit_index: number;
-  total_edits: number;
-};
-type DoneData = {
-  message: PromptEditorMessagePublic;
-  edited_prompt: string;
-  base_prompt: string;
-};
-type ErrorData = { code: string; detail: string };
+export type { ChatMessage, ChatPhase };
 
 type OnSuggestion = (args: { prompt: string; messageId: string }) => void;
 
@@ -70,15 +51,10 @@ export function usePromptEditorChat({
   // suggestion button would otherwise fire two sendMessage calls in parallel.
   const inFlightRef = useRef(false);
 
-  const persisted: ChatMessage[] = useMemo(() => {
-    const rows = messagesQuery.data?.data ?? [];
-    return rows.map((message) => ({
-      id: message.id,
-      role: (message.role === 'assistant' ? 'assistant' : 'user') as 'user' | 'assistant',
-      content: message.content,
-      createdAt: message.created_at,
-    }));
-  }, [messagesQuery.data]);
+  const persisted = useMemo(
+    () => toChatMessages(messagesQuery.data?.data ?? []),
+    [messagesQuery.data]
+  );
 
   const messages: ChatMessage[] = useMemo(
     () => [...persisted, ...liveMessages],
@@ -105,14 +81,7 @@ export function usePromptEditorChat({
           try {
             activeSessionId = await createSession();
             console.log('[chat] session created', { sessionId: activeSessionId });
-            // Seed the messages cache so the auto-fetch triggered by the
-            // sessionId transition doesn't race with the SSE POST below —
-            // otherwise the GET can resolve with the just-persisted user row
-            // and duplicate our optimistic bubble until `done` clears live.
-            queryClient.setQueryData<PromptEditorMessagesPublic>(
-              promptEditorKeys.messages(activeSessionId),
-              { data: [], count: 0 }
-            );
+            seedEmptyMessagesCache(queryClient, activeSessionId);
           } catch (error) {
             console.error('[chat] createSession failed', error);
             setStreamError(error instanceof Error ? error.message : 'Failed to create session');
@@ -121,24 +90,10 @@ export function usePromptEditorChat({
         }
 
         const now = new Date().toISOString();
-
-        const userBubble: ChatMessage = {
-          id: `live-user-${Date.now()}`,
-          role: 'user',
-          content: trimmed,
-          createdAt: now,
-        };
-
+        const userBubble = makeUserBubble(trimmed, now);
         const assistantId = `live-assistant-${Date.now()}`;
         streamingIdRef.current = assistantId;
-
-        const assistantBubble: ChatMessage = {
-          id: assistantId,
-          role: 'assistant',
-          content: '',
-          createdAt: now,
-          isStreaming: true,
-        };
+        const assistantBubble = makeAssistantBubble(assistantId, now);
 
         setLiveMessages((previous) => [...previous, userBubble, assistantBubble]);
         setPhase('analyzing');
@@ -146,22 +101,28 @@ export function usePromptEditorChat({
         let reasoningChunks = 0;
         let editEvents = 0;
 
-        const handleSseEvent = ({ data, event }: SseEventPayload) => {
-          if (!event || typeof data !== 'object' || data === null) return;
+        const handleSseEvent = (payload: { data: unknown; event?: string }) => {
+          if (!payload.event) return;
 
-          switch (event) {
+          const parsed = sseEventSchema.safeParse(payload);
+          if (!parsed.success) {
+            console.warn('[chat] sse parse failed', {
+              event: payload.event,
+              issues: parsed.error.issues,
+            });
+            return;
+          }
+
+          switch (parsed.data.event) {
             case 'status': {
-              // TODO: discrimination union
-              // TODO: remove console.logs
-              const nextPhase = (data as StatusData).phase;
-
+              const nextPhase = parsed.data.data.phase;
               console.log('[chat] sse <- status', { phase: nextPhase });
-              if (nextPhase) setPhase(nextPhase);
+              setPhase(nextPhase);
               return;
             }
 
             case 'reasoning': {
-              const chunk = (data as ReasoningData).content ?? '';
+              const chunk = parsed.data.data.content;
 
               reasoningChunks += 1;
 
@@ -183,13 +144,11 @@ export function usePromptEditorChat({
             }
 
             case 'edit': {
-              const editData = data as EditData;
-
-              const editedPrompt = editData.edited_prompt;
+              const editedPrompt = parsed.data.data.edited_prompt;
 
               editEvents += 1;
 
-              if (typeof editedPrompt === 'string' && editedPrompt !== currentPrompt) {
+              if (editedPrompt !== currentPrompt) {
                 latestEditedRef.current = editedPrompt;
                 onEditedPrompt(editedPrompt);
               }
@@ -198,8 +157,7 @@ export function usePromptEditorChat({
             }
 
             case 'done': {
-              const doneData = data as DoneData;
-
+              const doneData = parsed.data.data;
               const { message } = doneData;
 
               const rawFinalPrompt = doneData.edited_prompt ?? latestEditedRef.current;
@@ -226,27 +184,32 @@ export function usePromptEditorChat({
                 });
               }
 
-              void queryClient.invalidateQueries({
-                queryKey: promptEditorKeys.messages(activeSessionId!),
+              appendTurnToMessagesCache({
+                queryClient,
+                sessionId: activeSessionId!,
+                userContent: trimmed,
+                userCreatedAt: userBubble.createdAt,
+                assistantMessage: message,
               });
 
               setLiveMessages([]);
 
+              void queryClient.invalidateQueries({
+                queryKey: promptEditorKeys.messages(activeSessionId!),
+              });
+
               streamingIdRef.current = null;
-
               latestEditedRef.current = null;
-
               setPhase('complete');
 
               return;
             }
 
             case 'error': {
-              const errorPayload = data as ErrorData;
+              const errorPayload = parsed.data.data;
               console.error('[chat] sse <- error', errorPayload);
 
               setStreamError(errorPayload.detail ?? errorPayload.code ?? 'Unknown error');
-
               setPhase('idle');
 
               return;
