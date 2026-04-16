@@ -6,7 +6,7 @@ Supports two modes:
   ``generate_prompt`` tool call that produces the full prompt.
 * **Editing** (``current_prompt`` non-empty) — incremental ``edit_prompt`` calls with
   an agentic continuation loop (up to ``_MAX_EDIT_CONTINUATION_TURNS`` extra LLM calls)
-  to handle models that don't emit all tool calls in a single response.
+  so the assistant can finish after tool results (and to retry when edits are invalid).
 """
 
 import logging
@@ -23,7 +23,6 @@ from app.services.llm import (
     LLMSettingsView,
     LLMStreamChunk,
     LLMStreamResult,
-    LLMToolCall,
     call_llm_stream,
 )
 from app.services.prompt_editor.agent_prompt import (
@@ -43,80 +42,10 @@ from app.services.prompt_editor.agent_prompt import (
 
 logger = logging.getLogger(__name__)
 
-_PREVIEW_CHARS = 200
 _MAX_EDIT_CONTINUATION_TURNS = 3
 
 
 EditorStreamEventType = Literal["reasoning", "status", "edit", "done", "error"]
-
-
-def _preview_snippet(text: str, max_chars: int = _PREVIEW_CHARS) -> str:
-    """Short, log-safe preview (newlines escaped)."""
-    collapsed = text.replace("\n", "\\n")
-    if len(collapsed) <= max_chars:
-        return collapsed
-    return f"{collapsed[: max_chars - 3]}..."
-
-
-def _format_edit_tuple(edit: tuple[int, int, str]) -> str:
-    start_line, end_line, new_content = edit
-    preview = _preview_snippet(new_content, 120)
-    if start_line > end_line:
-        return f"insert_after_line_{start_line} new_content={preview!r}"
-    return f"lines_{start_line}-{end_line} new_content={preview!r}"
-
-
-def _format_edits_for_log(edits: list[tuple[int, int, str]]) -> str:
-    if not edits:
-        return "[]"
-    return "[" + ", ".join(_format_edit_tuple(e) for e in edits) + "]"
-
-
-def _log_parsed_tool_calls(tool_calls: list[LLMToolCall]) -> None:
-    """Log each tool call from the LLM with line ranges and insertion previews."""
-    if not tool_calls:
-        logger.info("[prompt_editor] llm_tool_calls: (none)")
-        return
-    for tc in tool_calls:
-        if tc.function_name == "edit_prompt":
-            args = tc.arguments
-            start = args.get("start_line")
-            end = args.get("end_line")
-            raw_new = args.get("new_content", "")
-            new_s = raw_new if isinstance(raw_new, str) else str(raw_new)
-            if isinstance(start, int) and isinstance(end, int) and start > end:
-                logger.info(
-                    "[prompt_editor] llm_tool_call edit_prompt id=%s insert_after_line=%s "
-                    "new_content_preview=%r",
-                    tc.id,
-                    start,
-                    _preview_snippet(new_s),
-                )
-            else:
-                logger.info(
-                    "[prompt_editor] llm_tool_call edit_prompt id=%s start_line=%s end_line=%s "
-                    "new_content_preview=%r",
-                    tc.id,
-                    start,
-                    end,
-                    _preview_snippet(new_s),
-                )
-        elif tc.function_name == "generate_prompt":
-            raw = tc.arguments.get("content", "")
-            content = raw if isinstance(raw, str) else str(raw)
-            logger.info(
-                "[prompt_editor] llm_tool_call generate_prompt id=%s content_len=%s preview=%r",
-                tc.id,
-                len(content),
-                _preview_snippet(content, 160),
-            )
-        else:
-            logger.info(
-                "[prompt_editor] llm_tool_call %s id=%s arguments=%s",
-                tc.function_name,
-                tc.id,
-                tc.arguments,
-            )
 
 
 def _merge_usage(
@@ -242,23 +171,6 @@ class PromptEditor:
         """Stream editor LLM output; last successful event is ``type="done"`` with ``result``."""
         app_settings = app_settings or settings
 
-        prompt_lines = (
-            0 if self._creating else get_prompt_line_count(self._inp.current_prompt)
-        )
-        logger.info(
-            "[prompt_editor] turn_start agent_id=%s creating=%s request_model=%s "
-            "request_provider=%s session_prior_messages=%s user_chars=%s prompt_chars=%s "
-            "prompt_lines=%s",
-            self._inp.agent.id,
-            self._creating,
-            self._inp.llm_model,
-            self._inp.llm_provider,
-            len(self._inp.session_messages),
-            len(self._inp.user_message),
-            len(self._inp.current_prompt),
-            prompt_lines,
-        )
-
         yield EditorStreamEvent(type="status", data={"phase": "analyzing"})
 
         if self._creating:
@@ -313,19 +225,7 @@ class PromptEditor:
             )
             return
 
-        self._log_llm_result(stream_result)
-
         generated = parse_generate_prompt_tool_call(stream_result.tool_calls)
-        if generated is None:
-            logger.warning(
-                "[prompt_editor] creating_mode: no generate_prompt tool result — "
-                "prompt unchanged (clarification turn or missing tool call)"
-            )
-        else:
-            logger.info(
-                "[prompt_editor] creating_mode: generate_prompt applied content_len=%s",
-                len(generated),
-            )
 
         edit_snapshots: list[str] = []
         if generated:
@@ -394,13 +294,6 @@ class PromptEditor:
             if is_disconnected is not None and await is_disconnected():
                 return
 
-            logger.info(
-                "[prompt_editor] editing_mode: turn=%s messages=%s prompt_lines=%s",
-                turn,
-                len(messages),
-                get_prompt_line_count(current_prompt),
-            )
-
             stream_result: LLMStreamResult | None = None
             async for item in self._stream_one_llm_call(
                 messages,
@@ -423,8 +316,6 @@ class PromptEditor:
                 )
                 return
 
-            self._log_llm_result(stream_result, turn=turn)
-
             # --- Accumulate content and costs across turns ---
             if stream_result.full_content:
                 all_content_parts.append(stream_result.full_content)
@@ -441,25 +332,6 @@ class PromptEditor:
             raw_edits = parse_edit_prompt_tool_calls(stream_result.tool_calls)
             line_count = get_prompt_line_count(current_prompt)
             valid_edits = validate_edits_against_line_count(raw_edits, line_count)
-
-            logger.info(
-                "[prompt_editor] editing_mode: turn=%s parsed_edits=%s "
-                "validated_edits=%s line_count=%s",
-                turn,
-                _format_edits_for_log(raw_edits),
-                _format_edits_for_log(valid_edits),
-                line_count,
-            )
-            if raw_edits and (
-                len(raw_edits) != len(valid_edits) or raw_edits != valid_edits
-            ):
-                logger.warning(
-                    "[prompt_editor] editing_mode: turn=%s some edits dropped; "
-                    "raw_count=%s valid_count=%s",
-                    turn,
-                    len(raw_edits),
-                    len(valid_edits),
-                )
 
             turn_tool_calls_payload = llm_tool_calls_to_openai_dicts(
                 stream_result.tool_calls
@@ -494,19 +366,9 @@ class PromptEditor:
                 tc.function_name == "edit_prompt" for tc in stream_result.tool_calls
             )
             if not has_edit_tool_calls:
-                logger.info(
-                    "[prompt_editor] editing_mode: turn=%s no edit_prompt calls, "
-                    "terminating loop",
-                    turn,
-                )
                 break
 
             if turn >= _MAX_EDIT_CONTINUATION_TURNS:
-                logger.info(
-                    "[prompt_editor] editing_mode: max continuation turns reached "
-                    "(%s), terminating loop",
-                    _MAX_EDIT_CONTINUATION_TURNS,
-                )
                 break
 
             # --- Build continuation messages for next turn ---
@@ -530,24 +392,8 @@ class PromptEditor:
                 ),
             )
 
-            logger.info(
-                "[prompt_editor] editing_mode: continuing to turn=%s "
-                "new_prompt_lines=%s",
-                turn + 1,
-                new_line_count,
-            )
-
         # --- Build final result ---
         final_prompt = current_prompt
-        unchanged = final_prompt == self._inp.current_prompt
-        logger.info(
-            "[prompt_editor] editing_mode: result prompt_changed=%s final_len=%s "
-            "snapshot_count=%s total_turns=%s",
-            not unchanged,
-            len(final_prompt),
-            len(all_edit_snapshots),
-            running_edit_index,
-        )
 
         result = EditorResult(
             content="\n\n".join(all_content_parts),
@@ -559,25 +405,3 @@ class PromptEditor:
             cost_usd=total_cost,
         )
         yield EditorStreamEvent(type="done", data={"result": result})
-
-    # ------------------------------------------------------------------
-    # Helpers
-    # ------------------------------------------------------------------
-
-    @staticmethod
-    def _log_llm_result(
-        stream_result: LLMStreamResult, *, turn: int | None = None
-    ) -> None:
-        turn_label = f" turn={turn}" if turn is not None else ""
-        logger.info(
-            "[prompt_editor] llm_completed%s resolved_model=%s latency_ms=%s "
-            "tool_call_count=%s reasoning_chars=%s usage=%s cost_usd=%s",
-            turn_label,
-            stream_result.model,
-            stream_result.latency_ms,
-            len(stream_result.tool_calls),
-            len(stream_result.full_content or ""),
-            stream_result.usage,
-            stream_result.response_cost_usd,
-        )
-        _log_parsed_tool_calls(stream_result.tool_calls)
