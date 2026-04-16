@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import dynamic from 'next/dynamic';
 
@@ -236,38 +236,55 @@ export function EditableDiffView({
     model.setValue(toContent);
   }, [toContent, getLastSaved, isControlled]);
 
-  // Flush on unmount so navigating away mid-typing still persists the draft.
-  // Controlled mode has nothing to flush — the parent is already sync with
-  // every change via onModifiedChange.
+  // Keep flush in a ref so the unmount cleanup below stays mount-only (empty
+  // deps) — we don't want to re-run it whenever the autosave hook rebuilds.
+  const flushRef = useRef(flush);
   useEffect(() => {
-    return () => {
-      if (isControlledRef.current) return;
-      const editor = editorRef.current;
-      if (!editor) return;
-      if (!editableRef.current) return;
-      flush(editor.getModifiedEditor().getValue());
-    };
+    flushRef.current = flush;
   }, [flush]);
 
-  // String compare (not Monaco counts) drives the "No differences" gate so
-  // the empty state is correct on first render, before Monaco's async diff
-  // computation has run. When editable, always mount Monaco so the user
-  // can start typing immediately.
-  const hasContentDifferences = fromContent !== toContent;
+  // Flush pending autosave + detach the diff model on unmount.
+  //
+  // The setModel(null) is a workaround for a known race in
+  // @monaco-editor/react's DiffEditor: its own cleanup disposes the
+  // TextModel before the DiffEditorWidget has its model reset, which throws
+  // "TextModel got disposed before DiffEditorWidget model got reset". Running
+  // this in useLayoutEffect guarantees our detach happens synchronously
+  // during commit, before the library's passive-effect cleanup fires.
+  useLayoutEffect(() => {
+    return () => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      try {
+        if (editableRef.current && !isControlledRef.current) {
+          flushRef.current(editor.getModifiedEditor().getValue());
+        }
+      } finally {
+        editor.setModel(null);
+        editorRef.current = null;
+      }
+    };
+  }, []);
 
-  if (!hasContentDifferences && !editable) {
-    return (
-      <div className="flex items-center justify-center border rounded-md bg-muted/20 py-10">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Check className="h-4 w-4 text-green-500" />
-          No differences
-        </div>
-      </div>
-    );
-  }
+  // String compare (not Monaco counts) drives the "No differences" gate so
+  // the overlay shows correctly on first render, before Monaco's async diff
+  // computation has run.
+  const hasContentDifferences = fromContent !== toContent;
+  // Overlay instead of unmounting: tearing down Monaco mid-stream triggers
+  // a DiffEditorWidget disposal race. Keep it mounted and hide it behind
+  // the empty state when there's nothing to show.
+  const showEmptyState = !hasContentDifferences && !editable;
 
   return (
-    <div className="flex flex-col border rounded-md overflow-hidden flex-1 min-h-80">
+    <div className="relative flex flex-col border rounded-md overflow-hidden flex-1 min-h-80">
+      {showEmptyState && (
+        <div className="absolute inset-0 z-10 flex items-center justify-center bg-background">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Check className="h-4 w-4 text-green-500" />
+            No differences
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-3 px-3 py-2 border-b bg-muted/30 text-xs shrink-0">
         <span className="text-green-600 dark:text-green-400 font-medium">+{counts.added}</span>
         <span className="text-red-600 dark:text-red-400 font-medium">-{counts.removed}</span>
