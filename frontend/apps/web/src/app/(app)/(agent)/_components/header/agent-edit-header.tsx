@@ -1,95 +1,43 @@
 'use client';
 
-import Link from 'next/link';
+import { cn } from '@workspace/ui/lib/utils';
 
-import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { GitBranch, Loader2, Upload } from 'lucide-react';
-
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbSeparator,
-} from '@workspace/ui/components/ui/breadcrumb';
-import { Button } from '@workspace/ui/components/ui/button';
-import { Separator } from '@workspace/ui/components/ui/separator';
-import { SidebarTrigger } from '@workspace/ui/components/ui/sidebar';
-
-import { EditableBreadcrumbName } from '@/app/(app)/(agent)/_components/header/editable-breadcrumb-name';
-import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
-import { useDelayedFlag } from '@/app/(app)/(agent)/_hooks/use-delayed-flag';
+import { AgentEditActions } from '@/app/(app)/(agent)/_components/header/agent-edit-actions';
+import { AgentEditBreadcrumb } from '@/app/(app)/(agent)/_components/header/agent-edit-breadcrumb';
+import { AgentModeTabs } from '@/app/(app)/(agent)/_components/header/agent-mode-tabs';
 import { useVersions } from '@/app/(app)/(agent)/_context/versions-context';
-import { PlatformHeader } from '@/components/common/platform-header';
+
+const HEADER_CLASSNAME = cn(
+  'relative h-16 border-b border-border flex items-center sticky top-0 z-10',
+  'bg-card dark:bg-zinc-900 px-6'
+);
 
 export function AgentEditHeader() {
-  return (
-    <PlatformHeader
-      className="px-6"
-      leading={<AgentEditBreadcrumb />}
-      trailing={<AgentEditActions />}
-    />
-  );
-}
-
-function AgentEditBreadcrumb() {
-  const { agentName, agentId } = useAgentEditFormActions();
+  const { isReadOnly } = useVersions();
+  const isChatClosed = isReadOnly;
 
   return (
-    <div className="flex items-center gap-3">
-      <SidebarTrigger />
+    <header className={HEADER_CLASSNAME}>
+      <div className="absolute inset-y-0 left-6 flex items-center">
+        <AgentEditBreadcrumb />
+      </div>
 
-      <Separator orientation="vertical" className="h-5" />
+      <div className="absolute inset-y-0 right-6 flex items-center">
+        <AgentEditActions />
+      </div>
 
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href={UrlGenerator.agents()}>Agents</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-
-          <BreadcrumbSeparator />
-
-          <EditableBreadcrumbName agentId={agentId} agentName={agentName} />
-        </BreadcrumbList>
-      </Breadcrumb>
-    </div>
-  );
-}
-
-function AgentEditActions() {
-  const { onSubmit, isPending, isReadOnly, isDraftSaving } =
-    useAgentEditFormActions();
-  const { openDrawer } = useVersions();
-  const showSaving = useDelayedFlag(isDraftSaving, 300);
-
-  return (
-    <div className="flex items-center gap-2">
-      {showSaving && (
-        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <Loader2 size={14} className="animate-spin" />
-          Saving...
-        </span>
-      )}
-
-      <Button
-        variant="outline"
-        icon={GitBranch}
-        size="sm"
-        className="gap-1.5"
-        onClick={openDrawer}
-      />
-
-      <Button
-        size="sm"
-        className="gap-1.5"
-        onClick={onSubmit}
-        disabled={isPending || isReadOnly}
-      >
-        <Upload className="w-3.5 h-3.5" />
-        {isPending ? 'Publishing...' : 'Publish'}
-      </Button>
-    </div>
+      <div className="flex flex-1 items-center">
+        <div
+          aria-hidden
+          className={cn(
+            'shrink-0 transition-[width] duration-300 ease-in-out',
+            isChatClosed ? 'w-0' : 'w-1/3'
+          )}
+        />
+        <div className="flex flex-1 justify-center">
+          <AgentModeTabs />
+        </div>
+      </div>
+    </header>
   );
 }
