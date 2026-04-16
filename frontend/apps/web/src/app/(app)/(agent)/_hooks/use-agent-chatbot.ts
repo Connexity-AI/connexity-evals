@@ -21,11 +21,13 @@ export function useAgentChatbot() {
 
   const {
     sessionId,
+    basePrompt,
     isLoading: isSessionLoading,
     error: sessionError,
     createSession,
     startNewSession,
     clearStaleSession,
+    updateBasePrompt,
     isCreating: isCreatingSession,
   } = usePromptEditorSession(agentId);
 
@@ -63,9 +65,17 @@ export function useAgentChatbot() {
     async (content: string) => {
       const currentPrompt = form.getValues().prompt ?? '';
 
+      // Sync base_prompt with the textarea so the diff viewer shows only
+      // the LLM's delta, not the user's prior manual edits attributed as
+      // if the LLM made them. Skipped when no session exists yet — the
+      // createSession path seeds base_prompt from the freshly-flushed draft.
+      if (sessionId && basePrompt !== null && currentPrompt !== basePrompt) {
+        await updateBasePrompt(currentPrompt);
+      }
+
       await underlyingSendMessage(content, currentPrompt, model);
     },
-    [form, underlyingSendMessage, model]
+    [form, underlyingSendMessage, model, sessionId, basePrompt, updateBasePrompt]
   );
 
   const createNewSession = useCallback(() => {
