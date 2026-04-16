@@ -91,6 +91,18 @@ export const AgentCreateSchema = {
       title: 'Agent Provider',
       description: 'LLM provider for platform agent simulator (e.g. openai, anthropic)',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+      description: 'Sampling temperature for platform agent simulator (0.0–2.0)',
+    },
     agent_metadata: {
       anyOf: [
         {
@@ -103,10 +115,36 @@ export const AgentCreateSchema = {
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
     },
+    editor_guidelines: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Editor Guidelines',
+      description:
+        'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
+    },
   },
   type: 'object',
   required: ['name'],
   title: 'AgentCreate',
+} as const;
+
+export const AgentCreateDraftSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+      default: 'Untitled Agent',
+    },
+  },
+  type: 'object',
+  title: 'AgentCreateDraft',
 } as const;
 
 export const AgentDraftUpdateSchema = {
@@ -179,10 +217,58 @@ export const AgentDraftUpdateSchema = {
       ],
       title: 'Agent Provider',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+    },
   },
   type: 'object',
   title: 'AgentDraftUpdate',
   description: 'Partial update for versionable agent fields — used by PUT /agents/{id}/draft.',
+} as const;
+
+export const AgentGuidelinesPublicSchema = {
+  properties: {
+    guidelines: {
+      type: 'string',
+      title: 'Guidelines',
+      description: 'Effective guidelines text (custom or default)',
+    },
+    is_default: {
+      type: 'boolean',
+      title: 'Is Default',
+      description: 'True when using built-in defaults (no custom guidelines stored)',
+    },
+  },
+  type: 'object',
+  required: ['guidelines', 'is_default'],
+  title: 'AgentGuidelinesPublic',
+} as const;
+
+export const AgentGuidelinesUpdateSchema = {
+  properties: {
+    guidelines: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Guidelines',
+      description: 'Custom guidelines text, or null to reset to built-in default',
+    },
+  },
+  type: 'object',
+  title: 'AgentGuidelinesUpdate',
 } as const;
 
 export const AgentModeSchema = {
@@ -282,6 +368,18 @@ export const AgentPublicSchema = {
       title: 'Agent Provider',
       description: 'LLM provider for platform agent simulator (e.g. openai, anthropic)',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+      description: 'Sampling temperature for platform agent simulator (0.0–2.0)',
+    },
     agent_metadata: {
       anyOf: [
         {
@@ -293,6 +391,19 @@ export const AgentPublicSchema = {
       ],
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
+    },
+    editor_guidelines: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Editor Guidelines',
+      description:
+        'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
     },
     id: {
       type: 'string',
@@ -515,6 +626,18 @@ export const AgentUpdateSchema = {
       title: 'Agent Provider',
       description: 'LLM provider for platform agent simulator',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+      description: 'Sampling temperature for platform agent simulator (0.0–2.0)',
+    },
     agent_metadata: {
       anyOf: [
         {
@@ -526,6 +649,18 @@ export const AgentUpdateSchema = {
       ],
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
+    },
+    editor_guidelines: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Editor Guidelines',
+      description: 'Custom prompting guidelines for the prompt editor agent (None = use default)',
     },
     change_description: {
       anyOf: [
@@ -703,6 +838,17 @@ export const AgentVersionPublicSchema = {
       ],
       title: 'Agent Provider',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+    },
     change_description: {
       anyOf: [
         {
@@ -744,6 +890,7 @@ export const AgentVersionPublicSchema = {
     'tools',
     'agent_model',
     'agent_provider',
+    'agent_temperature',
     'change_description',
     'created_by',
     'created_at',
@@ -2897,6 +3044,43 @@ export const PersonaSchema = {
   title: 'Persona',
 } as const;
 
+export const PresetPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      title: 'Id',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+    },
+    message: {
+      type: 'string',
+      title: 'Message',
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+    },
+    context: {
+      type: 'string',
+      title: 'Context',
+      description: "'none' or 'eval'",
+    },
+  },
+  type: 'object',
+  required: ['id', 'label', 'message', 'context'],
+  title: 'PresetPublic',
+  description: 'API shape for a preset (excludes internal ``requires`` gates).',
+} as const;
+
 export const PromptDiffSchema = {
   properties: {
     changed: {
@@ -2944,6 +3128,344 @@ export const PromptDiffSchema = {
   type: 'object',
   required: ['changed', 'change_ratio'],
   title: 'PromptDiff',
+} as const;
+
+export const PromptEditorChatMessageCreateSchema = {
+  properties: {
+    content: {
+      type: 'string',
+      title: 'Content',
+      description: 'User message text',
+    },
+    current_prompt: {
+      type: 'string',
+      title: 'Current Prompt',
+      description: 'Current prompt text as shown in the editor (includes manual edits)',
+    },
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+      description:
+        'Optional LLM provider for this turn (e.g. openai, anthropic). Merged with model per LiteLLM rules; omit if model is a full routing id (contains /).',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description:
+        'Optional LLM model for this turn (bare id or full vendor/model routing id). When omitted, server defaults apply.',
+    },
+    test_case_result_ids: {
+      anyOf: [
+        {
+          items: {
+            type: 'string',
+            format: 'uuid',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Test Case Result Ids',
+      description: 'Optional test case result IDs for eval context injection (CS-64)',
+    },
+  },
+  type: 'object',
+  required: ['content', 'current_prompt'],
+  title: 'PromptEditorChatMessageCreate',
+  description: 'Body for POST /prompt-editor/sessions/{id}/messages (SSE chat).',
+} as const;
+
+export const PromptEditorMessagePublicSchema = {
+  properties: {
+    role: {
+      $ref: '#/components/schemas/TurnRole',
+      description: 'Message role (user, assistant, …)',
+    },
+    content: {
+      type: 'string',
+      title: 'Content',
+      description: 'Full message text',
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'Message id',
+    },
+    session_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Session Id',
+      description: 'Session id',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+      description: 'Created at',
+    },
+  },
+  type: 'object',
+  required: ['role', 'content', 'id', 'session_id', 'created_at'],
+  title: 'PromptEditorMessagePublic',
+} as const;
+
+export const PromptEditorMessagesPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/PromptEditorMessagePublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Messages',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total messages in the query',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'PromptEditorMessagesPublic',
+} as const;
+
+export const PromptEditorSessionBasePromptUpdateSchema = {
+  properties: {
+    base_prompt: {
+      type: 'string',
+      title: 'Base Prompt',
+      description:
+        'New diff baseline for this session (e.g. after saving the agent draft). Typically matches the current draft system_prompt.',
+    },
+  },
+  type: 'object',
+  required: ['base_prompt'],
+  title: 'PromptEditorSessionBasePromptUpdate',
+  description: 'Body for PATCH /prompt-editor/sessions/{id}/base-prompt.',
+} as const;
+
+export const PromptEditorSessionCreateSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+      description: 'Agent to attach the session to',
+    },
+    title: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Title',
+      description: 'Optional title; auto-generated if omitted',
+    },
+    run_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Run Id',
+      description: 'Optional run for eval context',
+    },
+  },
+  type: 'object',
+  required: ['agent_id'],
+  title: 'PromptEditorSessionCreate',
+} as const;
+
+export const PromptEditorSessionPublicSchema = {
+  properties: {
+    title: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Title',
+      description: 'Session title (auto-generated or user-set)',
+    },
+    status: {
+      $ref: '#/components/schemas/PromptEditorSessionStatus',
+      description: 'active or archived',
+      default: 'active',
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'Session id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+      description: 'Agent id',
+    },
+    created_by: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Created By',
+      description: 'Owner user id',
+    },
+    run_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Run Id',
+      description: 'Linked run id if any',
+    },
+    base_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Base Prompt',
+      description: 'Original prompt snapshot at session start',
+    },
+    edited_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Edited Prompt',
+      description: 'Current prompt state on server',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+      description: 'Created at',
+    },
+    updated_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Updated At',
+      description: 'Updated at',
+    },
+    message_count: {
+      type: 'integer',
+      title: 'Message Count',
+      description: 'Number of messages in the session',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'agent_id',
+    'created_by',
+    'run_id',
+    'base_prompt',
+    'edited_prompt',
+    'created_at',
+    'updated_at',
+    'message_count',
+  ],
+  title: 'PromptEditorSessionPublic',
+} as const;
+
+export const PromptEditorSessionStatusSchema = {
+  type: 'string',
+  enum: ['active', 'archived'],
+  title: 'PromptEditorSessionStatus',
+} as const;
+
+export const PromptEditorSessionUpdateSchema = {
+  properties: {
+    title: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Title',
+      description: 'Session title',
+    },
+    status: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/PromptEditorSessionStatus',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'active or archived',
+    },
+  },
+  type: 'object',
+  title: 'PromptEditorSessionUpdate',
+} as const;
+
+export const PromptEditorSessionsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/PromptEditorSessionPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Sessions',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total matching sessions',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'PromptEditorSessionsPublic',
 } as const;
 
 export const PublishRequestSchema = {
@@ -5464,18 +5986,6 @@ export const UserPublicSchema = {
     provider: {
       $ref: '#/components/schemas/AuthProvider',
       default: 'email',
-    },
-    oauth_id: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Oauth Id',
     },
     is_active: {
       type: 'boolean',

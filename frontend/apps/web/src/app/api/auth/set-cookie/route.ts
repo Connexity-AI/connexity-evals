@@ -1,10 +1,8 @@
 import { NextResponse } from 'next/server';
 
 import { AUTH_COOKIE } from '@/constants/auth';
-import { ROUTES } from '@/constants/routes';
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 import { getPublicEnv } from '@/config/process-env';
-
-const { LOGIN, DASHBOARD } = ROUTES;
 
 export const GET = async (request: Request): Promise<Response> => {
   const { SITE_URL, NODE_ENV } = getPublicEnv();
@@ -17,14 +15,14 @@ export const GET = async (request: Request): Promise<Response> => {
 
   const hasAllData = accessToken && expiresParam;
   if (!hasAllData) {
-    const loginUrl = new URL(`${LOGIN}?error=missing_auth_token`, SITE_URL);
+    const loginUrl = new URL(`${UrlGenerator.login()}?error=missing_auth_token`, SITE_URL);
     return NextResponse.redirect(loginUrl, { status: 302 });
   }
 
   // Convert Unix timestamp (seconds) to a JS Date object
   const expiresDate = new Date(Number(expiresParam) * 1000);
 
-  const redirectUrl = new URL(DASHBOARD, SITE_URL);
+  const redirectUrl = new URL(UrlGenerator.dashboard(), SITE_URL);
   const response = NextResponse.redirect(redirectUrl, { status: 302 });
 
   response.cookies.set({

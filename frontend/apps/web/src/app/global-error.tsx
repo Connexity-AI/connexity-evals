@@ -7,7 +7,7 @@ import { RefreshCcw, Settings } from 'lucide-react';
 import { Button } from '@workspace/ui/components/ui/button';
 
 import { ENV_ERROR_TYPE } from '@/constants/error';
-import { ROUTES } from '@/constants/routes';
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 
 import type { FC } from 'react';
 
@@ -17,8 +17,6 @@ interface Props {
   error: Error & { digest?: string };
   reset: () => void;
 }
-
-const { HOME } = ROUTES;
 
 // Todo: improve design
 
@@ -43,7 +41,7 @@ const GlobalError: FC<Props> = ({ error, reset }) => (
               <RefreshCcw className="mr-2 size-4" /> Try Again
             </Button>
             <Button asChild>
-              <Link href={HOME}>Return to Home</Link>
+              <Link href={UrlGenerator.home()}>Return to Home</Link>
             </Button>
           </div>
 

@@ -1,14 +1,7 @@
 'use client';
 
-import { startTransition, useActionState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 
-import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-
-import { Alert, AlertDescription } from '@workspace/ui/components/ui/alert';
 import { Button } from '@workspace/ui/components/ui/button';
 import {
   Form,
@@ -20,133 +13,99 @@ import {
 } from '@workspace/ui/components/ui/form';
 import { Input } from '@workspace/ui/components/ui/input';
 
-import { loginAction } from '@/actions/auth';
-import { loginFormSchema } from '@/schemas/forms';
-import { isErrorApiResult, isSuccessApiResult } from '@/utils/api';
-import { getApiErrorMessage } from '@/utils/error';
-import { ROUTES } from '@/constants/routes';
+import { useLogin } from '@/hooks/use-login';
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 
-import { ApiResult } from '@/types/api';
-import type { LoginFormValues } from '@/types/forms';
-import type { FC, FormEvent } from 'react';
+import type { FC } from 'react';
 
-const { DASHBOARD, FORGOT_PASSWORD, REGISTER } = ROUTES;
-
-const defaultValues: LoginFormValues = {
-  username: '',
-  password: '',
-} as const;
-
-const resolver = zodResolver(loginFormSchema);
+const INPUT_CLASS =
+  'h-auto border-border bg-input-background px-3 py-2.5 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-2 focus-visible:ring-ring/30';
 
 const FormLogin: FC = () => {
-  const router = useRouter();
-
-  const form = useForm<LoginFormValues>({ resolver, defaultValues });
-
-  // Note: only one union branch should be possible
-  const initialState: ApiResult = { data: undefined };
-
-  const [state, formAction, isPending] = useActionState(loginAction, initialState);
-
-  const isError = isErrorApiResult(state);
-  const isSuccess = isSuccessApiResult(state);
-
-  useEffect(() => {
-    if (!isSuccess) return;
-
-    router.push(DASHBOARD);
-  }, [isSuccess, router]);
-
-  const validateAndSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    form.handleSubmit(() => {
-      const formElement = event.target as HTMLFormElement;
-      const formData = new FormData(formElement);
-
-      startTransition(() => formAction(formData));
-    })(event);
-  };
+  const { form, onSubmit, error, isPending } = useLogin();
 
   return (
-    <Form {...form}>
-      <form action={formAction} onSubmit={validateAndSubmit} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="admin@example.com" {...field} disabled={isPending} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <>
+      {error && (
+        <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
-        <FormField
-          control={form.control}
-          name="password"
-          render={({ field }) => (
-            <FormItem className="mb-2">
-              <FormLabel>Password</FormLabel>
-              <FormControl>
-                <Input
-                  type="password"
-                  placeholder="Enter your password"
-                  {...field}
-                  disabled={isPending}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input
+                    className={INPUT_CLASS}
+                    {...field}
+                    type="email"
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <p>
-          <Link
-            href={FORGOT_PASSWORD}
-            className="text-sm text-teal-600 hover:text-teal-700 hover:underline"
-            // Todo: create this page, form and action
-            prefetch={false}
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Password</FormLabel>
+                <FormControl>
+                  <Input
+                    className={INPUT_CLASS}
+                    {...field}
+                    type="password"
+                    placeholder="Your password"
+                    autoComplete="current-password"
+                    disabled={isPending}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <Button
+            type="submit"
+            className="w-full px-4 py-2 h-auto hover:bg-primary/90"
+            disabled={isPending}
           >
-            Forgot password?
-          </Link>
-        </p>
+            {isPending ? 'Signing in...' : 'Sign in'}
+          </Button>
+        </form>
+      </Form>
 
-        <p className="text-sm">
-          Don&apos;t have an account?{' '}
-          <Link href={REGISTER} className="text-teal-600 hover:text-teal-700 hover:underline">
-            Register
-          </Link>
-        </p>
-
-        {isSuccess && (
-          <p className="text-sm font-medium text-green-600">
-            Login successful. Redirecting to dashboard...
-          </p>
-        )}
-
-        {isError && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{getApiErrorMessage(state.error)}</AlertDescription>
-          </Alert>
-        )}
-
-        {/* <pre>{JSON.stringify(state, null, 2)}</pre> */}
-
-        <Button
-          type="submit"
-          disabled={isPending}
-          className="w-full h-12 bg-teal-600 hover:bg-teal-700 text-white font-medium"
+      <div className="text-center">
+        <Link
+          href={UrlGenerator.forgotPassword()}
+          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+          prefetch={false}
         >
-          {isPending ? 'Logging in...' : 'Submit'}
-        </Button>
-      </form>
-    </Form>
+          Forgot your password?
+        </Link>
+      </div>
+
+      <p className="text-center text-sm text-muted-foreground">
+        Don&apos;t have an account?{' '}
+        <Link
+          href={UrlGenerator.register()}
+          className="font-medium text-primary underline-offset-4 hover:underline"
+        >
+          Sign up
+        </Link>
+      </p>
+    </>
   );
 };
 

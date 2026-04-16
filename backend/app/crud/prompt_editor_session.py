@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from sqlalchemy import func
 from sqlmodel import Session, col, select
 
+from app.crud.agent_version import get_draft
 from app.models import Agent, Run
 from app.models.prompt_editor import (
     PromptEditorMessage,
@@ -37,11 +38,15 @@ def create_session(
     if title is None or not str(title).strip():
         title = f"Session {datetime.now(UTC).date().isoformat()}"
 
+    draft = get_draft(session=session, agent_id=session_in.agent_id)
+    base_prompt = draft.system_prompt if draft is not None else agent.system_prompt
+
     db_obj = PromptEditorSession(
         agent_id=session_in.agent_id,
         created_by=created_by,
         run_id=session_in.run_id,
         title=title,
+        base_prompt=base_prompt,
     )
     session.add(db_obj)
     session.commit()
@@ -114,3 +119,23 @@ def update_session(
 def delete_session(*, session: Session, db_session: PromptEditorSession) -> None:
     session.delete(db_session)
     session.commit()
+
+
+def update_session_edited_prompt(
+    *, session: Session, db_session: PromptEditorSession, edited_prompt: str
+) -> PromptEditorSession:
+    db_session.edited_prompt = edited_prompt
+    session.add(db_session)
+    session.commit()
+    session.refresh(db_session)
+    return db_session
+
+
+def update_session_base_prompt(
+    *, session: Session, db_session: PromptEditorSession, base_prompt: str
+) -> PromptEditorSession:
+    db_session.base_prompt = base_prompt
+    session.add(db_session)
+    session.commit()
+    session.refresh(db_session)
+    return db_session
