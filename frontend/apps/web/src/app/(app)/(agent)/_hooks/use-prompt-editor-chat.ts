@@ -8,7 +8,7 @@ import { client } from '@/client/client.gen';
 import { promptEditorKeys } from '@/constants/query-keys';
 import { usePromptEditorMessages } from './use-prompt-editor-messages';
 
-import type { PromptEditorMessagePublic } from '@/client/types.gen';
+import type { PromptEditorMessagePublic, PromptEditorMessagesPublic } from '@/client/types.gen';
 
 export type ChatPhase = 'idle' | 'analyzing' | 'editing' | 'complete';
 
@@ -105,6 +105,14 @@ export function usePromptEditorChat({
           try {
             activeSessionId = await createSession();
             console.log('[chat] session created', { sessionId: activeSessionId });
+            // Seed the messages cache so the auto-fetch triggered by the
+            // sessionId transition doesn't race with the SSE POST below —
+            // otherwise the GET can resolve with the just-persisted user row
+            // and duplicate our optimistic bubble until `done` clears live.
+            queryClient.setQueryData<PromptEditorMessagesPublic>(
+              promptEditorKeys.messages(activeSessionId),
+              { data: [], count: 0 }
+            );
           } catch (error) {
             console.error('[chat] createSession failed', error);
             setStreamError(error instanceof Error ? error.message : 'Failed to create session');
