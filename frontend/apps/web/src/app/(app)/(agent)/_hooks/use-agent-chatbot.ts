@@ -31,7 +31,7 @@ export function useAgentChatbot() {
     isCreating: isCreatingSession,
   } = usePromptEditorSession(agentId);
 
-  const { setSuggestion, setLiveEditedPrompt } = useAiSuggestion();
+  const { suggestedPrompt, setSuggestion, setLiveEditedPrompt } = useAiSuggestion();
 
   const [model, setModel] = useState<string>(DEFAULT_ASSISTANT_MODEL_ID);
 
@@ -63,19 +63,26 @@ export function useAgentChatbot() {
 
   const sendMessage = useCallback(
     async (content: string) => {
-      const currentPrompt = form.getValues().prompt ?? '';
+      const formPrompt = form.getValues().prompt ?? '';
+
+      // When there's an unsaved AI suggestion from a previous turn, use it
+      // as the starting point so multi-turn edits accumulate correctly.
+      // Otherwise fall back to the form value (the saved/manual prompt).
+      const currentPrompt = suggestedPrompt ?? formPrompt;
 
       // Sync base_prompt with the textarea so the diff viewer shows only
       // the LLM's delta, not the user's prior manual edits attributed as
       // if the LLM made them. Skipped when no session exists yet — the
       // createSession path seeds base_prompt from the freshly-flushed draft.
-      if (sessionId && basePrompt !== null && currentPrompt !== basePrompt) {
-        await updateBasePrompt(currentPrompt);
+      // Also skip when using an unsaved suggestion — the baseline should
+      // stay anchored to the session start so cumulative diffs are shown.
+      if (!suggestedPrompt && sessionId && basePrompt !== null && formPrompt !== basePrompt) {
+        await updateBasePrompt(formPrompt);
       }
 
       await underlyingSendMessage(content, currentPrompt, model);
     },
-    [form, underlyingSendMessage, model, sessionId, basePrompt, updateBasePrompt]
+    [form, underlyingSendMessage, model, sessionId, basePrompt, updateBasePrompt, suggestedPrompt]
   );
 
   const createNewSession = useCallback(() => {

@@ -107,6 +107,10 @@ export function EditableDiffView({
   const monacoTheme = resolvedTheme === 'dark' ? DARK_THEME : LIGHT_THEME;
 
   const editorRef = useRef<MonacoDiffEditor | null>(null);
+  const latestToContentRef = useRef(toContent);
+  useEffect(() => {
+    latestToContentRef.current = toContent;
+  }, [toContent]);
 
   // Capture the toContent at mount and never update it, so the `modified`
   // prop handed to the library stays stable and its built-in setModel path
@@ -191,6 +195,12 @@ export function EditableDiffView({
           schedule(value);
         }
       });
+
+      const mountedValue = modifiedEditor.getValue();
+      const latestValue = latestToContentRef.current;
+      if (mountedValue !== latestValue) {
+        modifiedEditor.getModel()?.setValue(latestValue);
+      }
     },
     [schedule]
   );
