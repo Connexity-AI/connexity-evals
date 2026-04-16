@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ConfigDict, model_validator
-from sqlalchemy import Column, text
+from sqlalchemy import Column, Text, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -72,20 +72,38 @@ class AgentBase(SQLModel):
         max_length=64,
         description="LLM provider for platform agent simulator (e.g. openai, anthropic)",
     )
+    agent_temperature: float | None = Field(
+        default=None,
+        description="Sampling temperature for platform agent simulator (0.0–2.0)",
+    )
     agent_metadata: dict[str, Any] | None = Field(
         default=None,
         sa_column=Column("metadata", JSONB, nullable=True),
         description="Arbitrary key-value metadata about the agent",
     )
+    editor_guidelines: str | None = Field(
+        default=None,
+        sa_column=Column(Text, nullable=True),
+        description=(
+            "Custom prompting guidelines for the prompt editor agent (None = use built-in default)"
+        ),
+    )
 
     @model_validator(mode="after")
     def validate_mode_fields(self) -> "AgentBase":
-        validate_agent_mode_requirements(
-            mode=self.mode,
-            endpoint_url=self.endpoint_url,
-            system_prompt=self.system_prompt,
-            agent_model=self.agent_model,
+        # Skip validation for table models (drafts may have incomplete fields)
+        has_any_mode_field = (
+            self.endpoint_url is not None
+            or self.system_prompt is not None
+            or self.agent_model is not None
         )
+        if has_any_mode_field:
+            validate_agent_mode_requirements(
+                mode=self.mode,
+                endpoint_url=self.endpoint_url,
+                system_prompt=self.system_prompt,
+                agent_model=self.agent_model,
+            )
         return self
 
 
@@ -132,7 +150,19 @@ class Agent(AgentBase, table=True):
 
 
 class AgentCreate(AgentBase):
-    pass
+    @model_validator(mode="after")
+    def validate_mode_fields(self) -> "AgentCreate":
+        validate_agent_mode_requirements(
+            mode=self.mode,
+            endpoint_url=self.endpoint_url,
+            system_prompt=self.system_prompt,
+            agent_model=self.agent_model,
+        )
+        return self
+
+
+class AgentCreateDraft(SQLModel):
+    name: str = Field(default="Untitled Agent", max_length=255)
 
 
 class AgentUpdate(SQLModel):
@@ -167,8 +197,16 @@ class AgentUpdate(SQLModel):
         max_length=64,
         description="LLM provider for platform agent simulator",
     )
+    agent_temperature: float | None = Field(
+        default=None,
+        description="Sampling temperature for platform agent simulator (0.0–2.0)",
+    )
     agent_metadata: dict[str, Any] | None = Field(
         default=None, description="Arbitrary key-value metadata about the agent"
+    )
+    editor_guidelines: str | None = Field(
+        default=None,
+        description="Custom prompting guidelines for the prompt editor agent (None = use default)",
     )
     change_description: str | None = Field(
         default=None,
@@ -183,7 +221,28 @@ class AgentPublic(AgentBase):
     created_at: datetime = Field(description="When the agent was created")
     updated_at: datetime = Field(description="When the agent was last updated")
 
+    @model_validator(mode="after")
+    def validate_mode_fields(self) -> "AgentPublic":
+        # Responses mirror persisted rows (drafts, direct DB updates, whitespace-only
+        # prompts, etc.). Create/update use AgentCreate / AgentUpdate / Agent with
+        # full mode validation.
+        return self
+
 
 class AgentsPublic(SQLModel):
     data: list[AgentPublic] = Field(description="List of agents")
     count: int = Field(description="Total number of agents matching the query")
+
+
+class AgentGuidelinesPublic(SQLModel):
+    guidelines: str = Field(description="Effective guidelines text (custom or default)")
+    is_default: bool = Field(
+        description="True when using built-in defaults (no custom guidelines stored)"
+    )
+
+
+class AgentGuidelinesUpdate(SQLModel):
+    guidelines: str | None = Field(
+        default=None,
+        description="Custom guidelines text, or null to reset to built-in default",
+    )

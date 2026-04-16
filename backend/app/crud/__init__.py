@@ -1,10 +1,13 @@
 """CRUD package — re-exports all functions for ``from app import crud`` compatibility."""
 
 from app.crud.agent import (  # noqa: F401
+    agent_guidelines_public,
     create_agent,
+    create_draft_agent,
     delete_agent,
     get_agent,
     list_agents,
+    set_agent_editor_guidelines,
     update_agent,
 )
 from app.crud.agent_version import (  # noqa: F401
@@ -49,9 +52,6 @@ from app.crud.prompt_editor_message import (
 from app.crud.prompt_editor_message import (
     list_messages as list_prompt_editor_messages,  # noqa: F401
 )
-from app.crud.prompt_editor_message import (
-    update_suggestion_status as update_prompt_editor_suggestion_status,  # noqa: F401
-)
 from app.crud.prompt_editor_session import (
     create_session as create_prompt_editor_session,  # noqa: F401
 )
@@ -66,6 +66,12 @@ from app.crud.prompt_editor_session import (
 )
 from app.crud.prompt_editor_session import (
     update_session as update_prompt_editor_session,  # noqa: F401
+)
+from app.crud.prompt_editor_session import (
+    update_session_base_prompt as update_prompt_editor_session_base_prompt,  # noqa: F401
+)
+from app.crud.prompt_editor_session import (
+    update_session_edited_prompt as update_prompt_editor_session_edited_prompt,  # noqa: F401
 )
 from app.crud.run import (  # noqa: F401
     create_run,
@@ -95,7 +101,6 @@ from app.crud.test_case_result import (  # noqa: F401
 )
 from app.crud.user import (  # noqa: F401
     authenticate,
-    authenticate_github,
     create_user,
     get_user_by_email,
     update_user,

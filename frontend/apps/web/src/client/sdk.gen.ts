@@ -6,6 +6,9 @@ import type {
   AgentsCreateAgentData,
   AgentsCreateAgentErrors,
   AgentsCreateAgentResponses,
+  AgentsCreateDraftAgentData,
+  AgentsCreateDraftAgentErrors,
+  AgentsCreateDraftAgentResponses,
   AgentsDeleteAgentData,
   AgentsDeleteAgentErrors,
   AgentsDeleteAgentResponses,
@@ -17,6 +20,9 @@ import type {
   AgentsDiscardDraftResponses,
   AgentsGetAgentData,
   AgentsGetAgentErrors,
+  AgentsGetAgentGuidelinesData,
+  AgentsGetAgentGuidelinesErrors,
+  AgentsGetAgentGuidelinesResponses,
   AgentsGetAgentResponses,
   AgentsGetDraftData,
   AgentsGetDraftErrors,
@@ -30,6 +36,9 @@ import type {
   AgentsPublishDraftData,
   AgentsPublishDraftErrors,
   AgentsPublishDraftResponses,
+  AgentsPutAgentGuidelinesData,
+  AgentsPutAgentGuidelinesErrors,
+  AgentsPutAgentGuidelinesResponses,
   AgentsReadAgentVersionData,
   AgentsReadAgentVersionErrors,
   AgentsReadAgentVersionResponses,
@@ -95,15 +104,9 @@ import type {
   EvalSetsUpdateEvalSetResponses,
   HealthHealthData,
   HealthHealthResponses,
-  LoginAuthGithubCallbackData,
-  LoginAuthGithubCallbackErrors,
-  LoginAuthGithubCallbackResponses,
   LoginLoginAccessTokenData,
   LoginLoginAccessTokenErrors,
   LoginLoginAccessTokenResponses,
-  LoginLoginGithubData,
-  LoginLoginGithubErrors,
-  LoginLoginGithubResponses,
   LoginLogoutData,
   LoginLogoutErrors,
   LoginLogoutResponses,
@@ -119,6 +122,33 @@ import type {
   LoginTestTokenData,
   LoginTestTokenErrors,
   LoginTestTokenResponses,
+  PromptEditorChatData,
+  PromptEditorChatErrors,
+  PromptEditorChatResponses,
+  PromptEditorCreateSessionData,
+  PromptEditorCreateSessionErrors,
+  PromptEditorCreateSessionResponses,
+  PromptEditorDeleteSessionData,
+  PromptEditorDeleteSessionErrors,
+  PromptEditorDeleteSessionResponses,
+  PromptEditorGetPresetsData,
+  PromptEditorGetPresetsErrors,
+  PromptEditorGetPresetsResponses,
+  PromptEditorGetSessionData,
+  PromptEditorGetSessionErrors,
+  PromptEditorGetSessionResponses,
+  PromptEditorListMessagesData,
+  PromptEditorListMessagesErrors,
+  PromptEditorListMessagesResponses,
+  PromptEditorListSessionsData,
+  PromptEditorListSessionsErrors,
+  PromptEditorListSessionsResponses,
+  PromptEditorUpdateSessionBasePromptData,
+  PromptEditorUpdateSessionBasePromptErrors,
+  PromptEditorUpdateSessionBasePromptResponses,
+  PromptEditorUpdateSessionData,
+  PromptEditorUpdateSessionErrors,
+  PromptEditorUpdateSessionResponses,
   RunsCancelRunEndpointData,
   RunsCancelRunEndpointErrors,
   RunsCancelRunEndpointResponses,
@@ -375,37 +405,6 @@ export class LoginService {
       ...options,
     });
   }
-
-  /**
-   * Login Github
-   *
-   * Redirect to GitHub login page
-   * Must initiate OAuth flow from backend
-   */
-  public static loginGithub<ThrowOnError extends boolean = false>(
-    options?: Options<LoginLoginGithubData, ThrowOnError>
-  ) {
-    return (options?.client ?? client).get<
-      LoginLoginGithubResponses,
-      LoginLoginGithubErrors,
-      ThrowOnError
-    >({ url: '/api/v1/login/github', ...options });
-  }
-
-  /**
-   * Auth Github Callback
-   *
-   * GitHub OAuth callback, GitHub will call this endpoint
-   */
-  public static authGithubCallback<ThrowOnError extends boolean = false>(
-    options?: Options<LoginAuthGithubCallbackData, ThrowOnError>
-  ) {
-    return (options?.client ?? client).get<
-      LoginAuthGithubCallbackResponses,
-      LoginAuthGithubCallbackErrors,
-      ThrowOnError
-    >({ url: '/api/v1/auth/github/callback', ...options });
-  }
 }
 
 export class UsersService {
@@ -589,6 +588,34 @@ export class AgentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Create Draft Agent
+   */
+  public static createDraftAgent<ThrowOnError extends boolean = false>(
+    options: Options<AgentsCreateDraftAgentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      AgentsCreateDraftAgentResponses,
+      AgentsCreateDraftAgentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/draft',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -793,6 +820,58 @@ export class AgentsService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/agents/{agent_id}/publish',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Get Agent Guidelines
+   */
+  public static getAgentGuidelines<ThrowOnError extends boolean = false>(
+    options: Options<AgentsGetAgentGuidelinesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      AgentsGetAgentGuidelinesResponses,
+      AgentsGetAgentGuidelinesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/guidelines',
+      ...options,
+    });
+  }
+
+  /**
+   * Put Agent Guidelines
+   */
+  public static putAgentGuidelines<ThrowOnError extends boolean = false>(
+    options: Options<AgentsPutAgentGuidelinesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).put<
+      AgentsPutAgentGuidelinesResponses,
+      AgentsPutAgentGuidelinesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/agents/{agent_id}/guidelines',
       ...options,
       headers: {
         'Content-Type': 'application/json',
@@ -1889,6 +1968,253 @@ export class TestCaseResultsService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+    });
+  }
+}
+
+export class PromptEditorService {
+  /**
+   * List Sessions
+   */
+  public static promptEditorListSessions<ThrowOnError extends boolean = false>(
+    options?: Options<PromptEditorListSessionsData, ThrowOnError>
+  ) {
+    return (options?.client ?? client).get<
+      PromptEditorListSessionsResponses,
+      PromptEditorListSessionsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/',
+      ...options,
+    });
+  }
+
+  /**
+   * Create Session
+   */
+  public static promptEditorCreateSession<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorCreateSessionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      PromptEditorCreateSessionResponses,
+      PromptEditorCreateSessionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Delete Session
+   */
+  public static promptEditorDeleteSession<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorDeleteSessionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).delete<
+      PromptEditorDeleteSessionResponses,
+      PromptEditorDeleteSessionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Get Session
+   */
+  public static promptEditorGetSession<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorGetSessionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      PromptEditorGetSessionResponses,
+      PromptEditorGetSessionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}',
+      ...options,
+    });
+  }
+
+  /**
+   * Update Session
+   */
+  public static promptEditorUpdateSession<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorUpdateSessionData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      PromptEditorUpdateSessionResponses,
+      PromptEditorUpdateSessionErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Update Session Base Prompt
+   *
+   * Set ``base_prompt`` (diff baseline), e.g. after the agent draft is saved.
+   */
+  public static promptEditorUpdateSessionBasePrompt<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorUpdateSessionBasePromptData, ThrowOnError>
+  ) {
+    return (options.client ?? client).patch<
+      PromptEditorUpdateSessionBasePromptResponses,
+      PromptEditorUpdateSessionBasePromptErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}/base-prompt',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * List Messages
+   */
+  public static promptEditorListMessages<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorListMessagesData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      PromptEditorListMessagesResponses,
+      PromptEditorListMessagesErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}/messages',
+      ...options,
+    });
+  }
+
+  /**
+   * Chat
+   *
+   * Stream the editor agent response (reasoning + full-text edit snapshots).
+   *
+   * The SSE generator outlives the FastAPI dependency scope (``get_db`` closes
+   * the SQLAlchemy ``Session`` once this function returns the
+   * ``StreamingResponse``).  Therefore we:
+   *
+   * 1. Read all data we need *before* returning and copy it into plain Python
+   * objects so the generator never touches the original session.
+   * 2. Open a **new** ``Session`` inside the generator for the DB writes that
+   * happen after the LLM stream completes.
+   */
+  public static promptEditorChat<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorChatData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      PromptEditorChatResponses,
+      PromptEditorChatErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/sessions/{session_id}/messages',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Get Presets
+   */
+  public static promptEditorGetPresets<ThrowOnError extends boolean = false>(
+    options: Options<PromptEditorGetPresetsData, ThrowOnError>
+  ) {
+    return (options.client ?? client).get<
+      PromptEditorGetPresetsResponses,
+      PromptEditorGetPresetsErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/prompt-editor/presets',
+      ...options,
     });
   }
 }

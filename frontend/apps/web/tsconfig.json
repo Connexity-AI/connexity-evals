@@ -11,6 +11,7 @@
       "@/client/*": ["client/*"],
       "@/schemas/*": ["schemas/*"],
       "@/utils/*": ["utils/*"],
+      "@/common/*": ["common/*"],
       "@/constants/*": ["constants/*"],
       "@/config/*": ["config/*"],
 

@@ -91,6 +91,18 @@ export const AgentCreateSchema = {
       title: 'Agent Provider',
       description: 'LLM provider for platform agent simulator (e.g. openai, anthropic)',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+      description: 'Sampling temperature for platform agent simulator (0.0–2.0)',
+    },
     agent_metadata: {
       anyOf: [
         {
@@ -103,10 +115,36 @@ export const AgentCreateSchema = {
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
     },
+    editor_guidelines: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Editor Guidelines',
+      description:
+        'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
+    },
   },
   type: 'object',
   required: ['name'],
   title: 'AgentCreate',
+} as const;
+
+export const AgentCreateDraftSchema = {
+  properties: {
+    name: {
+      type: 'string',
+      maxLength: 255,
+      title: 'Name',
+      default: 'Untitled Agent',
+    },
+  },
+  type: 'object',
+  title: 'AgentCreateDraft',
 } as const;
 
 export const AgentDraftUpdateSchema = {
@@ -179,10 +217,58 @@ export const AgentDraftUpdateSchema = {
       ],
       title: 'Agent Provider',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+    },
   },
   type: 'object',
   title: 'AgentDraftUpdate',
   description: 'Partial update for versionable agent fields — used by PUT /agents/{id}/draft.',
+} as const;
+
+export const AgentGuidelinesPublicSchema = {
+  properties: {
+    guidelines: {
+      type: 'string',
+      title: 'Guidelines',
+      description: 'Effective guidelines text (custom or default)',
+    },
+    is_default: {
+      type: 'boolean',
+      title: 'Is Default',
+      description: 'True when using built-in defaults (no custom guidelines stored)',
+    },
+  },
+  type: 'object',
+  required: ['guidelines', 'is_default'],
+  title: 'AgentGuidelinesPublic',
+} as const;
+
+export const AgentGuidelinesUpdateSchema = {
+  properties: {
+    guidelines: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Guidelines',
+      description: 'Custom guidelines text, or null to reset to built-in default',
+    },
+  },
+  type: 'object',
+  title: 'AgentGuidelinesUpdate',
 } as const;
 
 export const AgentModeSchema = {
@@ -282,6 +368,18 @@ export const AgentPublicSchema = {
       title: 'Agent Provider',
       description: 'LLM provider for platform agent simulator (e.g. openai, anthropic)',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+      description: 'Sampling temperature for platform agent simulator (0.0–2.0)',
+    },
     agent_metadata: {
       anyOf: [
         {
@@ -293,6 +391,19 @@ export const AgentPublicSchema = {
       ],
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
+    },
+    editor_guidelines: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Editor Guidelines',
+      description:
+        'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
     },
     id: {
       type: 'string',
@@ -515,6 +626,18 @@ export const AgentUpdateSchema = {
       title: 'Agent Provider',
       description: 'LLM provider for platform agent simulator',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+      description: 'Sampling temperature for platform agent simulator (0.0–2.0)',
+    },
     agent_metadata: {
       anyOf: [
         {
@@ -526,6 +649,18 @@ export const AgentUpdateSchema = {
       ],
       title: 'Agent Metadata',
       description: 'Arbitrary key-value metadata about the agent',
+    },
+    editor_guidelines: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Editor Guidelines',
+      description: 'Custom prompting guidelines for the prompt editor agent (None = use default)',
     },
     change_description: {
       anyOf: [
@@ -703,6 +838,17 @@ export const AgentVersionPublicSchema = {
       ],
       title: 'Agent Provider',
     },
+    agent_temperature: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Temperature',
+    },
     change_description: {
       anyOf: [
         {
@@ -744,6 +890,7 @@ export const AgentVersionPublicSchema = {
     'tools',
     'agent_model',
     'agent_provider',
+    'agent_temperature',
     'change_description',
     'created_by',
     'created_at',
@@ -1667,6 +1814,13 @@ export const EvalSetCreateSchema = {
       title: 'Description',
       description: 'What this eval set covers',
     },
+    set_repetitions: {
+      type: 'integer',
+      minimum: 1,
+      title: 'Set Repetitions',
+      description: 'How many times to repeat the entire set during a run',
+      default: 1,
+    },
     members: {
       anyOf: [
         {
@@ -1839,6 +1993,13 @@ export const EvalSetPublicSchema = {
       description: 'Monotonically increasing version for snapshot tracking',
       default: 1,
     },
+    set_repetitions: {
+      type: 'integer',
+      minimum: 1,
+      title: 'Set Repetitions',
+      description: 'How many times to repeat the entire set during a run',
+      default: 1,
+    },
     id: {
       type: 'string',
       format: 'uuid',
@@ -1853,7 +2014,7 @@ export const EvalSetPublicSchema = {
     effective_test_case_count: {
       type: 'integer',
       title: 'Effective Test Case Count',
-      description: 'Sum of per-test-case repetitions — total expanded executions',
+      description: 'Sum(member.repetitions) * set_repetitions — total expanded executions',
       default: 0,
     },
     created_at: {
@@ -1900,6 +2061,19 @@ export const EvalSetUpdateSchema = {
       title: 'Description',
       description: 'What this eval set covers',
     },
+    set_repetitions: {
+      anyOf: [
+        {
+          type: 'integer',
+          minimum: 1,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Set Repetitions',
+      description: 'How many times to repeat the entire set during a run',
+    },
   },
   type: 'object',
   title: 'EvalSetUpdate',
@@ -1924,29 +2098,6 @@ export const EvalSetsPublicSchema = {
   type: 'object',
   required: ['data', 'count'],
   title: 'EvalSetsPublic',
-} as const;
-
-export const ExpectedOutcomeResultSchema = {
-  properties: {
-    statement: {
-      type: 'string',
-      title: 'Statement',
-      description: 'The expected outcome statement from the test case',
-    },
-    passed: {
-      type: 'boolean',
-      title: 'Passed',
-      description: 'Whether the expected outcome was met',
-    },
-    justification: {
-      type: 'string',
-      title: 'Justification',
-      description: 'Judge reasoning for the pass/fail determination',
-    },
-  },
-  type: 'object',
-  required: ['statement', 'passed', 'justification'],
-  title: 'ExpectedOutcomeResult',
 } as const;
 
 export const ExpectedToolCallSchema = {
@@ -2054,12 +2205,6 @@ export const FieldChangeSchema = {
   type: 'object',
   required: ['field'],
   title: 'FieldChange',
-} as const;
-
-export const FirstTurnSchema = {
-  type: 'string',
-  enum: ['agent', 'persona'],
-  title: 'FirstTurn',
 } as const;
 
 export const GenerateRequestSchema = {
@@ -2351,21 +2496,6 @@ export const JudgeVerdictSchema = {
       type: 'array',
       title: 'Metric Scores',
       description: 'Per-metric score breakdown',
-    },
-    expected_outcome_results: {
-      anyOf: [
-        {
-          items: {
-            $ref: '#/components/schemas/ExpectedOutcomeResult',
-          },
-          type: 'array',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Expected Outcome Results',
-      description: 'Per-outcome pass/fail results for each expected outcome statement',
     },
     summary: {
       anyOf: [
@@ -2891,6 +3021,66 @@ export const OnConflictSchema = {
   title: 'OnConflict',
 } as const;
 
+export const PersonaSchema = {
+  properties: {
+    type: {
+      type: 'string',
+      title: 'Type',
+      description: 'Short persona archetype label',
+    },
+    description: {
+      type: 'string',
+      title: 'Description',
+      description: 'Detailed persona description',
+    },
+    instructions: {
+      type: 'string',
+      title: 'Instructions',
+      description: 'Behavioral directives for the LLM simulator',
+    },
+  },
+  type: 'object',
+  required: ['type', 'description', 'instructions'],
+  title: 'Persona',
+} as const;
+
+export const PresetPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      title: 'Id',
+    },
+    label: {
+      type: 'string',
+      title: 'Label',
+    },
+    message: {
+      type: 'string',
+      title: 'Message',
+    },
+    description: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Description',
+    },
+    context: {
+      type: 'string',
+      title: 'Context',
+      description: "'none' or 'eval'",
+    },
+  },
+  type: 'object',
+  required: ['id', 'label', 'message', 'context'],
+  title: 'PresetPublic',
+  description: 'API shape for a preset (excludes internal ``requires`` gates).',
+} as const;
+
 export const PromptDiffSchema = {
   properties: {
     changed: {
@@ -2938,6 +3128,344 @@ export const PromptDiffSchema = {
   type: 'object',
   required: ['changed', 'change_ratio'],
   title: 'PromptDiff',
+} as const;
+
+export const PromptEditorChatMessageCreateSchema = {
+  properties: {
+    content: {
+      type: 'string',
+      title: 'Content',
+      description: 'User message text',
+    },
+    current_prompt: {
+      type: 'string',
+      title: 'Current Prompt',
+      description: 'Current prompt text as shown in the editor (includes manual edits)',
+    },
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+      description:
+        'Optional LLM provider for this turn (e.g. openai, anthropic). Merged with model per LiteLLM rules; omit if model is a full routing id (contains /).',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+      description:
+        'Optional LLM model for this turn (bare id or full vendor/model routing id). When omitted, server defaults apply.',
+    },
+    test_case_result_ids: {
+      anyOf: [
+        {
+          items: {
+            type: 'string',
+            format: 'uuid',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Test Case Result Ids',
+      description: 'Optional test case result IDs for eval context injection (CS-64)',
+    },
+  },
+  type: 'object',
+  required: ['content', 'current_prompt'],
+  title: 'PromptEditorChatMessageCreate',
+  description: 'Body for POST /prompt-editor/sessions/{id}/messages (SSE chat).',
+} as const;
+
+export const PromptEditorMessagePublicSchema = {
+  properties: {
+    role: {
+      $ref: '#/components/schemas/TurnRole',
+      description: 'Message role (user, assistant, …)',
+    },
+    content: {
+      type: 'string',
+      title: 'Content',
+      description: 'Full message text',
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'Message id',
+    },
+    session_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Session Id',
+      description: 'Session id',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+      description: 'Created at',
+    },
+  },
+  type: 'object',
+  required: ['role', 'content', 'id', 'session_id', 'created_at'],
+  title: 'PromptEditorMessagePublic',
+} as const;
+
+export const PromptEditorMessagesPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/PromptEditorMessagePublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Messages',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total messages in the query',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'PromptEditorMessagesPublic',
+} as const;
+
+export const PromptEditorSessionBasePromptUpdateSchema = {
+  properties: {
+    base_prompt: {
+      type: 'string',
+      title: 'Base Prompt',
+      description:
+        'New diff baseline for this session (e.g. after saving the agent draft). Typically matches the current draft system_prompt.',
+    },
+  },
+  type: 'object',
+  required: ['base_prompt'],
+  title: 'PromptEditorSessionBasePromptUpdate',
+  description: 'Body for PATCH /prompt-editor/sessions/{id}/base-prompt.',
+} as const;
+
+export const PromptEditorSessionCreateSchema = {
+  properties: {
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+      description: 'Agent to attach the session to',
+    },
+    title: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Title',
+      description: 'Optional title; auto-generated if omitted',
+    },
+    run_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Run Id',
+      description: 'Optional run for eval context',
+    },
+  },
+  type: 'object',
+  required: ['agent_id'],
+  title: 'PromptEditorSessionCreate',
+} as const;
+
+export const PromptEditorSessionPublicSchema = {
+  properties: {
+    title: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Title',
+      description: 'Session title (auto-generated or user-set)',
+    },
+    status: {
+      $ref: '#/components/schemas/PromptEditorSessionStatus',
+      description: 'active or archived',
+      default: 'active',
+    },
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+      description: 'Session id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+      description: 'Agent id',
+    },
+    created_by: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Created By',
+      description: 'Owner user id',
+    },
+    run_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Run Id',
+      description: 'Linked run id if any',
+    },
+    base_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Base Prompt',
+      description: 'Original prompt snapshot at session start',
+    },
+    edited_prompt: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Edited Prompt',
+      description: 'Current prompt state on server',
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+      description: 'Created at',
+    },
+    updated_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Updated At',
+      description: 'Updated at',
+    },
+    message_count: {
+      type: 'integer',
+      title: 'Message Count',
+      description: 'Number of messages in the session',
+    },
+  },
+  type: 'object',
+  required: [
+    'id',
+    'agent_id',
+    'created_by',
+    'run_id',
+    'base_prompt',
+    'edited_prompt',
+    'created_at',
+    'updated_at',
+    'message_count',
+  ],
+  title: 'PromptEditorSessionPublic',
+} as const;
+
+export const PromptEditorSessionStatusSchema = {
+  type: 'string',
+  enum: ['active', 'archived'],
+  title: 'PromptEditorSessionStatus',
+} as const;
+
+export const PromptEditorSessionUpdateSchema = {
+  properties: {
+    title: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Title',
+      description: 'Session title',
+    },
+    status: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/PromptEditorSessionStatus',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      description: 'active or archived',
+    },
+  },
+  type: 'object',
+  title: 'PromptEditorSessionUpdate',
+} as const;
+
+export const PromptEditorSessionsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/PromptEditorSessionPublic',
+      },
+      type: 'array',
+      title: 'Data',
+      description: 'Sessions',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+      description: 'Total matching sessions',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'PromptEditorSessionsPublic',
 } as const;
 
 export const PublishRequestSchema = {
@@ -3193,18 +3721,6 @@ export const RunConfig_InputSchema = {
       description: 'Timeout per test case in milliseconds before forced stop',
       default: 120000,
     },
-    max_turns: {
-      anyOf: [
-        {
-          type: 'integer',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Max Turns',
-      description: 'Max agent response rounds per test case; null = no cap',
-    },
     judge: {
       anyOf: [
         {
@@ -3257,18 +3773,6 @@ export const RunConfig_OutputSchema = {
       title: 'Timeout Per Test Case Ms',
       description: 'Timeout per test case in milliseconds before forced stop',
       default: 120000,
-    },
-    max_turns: {
-      anyOf: [
-        {
-          type: 'integer',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Max Turns',
-      description: 'Max agent response rounds per test case; null = no cap',
     },
     judge: {
       anyOf: [
@@ -4080,7 +4584,17 @@ export const TestCaseCreateSchema = {
       description: 'Lifecycle status — only active test cases run by default',
       default: 'active',
     },
-    persona_context: {
+    persona: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Persona',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    initial_message: {
       anyOf: [
         {
           type: 'string',
@@ -4089,27 +4603,8 @@ export const TestCaseCreateSchema = {
           type: 'null',
         },
       ],
-      title: 'Persona Context',
-      description:
-        'Free-form persona description for the LLM simulator (type, description, behavioral instructions in one text block)',
-    },
-    first_turn: {
-      $ref: '#/components/schemas/FirstTurn',
-      description: 'Who speaks first in the conversation: agent or persona',
-      default: 'persona',
-    },
-    first_message: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'First Message',
-      description:
-        "Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.",
+      title: 'Initial Message',
+      description: 'First message the simulated user sends to the agent',
     },
     user_context: {
       anyOf: [
@@ -4123,21 +4618,29 @@ export const TestCaseCreateSchema = {
       title: 'User Context',
       description: 'Free-form domain knowledge JSON-dumped into simulator prompt',
     },
+    max_turns: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Turns',
+      description: 'Max conversation turns; null = no cap',
+    },
     expected_outcomes: {
       anyOf: [
         {
-          items: {
-            type: 'string',
-          },
-          type: 'array',
+          type: 'object',
         },
         {
           type: 'null',
         },
       ],
       title: 'Expected Outcomes',
-      description:
-        'List of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")',
+      description: 'Free-form success criteria the judge evaluates against',
     },
     expected_tool_calls: {
       anyOf: [
@@ -4222,7 +4725,17 @@ export const TestCaseImportItemSchema = {
       description: 'Lifecycle status — only active test cases run by default',
       default: 'active',
     },
-    persona_context: {
+    persona: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Persona',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    initial_message: {
       anyOf: [
         {
           type: 'string',
@@ -4231,27 +4744,8 @@ export const TestCaseImportItemSchema = {
           type: 'null',
         },
       ],
-      title: 'Persona Context',
-      description:
-        'Free-form persona description for the LLM simulator (type, description, behavioral instructions in one text block)',
-    },
-    first_turn: {
-      $ref: '#/components/schemas/FirstTurn',
-      description: 'Who speaks first in the conversation: agent or persona',
-      default: 'persona',
-    },
-    first_message: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'First Message',
-      description:
-        "Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.",
+      title: 'Initial Message',
+      description: 'First message the simulated user sends to the agent',
     },
     user_context: {
       anyOf: [
@@ -4265,21 +4759,29 @@ export const TestCaseImportItemSchema = {
       title: 'User Context',
       description: 'Free-form domain knowledge JSON-dumped into simulator prompt',
     },
+    max_turns: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Turns',
+      description: 'Max conversation turns; null = no cap',
+    },
     expected_outcomes: {
       anyOf: [
         {
-          items: {
-            type: 'string',
-          },
-          type: 'array',
+          type: 'object',
         },
         {
           type: 'null',
         },
       ],
       title: 'Expected Outcomes',
-      description:
-        'List of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")',
+      description: 'Free-form success criteria the judge evaluates against',
     },
     expected_tool_calls: {
       anyOf: [
@@ -4410,7 +4912,17 @@ export const TestCasePublicSchema = {
       description: 'Lifecycle status — only active test cases run by default',
       default: 'active',
     },
-    persona_context: {
+    persona: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Persona',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    initial_message: {
       anyOf: [
         {
           type: 'string',
@@ -4419,27 +4931,8 @@ export const TestCasePublicSchema = {
           type: 'null',
         },
       ],
-      title: 'Persona Context',
-      description:
-        'Free-form persona description for the LLM simulator (type, description, behavioral instructions in one text block)',
-    },
-    first_turn: {
-      $ref: '#/components/schemas/FirstTurn',
-      description: 'Who speaks first in the conversation: agent or persona',
-      default: 'persona',
-    },
-    first_message: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'First Message',
-      description:
-        "Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.",
+      title: 'Initial Message',
+      description: 'First message the simulated user sends to the agent',
     },
     user_context: {
       anyOf: [
@@ -4453,21 +4946,29 @@ export const TestCasePublicSchema = {
       title: 'User Context',
       description: 'Free-form domain knowledge JSON-dumped into simulator prompt',
     },
+    max_turns: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Turns',
+      description: 'Max conversation turns; null = no cap',
+    },
     expected_outcomes: {
       anyOf: [
         {
-          items: {
-            type: 'string',
-          },
-          type: 'array',
+          type: 'object',
         },
         {
           type: 'null',
         },
       ],
       title: 'Expected Outcomes',
-      description:
-        'List of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")',
+      description: 'Free-form success criteria the judge evaluates against',
     },
     expected_tool_calls: {
       anyOf: [
@@ -4552,6 +5053,12 @@ export const TestCaseResultCreateSchema = {
       description: 'Repetition within one set pass (0-based)',
       default: 0,
     },
+    set_repetition_index: {
+      type: 'integer',
+      title: 'Set Repetition Index',
+      description: 'Which full set pass (0-based)',
+      default: 0,
+    },
   },
   type: 'object',
   required: ['run_id', 'test_case_id'],
@@ -4582,6 +5089,11 @@ export const TestCaseResultPublicSchema = {
       type: 'integer',
       title: 'Repetition Index',
       description: 'Repetition within one set pass (0-based)',
+    },
+    set_repetition_index: {
+      type: 'integer',
+      title: 'Set Repetition Index',
+      description: 'Which full set pass (0-based)',
     },
     transcript: {
       anyOf: [
@@ -4826,6 +5338,7 @@ export const TestCaseResultPublicSchema = {
     'run_id',
     'test_case_id',
     'repetition_index',
+    'set_repetition_index',
     'turn_count',
     'total_latency_ms',
     'agent_latency_p50_ms',
@@ -5163,7 +5676,17 @@ export const TestCaseUpdateSchema = {
       ],
       description: 'Lifecycle status — only active test cases run by default',
     },
-    persona_context: {
+    persona: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/Persona',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    initial_message: {
       anyOf: [
         {
           type: 'string',
@@ -5172,31 +5695,8 @@ export const TestCaseUpdateSchema = {
           type: 'null',
         },
       ],
-      title: 'Persona Context',
-      description: 'Free-form persona description for the LLM simulator',
-    },
-    first_turn: {
-      anyOf: [
-        {
-          $ref: '#/components/schemas/FirstTurn',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      description: 'Who speaks first: agent or persona',
-    },
-    first_message: {
-      anyOf: [
-        {
-          type: 'string',
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'First Message',
-      description: 'Opening message for whoever speaks first',
+      title: 'Initial Message',
+      description: 'First message the simulated user sends to the agent',
     },
     user_context: {
       anyOf: [
@@ -5209,13 +5709,22 @@ export const TestCaseUpdateSchema = {
       ],
       title: 'User Context',
     },
+    max_turns: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Max Turns',
+      description: 'Max conversation turns; null = no cap',
+    },
     expected_outcomes: {
       anyOf: [
         {
-          items: {
-            type: 'string',
-          },
-          type: 'array',
+          type: 'object',
         },
         {
           type: 'null',
@@ -5478,18 +5987,6 @@ export const UserPublicSchema = {
       $ref: '#/components/schemas/AuthProvider',
       default: 'email',
     },
-    oauth_id: {
-      anyOf: [
-        {
-          type: 'string',
-          maxLength: 255,
-        },
-        {
-          type: 'null',
-        },
-      ],
-      title: 'Oauth Id',
-    },
     is_active: {
       type: 'boolean',
       title: 'Is Active',
@@ -5568,7 +6065,7 @@ export const UserSimulatorConfigSchema = {
       },
       type: 'array',
       title: 'Scripted Messages',
-      description: 'User lines after first_message, in order (scripted mode only)',
+      description: 'User lines after initial_message, in order (scripted mode only)',
     },
     model: {
       anyOf: [

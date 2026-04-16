@@ -4,11 +4,9 @@ import { Bird } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
 
-import { ROUTES } from '@/constants/routes';
+import { UrlGenerator } from '@/common/url-generator/url-generator';
 
 import type { FC } from 'react';
-
-const { HOME } = ROUTES;
 
 const NotFound: FC = () => (
   <div className="min-h-screen w-full flex-1 flex flex-col justify-center items-center">
@@ -22,7 +20,7 @@ const NotFound: FC = () => (
 
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         <Button asChild variant="outline">
-          <Link href={HOME}>Return to Home</Link>
+          <Link href={UrlGenerator.home()}>Return to Home</Link>
         </Button>
       </div>
     </div>

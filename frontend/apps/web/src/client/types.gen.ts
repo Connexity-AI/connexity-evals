@@ -57,6 +57,12 @@ export type AgentCreate = {
    */
   agent_provider?: string | null;
   /**
+   * Agent Temperature
+   *
+   * Sampling temperature for platform agent simulator (0.0–2.0)
+   */
+  agent_temperature?: number | null;
+  /**
    * Agent Metadata
    *
    * Arbitrary key-value metadata about the agent
@@ -64,6 +70,22 @@ export type AgentCreate = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Editor Guidelines
+   *
+   * Custom prompting guidelines for the prompt editor agent (None = use built-in default)
+   */
+  editor_guidelines?: string | null;
+};
+
+/**
+ * AgentCreateDraft
+ */
+export type AgentCreateDraft = {
+  /**
+   * Name
+   */
+  name?: string;
 };
 
 /**
@@ -95,6 +117,40 @@ export type AgentDraftUpdate = {
    * Agent Provider
    */
   agent_provider?: string | null;
+  /**
+   * Agent Temperature
+   */
+  agent_temperature?: number | null;
+};
+
+/**
+ * AgentGuidelinesPublic
+ */
+export type AgentGuidelinesPublic = {
+  /**
+   * Guidelines
+   *
+   * Effective guidelines text (custom or default)
+   */
+  guidelines: string;
+  /**
+   * Is Default
+   *
+   * True when using built-in defaults (no custom guidelines stored)
+   */
+  is_default: boolean;
+};
+
+/**
+ * AgentGuidelinesUpdate
+ */
+export type AgentGuidelinesUpdate = {
+  /**
+   * Guidelines
+   *
+   * Custom guidelines text, or null to reset to built-in default
+   */
+  guidelines?: string | null;
 };
 
 /**
@@ -160,6 +216,12 @@ export type AgentPublic = {
    */
   agent_provider?: string | null;
   /**
+   * Agent Temperature
+   *
+   * Sampling temperature for platform agent simulator (0.0–2.0)
+   */
+  agent_temperature?: number | null;
+  /**
    * Agent Metadata
    *
    * Arbitrary key-value metadata about the agent
@@ -167,6 +229,12 @@ export type AgentPublic = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Editor Guidelines
+   *
+   * Custom prompting guidelines for the prompt editor agent (None = use built-in default)
+   */
+  editor_guidelines?: string | null;
   /**
    * Id
    *
@@ -298,6 +366,12 @@ export type AgentUpdate = {
    */
   agent_provider?: string | null;
   /**
+   * Agent Temperature
+   *
+   * Sampling temperature for platform agent simulator (0.0–2.0)
+   */
+  agent_temperature?: number | null;
+  /**
    * Agent Metadata
    *
    * Arbitrary key-value metadata about the agent
@@ -305,6 +379,12 @@ export type AgentUpdate = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Editor Guidelines
+   *
+   * Custom prompting guidelines for the prompt editor agent (None = use default)
+   */
+  editor_guidelines?: string | null;
   /**
    * Change Description
    *
@@ -378,6 +458,10 @@ export type AgentVersionPublic = {
    * Agent Provider
    */
   agent_provider: string | null;
+  /**
+   * Agent Temperature
+   */
+  agent_temperature: number | null;
   /**
    * Change Description
    */
@@ -977,6 +1061,12 @@ export type EvalSetCreate = {
    */
   description?: string | null;
   /**
+   * Set Repetitions
+   *
+   * How many times to repeat the entire set during a run
+   */
+  set_repetitions?: number;
+  /**
    * Members
    *
    * Initial members with per-test-case repetitions (omit or empty for none)
@@ -1107,6 +1197,12 @@ export type EvalSetPublic = {
    */
   version?: number;
   /**
+   * Set Repetitions
+   *
+   * How many times to repeat the entire set during a run
+   */
+  set_repetitions?: number;
+  /**
    * Id
    *
    * Unique eval set identifier
@@ -1119,7 +1215,7 @@ export type EvalSetPublic = {
   /**
    * Effective Test Case Count
    *
-   * Sum of per-test-case repetitions — total expanded executions
+   * Sum(member.repetitions) * set_repetitions — total expanded executions
    */
   effective_test_case_count?: number;
   /**
@@ -1152,6 +1248,12 @@ export type EvalSetUpdate = {
    * What this eval set covers
    */
   description?: string | null;
+  /**
+   * Set Repetitions
+   *
+   * How many times to repeat the entire set during a run
+   */
+  set_repetitions?: number | null;
 };
 
 /**
@@ -1170,30 +1272,6 @@ export type EvalSetsPublic = {
    * Total number of sets matching the query
    */
   count: number;
-};
-
-/**
- * ExpectedOutcomeResult
- */
-export type ExpectedOutcomeResult = {
-  /**
-   * Statement
-   *
-   * The expected outcome statement from the test case
-   */
-  statement: string;
-  /**
-   * Passed
-   *
-   * Whether the expected outcome was met
-   */
-  passed: boolean;
-  /**
-   * Justification
-   *
-   * Judge reasoning for the pass/fail determination
-   */
-  justification: string;
 };
 
 /**
@@ -1257,16 +1335,6 @@ export type FieldChange = {
     | Array<unknown>
     | null;
 };
-
-/**
- * FirstTurn
- */
-export const FirstTurn = { AGENT: 'agent', PERSONA: 'persona' } as const;
-
-/**
- * FirstTurn
- */
-export type FirstTurn = (typeof FirstTurn)[keyof typeof FirstTurn];
 
 /**
  * GenerateRequest
@@ -1452,12 +1520,6 @@ export type JudgeVerdict = {
    * Per-metric score breakdown
    */
   metric_scores: Array<MetricScore>;
-  /**
-   * Expected Outcome Results
-   *
-   * Per-outcome pass/fail results for each expected outcome statement
-   */
-  expected_outcome_results?: Array<ExpectedOutcomeResult> | null;
   /**
    * Summary
    *
@@ -1824,6 +1886,60 @@ export const OnConflict = { SKIP: 'skip', OVERWRITE: 'overwrite' } as const;
 export type OnConflict = (typeof OnConflict)[keyof typeof OnConflict];
 
 /**
+ * Persona
+ */
+export type Persona = {
+  /**
+   * Type
+   *
+   * Short persona archetype label
+   */
+  type: string;
+  /**
+   * Description
+   *
+   * Detailed persona description
+   */
+  description: string;
+  /**
+   * Instructions
+   *
+   * Behavioral directives for the LLM simulator
+   */
+  instructions: string;
+};
+
+/**
+ * PresetPublic
+ *
+ * API shape for a preset (excludes internal ``requires`` gates).
+ */
+export type PresetPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Label
+   */
+  label: string;
+  /**
+   * Message
+   */
+  message: string;
+  /**
+   * Description
+   */
+  description?: string | null;
+  /**
+   * Context
+   *
+   * 'none' or 'eval'
+   */
+  context: string;
+};
+
+/**
  * PromptDiff
  */
 export type PromptDiff = {
@@ -1853,6 +1969,249 @@ export type PromptDiff = {
    * Semantic Summary
    */
   semantic_summary?: string | null;
+};
+
+/**
+ * PromptEditorChatMessageCreate
+ *
+ * Body for POST /prompt-editor/sessions/{id}/messages (SSE chat).
+ */
+export type PromptEditorChatMessageCreate = {
+  /**
+   * Content
+   *
+   * User message text
+   */
+  content: string;
+  /**
+   * Current Prompt
+   *
+   * Current prompt text as shown in the editor (includes manual edits)
+   */
+  current_prompt: string;
+  /**
+   * Provider
+   *
+   * Optional LLM provider for this turn (e.g. openai, anthropic). Merged with model per LiteLLM rules; omit if model is a full routing id (contains /).
+   */
+  provider?: string | null;
+  /**
+   * Model
+   *
+   * Optional LLM model for this turn (bare id or full vendor/model routing id). When omitted, server defaults apply.
+   */
+  model?: string | null;
+  /**
+   * Test Case Result Ids
+   *
+   * Optional test case result IDs for eval context injection (CS-64)
+   */
+  test_case_result_ids?: Array<string> | null;
+};
+
+/**
+ * PromptEditorMessagePublic
+ */
+export type PromptEditorMessagePublic = {
+  /**
+   * Message role (user, assistant, …)
+   */
+  role: TurnRole;
+  /**
+   * Content
+   *
+   * Full message text
+   */
+  content: string;
+  /**
+   * Id
+   *
+   * Message id
+   */
+  id: string;
+  /**
+   * Session Id
+   *
+   * Session id
+   */
+  session_id: string;
+  /**
+   * Created At
+   *
+   * Created at
+   */
+  created_at: string;
+};
+
+/**
+ * PromptEditorMessagesPublic
+ */
+export type PromptEditorMessagesPublic = {
+  /**
+   * Data
+   *
+   * Messages
+   */
+  data: Array<PromptEditorMessagePublic>;
+  /**
+   * Count
+   *
+   * Total messages in the query
+   */
+  count: number;
+};
+
+/**
+ * PromptEditorSessionBasePromptUpdate
+ *
+ * Body for PATCH /prompt-editor/sessions/{id}/base-prompt.
+ */
+export type PromptEditorSessionBasePromptUpdate = {
+  /**
+   * Base Prompt
+   *
+   * New diff baseline for this session (e.g. after saving the agent draft). Typically matches the current draft system_prompt.
+   */
+  base_prompt: string;
+};
+
+/**
+ * PromptEditorSessionCreate
+ */
+export type PromptEditorSessionCreate = {
+  /**
+   * Agent Id
+   *
+   * Agent to attach the session to
+   */
+  agent_id: string;
+  /**
+   * Title
+   *
+   * Optional title; auto-generated if omitted
+   */
+  title?: string | null;
+  /**
+   * Run Id
+   *
+   * Optional run for eval context
+   */
+  run_id?: string | null;
+};
+
+/**
+ * PromptEditorSessionPublic
+ */
+export type PromptEditorSessionPublic = {
+  /**
+   * Title
+   *
+   * Session title (auto-generated or user-set)
+   */
+  title?: string | null;
+  /**
+   * active or archived
+   */
+  status?: PromptEditorSessionStatus;
+  /**
+   * Id
+   *
+   * Session id
+   */
+  id: string;
+  /**
+   * Agent Id
+   *
+   * Agent id
+   */
+  agent_id: string;
+  /**
+   * Created By
+   *
+   * Owner user id
+   */
+  created_by: string;
+  /**
+   * Run Id
+   *
+   * Linked run id if any
+   */
+  run_id: string | null;
+  /**
+   * Base Prompt
+   *
+   * Original prompt snapshot at session start
+   */
+  base_prompt: string | null;
+  /**
+   * Edited Prompt
+   *
+   * Current prompt state on server
+   */
+  edited_prompt: string | null;
+  /**
+   * Created At
+   *
+   * Created at
+   */
+  created_at: string;
+  /**
+   * Updated At
+   *
+   * Updated at
+   */
+  updated_at: string;
+  /**
+   * Message Count
+   *
+   * Number of messages in the session
+   */
+  message_count: number;
+};
+
+/**
+ * PromptEditorSessionStatus
+ */
+export const PromptEditorSessionStatus = { ACTIVE: 'active', ARCHIVED: 'archived' } as const;
+
+/**
+ * PromptEditorSessionStatus
+ */
+export type PromptEditorSessionStatus =
+  (typeof PromptEditorSessionStatus)[keyof typeof PromptEditorSessionStatus];
+
+/**
+ * PromptEditorSessionUpdate
+ */
+export type PromptEditorSessionUpdate = {
+  /**
+   * Title
+   *
+   * Session title
+   */
+  title?: string | null;
+  /**
+   * active or archived
+   */
+  status?: PromptEditorSessionStatus | null;
+};
+
+/**
+ * PromptEditorSessionsPublic
+ */
+export type PromptEditorSessionsPublic = {
+  /**
+   * Data
+   *
+   * Sessions
+   */
+  data: Array<PromptEditorSessionPublic>;
+  /**
+   * Count
+   *
+   * Total matching sessions
+   */
+  count: number;
 };
 
 /**
@@ -2003,12 +2362,6 @@ export type RunConfigInput = {
    */
   timeout_per_test_case_ms?: number;
   /**
-   * Max Turns
-   *
-   * Max agent response rounds per test case; null = no cap
-   */
-  max_turns?: number | null;
-  /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
   judge?: JudgeConfig | null;
@@ -2038,12 +2391,6 @@ export type RunConfigOutput = {
    * Timeout per test case in milliseconds before forced stop
    */
   timeout_per_test_case_ms?: number;
-  /**
-   * Max Turns
-   *
-   * Max agent response rounds per test case; null = no cap
-   */
-  max_turns?: number | null;
   /**
    * Judge metric selection, weights, pass threshold, and model overrides
    */
@@ -2490,22 +2837,13 @@ export type TestCaseCreate = {
    * Lifecycle status — only active test cases run by default
    */
   status?: TestCaseStatus;
+  persona?: Persona | null;
   /**
-   * Persona Context
+   * Initial Message
    *
-   * Free-form persona description for the LLM simulator (type, description, behavioral instructions in one text block)
+   * First message the simulated user sends to the agent
    */
-  persona_context?: string | null;
-  /**
-   * Who speaks first in the conversation: agent or persona
-   */
-  first_turn?: FirstTurn;
-  /**
-   * First Message
-   *
-   * Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.
-   */
-  first_message?: string | null;
+  initial_message?: string | null;
   /**
    * User Context
    *
@@ -2515,11 +2853,19 @@ export type TestCaseCreate = {
     [key: string]: unknown;
   } | null;
   /**
+   * Max Turns
+   *
+   * Max conversation turns; null = no cap
+   */
+  max_turns?: number | null;
+  /**
    * Expected Outcomes
    *
-   * List of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")
+   * Free-form success criteria the judge evaluates against
    */
-  expected_outcomes?: Array<string> | null;
+  expected_outcomes?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Expected Tool Calls
    */
@@ -2570,22 +2916,13 @@ export type TestCaseImportItem = {
    * Lifecycle status — only active test cases run by default
    */
   status?: TestCaseStatus;
+  persona?: Persona | null;
   /**
-   * Persona Context
+   * Initial Message
    *
-   * Free-form persona description for the LLM simulator (type, description, behavioral instructions in one text block)
+   * First message the simulated user sends to the agent
    */
-  persona_context?: string | null;
-  /**
-   * Who speaks first in the conversation: agent or persona
-   */
-  first_turn?: FirstTurn;
-  /**
-   * First Message
-   *
-   * Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.
-   */
-  first_message?: string | null;
+  initial_message?: string | null;
   /**
    * User Context
    *
@@ -2595,11 +2932,19 @@ export type TestCaseImportItem = {
     [key: string]: unknown;
   } | null;
   /**
+   * Max Turns
+   *
+   * Max conversation turns; null = no cap
+   */
+  max_turns?: number | null;
+  /**
    * Expected Outcomes
    *
-   * List of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")
+   * Free-form success criteria the judge evaluates against
    */
-  expected_outcomes?: Array<string> | null;
+  expected_outcomes?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Expected Tool Calls
    */
@@ -2680,22 +3025,13 @@ export type TestCasePublic = {
    * Lifecycle status — only active test cases run by default
    */
   status?: TestCaseStatus;
+  persona?: Persona | null;
   /**
-   * Persona Context
+   * Initial Message
    *
-   * Free-form persona description for the LLM simulator (type, description, behavioral instructions in one text block)
+   * First message the simulated user sends to the agent
    */
-  persona_context?: string | null;
-  /**
-   * Who speaks first in the conversation: agent or persona
-   */
-  first_turn?: FirstTurn;
-  /**
-   * First Message
-   *
-   * Opening message for whoever speaks first. When first_turn=persona this is the user's opener; when first_turn=agent this is the agent's greeting.
-   */
-  first_message?: string | null;
+  initial_message?: string | null;
   /**
    * User Context
    *
@@ -2705,11 +3041,19 @@ export type TestCasePublic = {
     [key: string]: unknown;
   } | null;
   /**
+   * Max Turns
+   *
+   * Max conversation turns; null = no cap
+   */
+  max_turns?: number | null;
+  /**
    * Expected Outcomes
    *
-   * List of true-statement assertions the judge evaluates (e.g. "Agent MUST confirm the appointment date")
+   * Free-form success criteria the judge evaluates against
    */
-  expected_outcomes?: Array<string> | null;
+  expected_outcomes?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Expected Tool Calls
    */
@@ -2768,6 +3112,12 @@ export type TestCaseResultCreate = {
    * Repetition within one set pass (0-based)
    */
   repetition_index?: number;
+  /**
+   * Set Repetition Index
+   *
+   * Which full set pass (0-based)
+   */
+  set_repetition_index?: number;
 };
 
 /**
@@ -2798,6 +3148,12 @@ export type TestCaseResultPublic = {
    * Repetition within one set pass (0-based)
    */
   repetition_index: number;
+  /**
+   * Set Repetition Index
+   *
+   * Which full set pass (0-based)
+   */
+  set_repetition_index: number;
   /**
    * Transcript
    *
@@ -3088,22 +3444,13 @@ export type TestCaseUpdate = {
    * Lifecycle status — only active test cases run by default
    */
   status?: TestCaseStatus | null;
+  persona?: Persona | null;
   /**
-   * Persona Context
+   * Initial Message
    *
-   * Free-form persona description for the LLM simulator
+   * First message the simulated user sends to the agent
    */
-  persona_context?: string | null;
-  /**
-   * Who speaks first: agent or persona
-   */
-  first_turn?: FirstTurn | null;
-  /**
-   * First Message
-   *
-   * Opening message for whoever speaks first
-   */
-  first_message?: string | null;
+  initial_message?: string | null;
   /**
    * User Context
    */
@@ -3111,9 +3458,17 @@ export type TestCaseUpdate = {
     [key: string]: unknown;
   } | null;
   /**
+   * Max Turns
+   *
+   * Max conversation turns; null = no cap
+   */
+  max_turns?: number | null;
+  /**
    * Expected Outcomes
    */
-  expected_outcomes?: Array<string> | null;
+  expected_outcomes?: {
+    [key: string]: unknown;
+  } | null;
   /**
    * Expected Tool Calls
    */
@@ -3313,10 +3668,6 @@ export type UserPublic = {
   email: string;
   provider?: AuthProvider;
   /**
-   * Oauth Id
-   */
-  oauth_id?: string | null;
-  /**
    * Is Active
    */
   is_active?: boolean;
@@ -3365,7 +3716,7 @@ export type UserSimulatorConfig = {
   /**
    * Scripted Messages
    *
-   * User lines after first_message, in order (scripted mode only)
+   * User lines after initial_message, in order (scripted mode only)
    */
   scripted_messages?: Array<string>;
   /**
@@ -3721,103 +4072,6 @@ export type LoginLogoutErrors = {
 export type LoginLogoutError = LoginLogoutErrors[keyof LoginLogoutErrors];
 
 export type LoginLogoutResponses = {
-  /**
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type LoginLoginGithubData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/api/v1/login/github';
-};
-
-export type LoginLoginGithubErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type LoginLoginGithubError = LoginLoginGithubErrors[keyof LoginLoginGithubErrors];
-
-export type LoginLoginGithubResponses = {
-  /**
-   * Response Login-Login Github
-   *
-   * Successful Response
-   */
-  200: unknown;
-};
-
-export type LoginAuthGithubCallbackData = {
-  body?: never;
-  path?: never;
-  query?: never;
-  url: '/api/v1/auth/github/callback';
-};
-
-export type LoginAuthGithubCallbackErrors = {
-  /**
-   * Bad Request
-   */
-  400: ErrorResponse;
-  /**
-   * Unauthorized
-   */
-  401: ErrorResponse;
-  /**
-   * Forbidden
-   */
-  403: ErrorResponse;
-  /**
-   * Not Found
-   */
-  404: ErrorResponse;
-  /**
-   * Conflict
-   */
-  409: ErrorResponse;
-  /**
-   * Unprocessable Entity
-   */
-  422: ErrorResponse;
-  /**
-   * Internal Server Error
-   */
-  500: ErrorResponse;
-};
-
-export type LoginAuthGithubCallbackError =
-  LoginAuthGithubCallbackErrors[keyof LoginAuthGithubCallbackErrors];
-
-export type LoginAuthGithubCallbackResponses = {
   /**
    * Successful Response
    */
@@ -4181,6 +4435,57 @@ export type AgentsCreateAgentResponses = {
 
 export type AgentsCreateAgentResponse =
   AgentsCreateAgentResponses[keyof AgentsCreateAgentResponses];
+
+export type AgentsCreateDraftAgentData = {
+  body: AgentCreateDraft;
+  path?: never;
+  query?: never;
+  url: '/api/v1/agents/draft';
+};
+
+export type AgentsCreateDraftAgentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsCreateDraftAgentError =
+  AgentsCreateDraftAgentErrors[keyof AgentsCreateDraftAgentErrors];
+
+export type AgentsCreateDraftAgentResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentPublic;
+};
+
+export type AgentsCreateDraftAgentResponse =
+  AgentsCreateDraftAgentResponses[keyof AgentsCreateDraftAgentResponses];
 
 export type AgentsDiffAgentVersionsData = {
   body?: never;
@@ -4649,6 +4954,118 @@ export type AgentsPublishDraftResponses = {
 
 export type AgentsPublishDraftResponse =
   AgentsPublishDraftResponses[keyof AgentsPublishDraftResponses];
+
+export type AgentsGetAgentGuidelinesData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/guidelines';
+};
+
+export type AgentsGetAgentGuidelinesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsGetAgentGuidelinesError =
+  AgentsGetAgentGuidelinesErrors[keyof AgentsGetAgentGuidelinesErrors];
+
+export type AgentsGetAgentGuidelinesResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentGuidelinesPublic;
+};
+
+export type AgentsGetAgentGuidelinesResponse =
+  AgentsGetAgentGuidelinesResponses[keyof AgentsGetAgentGuidelinesResponses];
+
+export type AgentsPutAgentGuidelinesData = {
+  body: AgentGuidelinesUpdate;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/guidelines';
+};
+
+export type AgentsPutAgentGuidelinesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsPutAgentGuidelinesError =
+  AgentsPutAgentGuidelinesErrors[keyof AgentsPutAgentGuidelinesErrors];
+
+export type AgentsPutAgentGuidelinesResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentGuidelinesPublic;
+};
+
+export type AgentsPutAgentGuidelinesResponse =
+  AgentsPutAgentGuidelinesResponses[keyof AgentsPutAgentGuidelinesResponses];
 
 export type AgentsDeleteAgentData = {
   body?: never;
@@ -6847,6 +7264,12 @@ export type TestCaseResultsListTestCaseResultsData = {
      * Filter by repetition within a set pass (0-based)
      */
     repetition_index?: number | null;
+    /**
+     * Set Repetition Index
+     *
+     * Filter by full set pass index (0-based)
+     */
+    set_repetition_index?: number | null;
   };
   url: '/api/v1/test-case-results/';
 };
@@ -7113,6 +7536,522 @@ export type TestCaseResultsUpdateTestCaseResultResponses = {
 
 export type TestCaseResultsUpdateTestCaseResultResponse =
   TestCaseResultsUpdateTestCaseResultResponses[keyof TestCaseResultsUpdateTestCaseResultResponses];
+
+export type PromptEditorListSessionsData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Agent Id
+     */
+    agent_id?: string | null;
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/prompt-editor/sessions/';
+};
+
+export type PromptEditorListSessionsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorListSessionsError =
+  PromptEditorListSessionsErrors[keyof PromptEditorListSessionsErrors];
+
+export type PromptEditorListSessionsResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorSessionsPublic;
+};
+
+export type PromptEditorListSessionsResponse =
+  PromptEditorListSessionsResponses[keyof PromptEditorListSessionsResponses];
+
+export type PromptEditorCreateSessionData = {
+  body: PromptEditorSessionCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/';
+};
+
+export type PromptEditorCreateSessionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorCreateSessionError =
+  PromptEditorCreateSessionErrors[keyof PromptEditorCreateSessionErrors];
+
+export type PromptEditorCreateSessionResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorSessionPublic;
+};
+
+export type PromptEditorCreateSessionResponse =
+  PromptEditorCreateSessionResponses[keyof PromptEditorCreateSessionResponses];
+
+export type PromptEditorDeleteSessionData = {
+  body?: never;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}';
+};
+
+export type PromptEditorDeleteSessionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorDeleteSessionError =
+  PromptEditorDeleteSessionErrors[keyof PromptEditorDeleteSessionErrors];
+
+export type PromptEditorDeleteSessionResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type PromptEditorDeleteSessionResponse =
+  PromptEditorDeleteSessionResponses[keyof PromptEditorDeleteSessionResponses];
+
+export type PromptEditorGetSessionData = {
+  body?: never;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}';
+};
+
+export type PromptEditorGetSessionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorGetSessionError =
+  PromptEditorGetSessionErrors[keyof PromptEditorGetSessionErrors];
+
+export type PromptEditorGetSessionResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorSessionPublic;
+};
+
+export type PromptEditorGetSessionResponse =
+  PromptEditorGetSessionResponses[keyof PromptEditorGetSessionResponses];
+
+export type PromptEditorUpdateSessionData = {
+  body: PromptEditorSessionUpdate;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}';
+};
+
+export type PromptEditorUpdateSessionErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorUpdateSessionError =
+  PromptEditorUpdateSessionErrors[keyof PromptEditorUpdateSessionErrors];
+
+export type PromptEditorUpdateSessionResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorSessionPublic;
+};
+
+export type PromptEditorUpdateSessionResponse =
+  PromptEditorUpdateSessionResponses[keyof PromptEditorUpdateSessionResponses];
+
+export type PromptEditorUpdateSessionBasePromptData = {
+  body: PromptEditorSessionBasePromptUpdate;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}/base-prompt';
+};
+
+export type PromptEditorUpdateSessionBasePromptErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorUpdateSessionBasePromptError =
+  PromptEditorUpdateSessionBasePromptErrors[keyof PromptEditorUpdateSessionBasePromptErrors];
+
+export type PromptEditorUpdateSessionBasePromptResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorSessionPublic;
+};
+
+export type PromptEditorUpdateSessionBasePromptResponse =
+  PromptEditorUpdateSessionBasePromptResponses[keyof PromptEditorUpdateSessionBasePromptResponses];
+
+export type PromptEditorListMessagesData = {
+  body?: never;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+  };
+  url: '/api/v1/prompt-editor/sessions/{session_id}/messages';
+};
+
+export type PromptEditorListMessagesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorListMessagesError =
+  PromptEditorListMessagesErrors[keyof PromptEditorListMessagesErrors];
+
+export type PromptEditorListMessagesResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorMessagesPublic;
+};
+
+export type PromptEditorListMessagesResponse =
+  PromptEditorListMessagesResponses[keyof PromptEditorListMessagesResponses];
+
+export type PromptEditorChatData = {
+  body: PromptEditorChatMessageCreate;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}/messages';
+};
+
+export type PromptEditorChatErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorChatError = PromptEditorChatErrors[keyof PromptEditorChatErrors];
+
+export type PromptEditorChatResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown;
+};
+
+export type PromptEditorGetPresetsData = {
+  body?: never;
+  path?: never;
+  query: {
+    /**
+     * Agent Id
+     *
+     * Agent ID for contextual filtering
+     */
+    agent_id: string;
+  };
+  url: '/api/v1/prompt-editor/presets';
+};
+
+export type PromptEditorGetPresetsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorGetPresetsError =
+  PromptEditorGetPresetsErrors[keyof PromptEditorGetPresetsErrors];
+
+export type PromptEditorGetPresetsResponses = {
+  /**
+   * Response Prompt-Editor-Get Presets
+   *
+   * Successful Response
+   */
+  200: Array<PresetPublic>;
+};
+
+export type PromptEditorGetPresetsResponse =
+  PromptEditorGetPresetsResponses[keyof PromptEditorGetPresetsResponses];
 
 export type ConfigGetConfigData = {
   body?: never;

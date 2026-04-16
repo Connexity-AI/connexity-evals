@@ -13,6 +13,9 @@ from app.models.agent import (  # noqa: F401
     Agent,
     AgentBase,
     AgentCreate,
+    AgentCreateDraft,
+    AgentGuidelinesPublic,
+    AgentGuidelinesUpdate,
     AgentPublic,
     AgentsPublic,
     AgentUpdate,
@@ -79,7 +82,6 @@ from app.models.enums import (  # noqa: F401
     FirstTurn,
     MetricTier,
     PromptEditorSessionStatus,
-    PromptSuggestionStatus,
     RunStatus,
     ScoreType,
     SimulatorMode,
@@ -104,6 +106,7 @@ from app.models.eval_set import (  # noqa: F401
 
 # ── Prompt editor (chat) ───────────────────────────────────────────
 from app.models.prompt_editor import (  # noqa: F401
+    PromptEditorChatMessageCreate,
     PromptEditorMessage,
     PromptEditorMessageBase,
     PromptEditorMessageCreate,
@@ -111,6 +114,7 @@ from app.models.prompt_editor import (  # noqa: F401
     PromptEditorMessagesPublic,
     PromptEditorSession,
     PromptEditorSessionBase,
+    PromptEditorSessionBasePromptUpdate,
     PromptEditorSessionCreate,
     PromptEditorSessionPublic,
     PromptEditorSessionsPublic,
@@ -176,7 +180,6 @@ from app.models.test_case_result import (  # noqa: F401
 
 # ── Existing user models ──────────────────────────────────────────
 from app.models.user import (  # noqa: F401
-    AuthProvider,
     Message,
     NewPassword,
     Token,
