@@ -4,7 +4,7 @@ import { AgentEditTabs } from '@/app/(app)/(agent)/_components/header/agent-edit
 import { PublishDialog } from '@/app/(app)/(agent)/_components/header/publish-dialog';
 import { ReadOnlyBanner } from '@/app/(app)/(agent)/_components/header/read-only-banner';
 
-export default function AgentPage() {
+export default function AgentEditPage() {
   return (
     <>
       <ReadOnlyBanner />

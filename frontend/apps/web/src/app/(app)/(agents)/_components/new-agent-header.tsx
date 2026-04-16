@@ -38,7 +38,7 @@ const Trailing = () => {
       onSuccess: (result) => {
         if (!isSuccessApiResult(result)) return;
         const agent = result.data as AgentPublic;
-        router.push(UrlGenerator.agent(agent.id));
+        router.push(UrlGenerator.agentEdit(agent.id));
       },
     });
   };

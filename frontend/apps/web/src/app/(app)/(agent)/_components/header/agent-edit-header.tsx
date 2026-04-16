@@ -1,10 +1,15 @@
 'use client';
 
+import { useParams, useSelectedLayoutSegment } from 'next/navigation';
+
 import { cn } from '@workspace/ui/lib/utils';
 
 import { AgentEditActions } from '@/app/(app)/(agent)/_components/header/agent-edit-actions';
 import { AgentEditBreadcrumb } from '@/app/(app)/(agent)/_components/header/agent-edit-breadcrumb';
-import { AgentModeTabs } from '@/app/(app)/(agent)/_components/header/agent-mode-tabs';
+import {
+  AgentModeTabs,
+  type AgentPageMode,
+} from '@/app/(app)/(agent)/_components/header/agent-mode-tabs';
 import { useVersions } from '@/app/(app)/(agent)/_context/versions-context';
 
 const HEADER_CLASSNAME = cn(
@@ -13,8 +18,12 @@ const HEADER_CLASSNAME = cn(
 );
 
 export function AgentEditHeader() {
+  const { agentId } = useParams<{ agentId: string }>();
+  const segment = useSelectedLayoutSegment() as AgentPageMode | null;
+  const activeMode: AgentPageMode = segment ?? 'edit';
+
   const { isReadOnly } = useVersions();
-  const isChatClosed = isReadOnly;
+  const isChatClosed = isReadOnly || activeMode !== 'edit';
 
   return (
     <header className={HEADER_CLASSNAME}>
@@ -22,9 +31,11 @@ export function AgentEditHeader() {
         <AgentEditBreadcrumb />
       </div>
 
-      <div className="absolute inset-y-0 right-6 flex items-center">
-        <AgentEditActions />
-      </div>
+      {activeMode === 'edit' && (
+        <div className="absolute inset-y-0 right-6 flex items-center">
+          <AgentEditActions />
+        </div>
+      )}
 
       <div className="flex flex-1 items-center">
         <div
@@ -35,7 +46,7 @@ export function AgentEditHeader() {
           )}
         />
         <div className="flex flex-1 justify-center">
-          <AgentModeTabs />
+          <AgentModeTabs agentId={agentId} activeMode={activeMode} />
         </div>
       </div>
     </header>

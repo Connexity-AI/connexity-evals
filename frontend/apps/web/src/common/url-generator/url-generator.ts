@@ -42,8 +42,20 @@ export class UrlGenerator {
     return createTypedLink(route, agentsParser, options)(values);
   }
 
-  static agent(agentId: string) {
-    return `/agents/${agentId}/` as Route;
+  static agentEdit(agentId: string) {
+    return `/agents/${agentId}/edit` as Route;
+  }
+
+  static agentEvals(agentId: string) {
+    return `/agents/${agentId}/evals` as Route;
+  }
+
+  static agentDeploy(agentId: string) {
+    return `/agents/${agentId}/deploy` as Route;
+  }
+
+  static agentObserve(agentId: string) {
+    return `/agents/${agentId}/observe` as Route;
   }
 
   static metrics({ options, values }: MetricsType = {}) {
@@ -51,31 +63,7 @@ export class UrlGenerator {
     return createTypedLink(route, emptyParser, options)(values);
   }
 
-  // ── Error pages ──
-
-  static notFound() {
-    return '/404/' as Route;
-  }
-
-  static serverError() {
-    return '/500/' as Route;
-  }
-
-  // ── Static ──
-
-  static images() {
-    return '/images/' as Route;
-  }
-
-  static favicons() {
-    return '/images/favicons/' as Route;
-  }
-
   // ── API ──
-
-  static apiOgImages() {
-    return '/api/v1/open-graph/' as Route;
-  }
 
   static apiClientProxy() {
     return '/api/client-proxy/' as Route;
