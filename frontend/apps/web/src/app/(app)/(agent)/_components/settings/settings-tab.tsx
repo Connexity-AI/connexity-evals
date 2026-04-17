@@ -28,13 +28,16 @@ import {
 } from '@/app/(app)/(agent)/_constants/agent';
 import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
+import { SettingsTabSkeleton } from '@/app/(app)/(agent)/_components/settings/settings-tab-skeleton';
 
 export function SettingsTab() {
   const form = useFormContext<AgentFormValues>();
-  const { isReadOnly } = useAgentEditFormActions();
+  const { isReadOnly, isLoading } = useAgentEditFormActions();
   const provider = form.watch('provider');
   const temperature = form.watch('temperature');
   const currentProvider = PROVIDERS.find((providerItem) => providerItem.group === provider);
+
+  if (isLoading) return <SettingsTabSkeleton />;
 
   return (
     <TabsContent value="settings" className="flex-1 mt-0 overflow-auto">

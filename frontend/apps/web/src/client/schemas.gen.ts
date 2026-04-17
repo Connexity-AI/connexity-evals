@@ -2232,7 +2232,7 @@ export const GenerateRequestSchema = {
     },
     count: {
       type: 'integer',
-      maximum: 50,
+      maximum: 200,
       minimum: 1,
       title: 'Count',
       default: 10,

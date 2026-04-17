@@ -11,6 +11,7 @@ import { Textarea } from '@workspace/ui/components/ui/textarea';
 import { AiSuggestionDiff } from '@/app/(app)/(agent)/_components/diff/ai-suggestion-diff';
 import { DiffControls } from '@/app/(app)/(agent)/_components/diff/diff-controls';
 import { EditableDiffView } from '@/app/(app)/(agent)/_components/diff/editable-diff-view';
+import { PromptTabSkeleton } from '@/app/(app)/(agent)/_components/prompt/prompt-tab-skeleton';
 import { useAgentEditFormActions } from '@/app/(app)/(agent)/_context/agent-edit-form-context';
 import { useAiSuggestion } from '@/app/(app)/(agent)/_context/ai-suggestion-context';
 import { useDiff } from '@/app/(app)/(agent)/_context/diff-context';
@@ -24,7 +25,7 @@ import type { AgentFormValues } from '@/app/(app)/(agent)/_schemas/agent-form';
 
 export function PromptTab() {
   const form = useFormContext<AgentFormValues>();
-  const { isReadOnly, agentId } = useAgentEditFormActions();
+  const { isReadOnly, agentId, isLoading } = useAgentEditFormActions();
   const { showDiff, diffFromVersion, diffToVersion, setDiffFromVersion, setDiffToVersion } =
     useDiff();
   const { data: versionsData } = useAgentVersions(agentId);
@@ -34,6 +35,8 @@ export function PromptTab() {
   const { suggestedPrompt, clearSuggestion } = useAiSuggestion();
   const { basePrompt, updateBasePrompt } = usePromptEditorSession(agentId);
   const diffScrollRef = useRef<HTMLDivElement>(null);
+
+  if (isLoading) return <PromptTabSkeleton />;
 
   const resolveContent = (versionId: DiffVersionId): string => {
     if (versionId === 'draft') {

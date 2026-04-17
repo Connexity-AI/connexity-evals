@@ -13,7 +13,7 @@ export const getAgentsColumns = (): ColumnDef<AgentRow>[] => [
     enableSorting: true,
     cell: ({ row }) => (
       <Link
-        href={UrlGenerator.agent(row.original.id)}
+        href={UrlGenerator.agentEdit(row.original.id)}
         className="block min-w-[100px] max-w-[250px] truncate text-sm font-medium text-primary hover:underline"
       >
         {row.original.name}

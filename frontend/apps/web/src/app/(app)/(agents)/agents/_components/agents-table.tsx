@@ -4,10 +4,10 @@ import { agentsParser } from '@/common/url-generator/parsers';
 import { Bot } from 'lucide-react';
 import { useQueryStates } from 'nuqs';
 
-import { TableSkeleton } from '@workspace/ui/components/skeletons/table';
 import { cn } from '@workspace/ui/lib/utils';
 
 import { useAgents } from '@/app/(app)/(agents)/_hooks/use-agents';
+import { AgentsTableSkeleton } from '@/app/(app)/(agents)/agents/_components/agents-table-skeleton';
 import { getAgentsColumns } from '@/app/(app)/(agents)/agents/_components/get-agents-columns';
 import { DataTable } from '@/components/common/data-table/data-table';
 import { TablePagination } from '@/components/common/data-table/table-pagination';
@@ -27,11 +27,7 @@ export function AgentsTable() {
   const columns = getAgentsColumns();
 
   if (isLoading) {
-    return (
-      <div className="p-6">
-        <TableSkeleton />
-      </div>
-    );
+    return <AgentsTableSkeleton />;
   }
 
   return (

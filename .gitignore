@@ -23,3 +23,6 @@
 **/blob-report/
 **/playwright/.cache/
 bash.exe.stackdump
+
+# Claude
+.claude/settings.json

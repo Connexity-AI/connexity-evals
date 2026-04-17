@@ -1,6 +1,7 @@
 'use client';
 
 import { ChatMessages } from '@/app/(app)/(agent)/_components/agent-chatbot/chat-messages';
+import { ChatMessagesAreaSkeleton } from '@/app/(app)/(agent)/_components/agent-chatbot/chat-messages-area-skeleton';
 
 import type { ChatMessage, ChatPhase } from '@/app/(app)/(agent)/_hooks/use-prompt-editor-chat';
 
@@ -24,7 +25,7 @@ export function ChatMessagesArea({
   }
 
   if (isSessionLoading) {
-    return <ChatSessionLoading />;
+    return <ChatMessagesAreaSkeleton />;
   }
 
   return <ChatMessages messages={messages} phase={phase} isHistoryLoading={isHistoryLoading} />;
@@ -36,14 +37,6 @@ function ChatSessionError({ error }: { error: unknown }) {
   return (
     <div className="flex-1 flex items-center justify-center p-6 text-xs text-destructive text-center">
       Failed to open chat session: {message}
-    </div>
-  );
-}
-
-function ChatSessionLoading() {
-  return (
-    <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">
-      Loading…
     </div>
   );
 }

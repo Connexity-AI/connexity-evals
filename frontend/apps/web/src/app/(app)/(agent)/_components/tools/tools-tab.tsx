@@ -10,9 +10,10 @@ import { ToolEditor } from '@/app/(app)/(agent)/_components/tools/tool-editor';
 import { DraftToolEditor } from '@/app/(app)/(agent)/_components/tools/draft/draft-tool-editor';
 import { ToolRow } from '@/app/(app)/(agent)/_components/tools/tool-row';
 import { ToolsEmptyState } from '@/app/(app)/(agent)/_components/tools/tools-empty-state';
+import { ToolsTabSkeleton } from '@/app/(app)/(agent)/_components/tools/tools-tab-skeleton';
 
 export function ToolsTab() {
-  const { isReadOnly } = useAgentEditFormActions();
+  const { isReadOnly, isLoading } = useAgentEditFormActions();
   const {
     fields,
     tools,
@@ -24,6 +25,8 @@ export function ToolsTab() {
     handleDelete,
     handleSaveNew,
   } = useToolsField();
+
+  if (isLoading) return <ToolsTabSkeleton />;
 
   // Draft editor for new tools (not yet in form state)
   if (isCreating && !isReadOnly) {
