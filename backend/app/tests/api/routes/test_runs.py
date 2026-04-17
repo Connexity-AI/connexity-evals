@@ -136,6 +136,31 @@ def test_list_runs_filter_by_agent(
     assert all(item["agent_id"] == str(agent.id) for item in data["data"])
 
 
+def test_list_runs_filter_by_eval_config(
+    client: TestClient, superuser_auth_cookies: dict[str, str], db: Session
+) -> None:
+    agent = create_test_agent(db)
+    tc = create_test_case_fixture(db)
+    eval_config_a = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(tc.id)
+    )
+    eval_config_b = create_test_eval_config(
+        db, agent_id=agent.id, members=eval_config_members(tc.id)
+    )
+    create_test_run(db, agent_id=agent.id, eval_config_id=eval_config_a.id)
+    create_test_run(db, agent_id=agent.id, eval_config_id=eval_config_b.id)
+
+    r = client.get(
+        f"{settings.API_V1_STR}/runs/",
+        params={"eval_config_id": str(eval_config_a.id)},
+        cookies=superuser_auth_cookies,
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["count"] >= 1
+    assert all(item["eval_config_id"] == str(eval_config_a.id) for item in data["data"])
+
+
 def test_list_runs_filter_by_status(
     client: TestClient, superuser_auth_cookies: dict[str, str]
 ) -> None:

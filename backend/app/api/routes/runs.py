@@ -74,6 +74,9 @@ def list_runs(
     agent_version: int | None = Query(
         default=None, ge=1, description="Filter by agent config version at run creation"
     ),
+    eval_config_id: uuid.UUID | None = Query(
+        default=None, description="Filter by eval config"
+    ),
     status: RunStatus | None = None,
     created_after: datetime | None = None,
     created_before: datetime | None = None,
@@ -84,6 +87,7 @@ def list_runs(
         limit=limit,
         agent_id=agent_id,
         agent_version=agent_version,
+        eval_config_id=eval_config_id,
         status=status,
         created_after=created_after,
         created_before=created_before,

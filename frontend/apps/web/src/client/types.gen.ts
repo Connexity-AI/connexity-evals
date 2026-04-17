@@ -6634,6 +6634,12 @@ export type RunsListRunsData = {
      */
     agent_version?: number | null;
     /**
+     * Eval Config Id
+     *
+     * Filter by eval config
+     */
+    eval_config_id?: string | null;
+    /**
      * Status
      */
     status?: RunStatus | null;
@@ -7307,6 +7313,12 @@ export type TestCaseResultsListTestCaseResultsData = {
      * Filter by repetition within a set pass (0-based)
      */
     repetition_index?: number | null;
+    /**
+     * Passed
+     *
+     * Filter by pass/fail verdict
+     */
+    passed?: boolean | null;
   };
   url: '/api/v1/test-case-results/';
 };

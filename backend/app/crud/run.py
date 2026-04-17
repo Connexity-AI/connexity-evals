@@ -90,6 +90,7 @@ def list_runs(
     limit: int = 100,
     agent_id: uuid.UUID | None = None,
     agent_version: int | None = None,
+    eval_config_id: uuid.UUID | None = None,
     status: RunStatus | None = None,
     created_after: datetime | None = None,
     created_before: datetime | None = None,
@@ -103,6 +104,9 @@ def list_runs(
     if agent_version is not None:
         statement = statement.where(Run.agent_version == agent_version)
         count_statement = count_statement.where(Run.agent_version == agent_version)
+    if eval_config_id is not None:
+        statement = statement.where(Run.eval_config_id == eval_config_id)
+        count_statement = count_statement.where(Run.eval_config_id == eval_config_id)
     if status is not None:
         statement = statement.where(Run.status == status)
         count_statement = count_statement.where(Run.status == status)

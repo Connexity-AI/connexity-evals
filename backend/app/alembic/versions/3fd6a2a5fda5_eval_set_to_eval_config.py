@@ -163,6 +163,12 @@ def upgrade() -> None:
     # (after migration, all rows should have an agent_id; orphans with
     #  NULL are deleted first to keep the migration safe)
     conn.execute(
+        sa.text(
+            "DELETE FROM eval_config_member WHERE eval_config_id IN "
+            "(SELECT id FROM eval_config WHERE agent_id IS NULL)"
+        )
+    )
+    conn.execute(
         sa.text("DELETE FROM eval_config WHERE agent_id IS NULL")
     )
     op.alter_column(
