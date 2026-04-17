@@ -70,6 +70,12 @@ export type AgentCreate = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Editor Guidelines
+   *
+   * Custom prompting guidelines for the prompt editor agent (None = use built-in default)
+   */
+  editor_guidelines?: string | null;
 };
 
 /**
@@ -115,6 +121,36 @@ export type AgentDraftUpdate = {
    * Agent Temperature
    */
   agent_temperature?: number | null;
+};
+
+/**
+ * AgentGuidelinesPublic
+ */
+export type AgentGuidelinesPublic = {
+  /**
+   * Guidelines
+   *
+   * Effective guidelines text (custom or default)
+   */
+  guidelines: string;
+  /**
+   * Is Default
+   *
+   * True when using built-in defaults (no custom guidelines stored)
+   */
+  is_default: boolean;
+};
+
+/**
+ * AgentGuidelinesUpdate
+ */
+export type AgentGuidelinesUpdate = {
+  /**
+   * Guidelines
+   *
+   * Custom guidelines text, or null to reset to built-in default
+   */
+  guidelines?: string | null;
 };
 
 /**
@@ -193,6 +229,12 @@ export type AgentPublic = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Editor Guidelines
+   *
+   * Custom prompting guidelines for the prompt editor agent (None = use built-in default)
+   */
+  editor_guidelines?: string | null;
   /**
    * Id
    *
@@ -337,6 +379,12 @@ export type AgentUpdate = {
   agent_metadata?: {
     [key: string]: unknown;
   } | null;
+  /**
+   * Editor Guidelines
+   *
+   * Custom prompting guidelines for the prompt editor agent (None = use default)
+   */
+  editor_guidelines?: string | null;
   /**
    * Change Description
    *
@@ -1863,6 +1911,8 @@ export type Persona = {
 
 /**
  * PresetPublic
+ *
+ * API shape for a preset (excludes internal ``requires`` gates).
  */
 export type PresetPublic = {
   /**
@@ -1940,6 +1990,18 @@ export type PromptEditorChatMessageCreate = {
    */
   current_prompt: string;
   /**
+   * Provider
+   *
+   * Optional LLM provider for this turn (e.g. openai, anthropic). Merged with model per LiteLLM rules; omit if model is a full routing id (contains /).
+   */
+  provider?: string | null;
+  /**
+   * Model
+   *
+   * Optional LLM model for this turn (bare id or full vendor/model routing id). When omitted, server defaults apply.
+   */
+  model?: string | null;
+  /**
    * Test Case Result Ids
    *
    * Optional test case result IDs for eval context injection (CS-64)
@@ -1997,6 +2059,20 @@ export type PromptEditorMessagesPublic = {
    * Total messages in the query
    */
   count: number;
+};
+
+/**
+ * PromptEditorSessionBasePromptUpdate
+ *
+ * Body for PATCH /prompt-editor/sessions/{id}/base-prompt.
+ */
+export type PromptEditorSessionBasePromptUpdate = {
+  /**
+   * Base Prompt
+   *
+   * New diff baseline for this session (e.g. after saving the agent draft). Typically matches the current draft system_prompt.
+   */
+  base_prompt: string;
 };
 
 /**
@@ -4879,6 +4955,118 @@ export type AgentsPublishDraftResponses = {
 export type AgentsPublishDraftResponse =
   AgentsPublishDraftResponses[keyof AgentsPublishDraftResponses];
 
+export type AgentsGetAgentGuidelinesData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/guidelines';
+};
+
+export type AgentsGetAgentGuidelinesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsGetAgentGuidelinesError =
+  AgentsGetAgentGuidelinesErrors[keyof AgentsGetAgentGuidelinesErrors];
+
+export type AgentsGetAgentGuidelinesResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentGuidelinesPublic;
+};
+
+export type AgentsGetAgentGuidelinesResponse =
+  AgentsGetAgentGuidelinesResponses[keyof AgentsGetAgentGuidelinesResponses];
+
+export type AgentsPutAgentGuidelinesData = {
+  body: AgentGuidelinesUpdate;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/guidelines';
+};
+
+export type AgentsPutAgentGuidelinesErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type AgentsPutAgentGuidelinesError =
+  AgentsPutAgentGuidelinesErrors[keyof AgentsPutAgentGuidelinesErrors];
+
+export type AgentsPutAgentGuidelinesResponses = {
+  /**
+   * Successful Response
+   */
+  200: AgentGuidelinesPublic;
+};
+
+export type AgentsPutAgentGuidelinesResponse =
+  AgentsPutAgentGuidelinesResponses[keyof AgentsPutAgentGuidelinesResponses];
+
 export type AgentsDeleteAgentData = {
   body?: never;
   path: {
@@ -7632,6 +7820,62 @@ export type PromptEditorUpdateSessionResponses = {
 export type PromptEditorUpdateSessionResponse =
   PromptEditorUpdateSessionResponses[keyof PromptEditorUpdateSessionResponses];
 
+export type PromptEditorUpdateSessionBasePromptData = {
+  body: PromptEditorSessionBasePromptUpdate;
+  path: {
+    /**
+     * Session Id
+     */
+    session_id: string;
+  };
+  query?: never;
+  url: '/api/v1/prompt-editor/sessions/{session_id}/base-prompt';
+};
+
+export type PromptEditorUpdateSessionBasePromptErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type PromptEditorUpdateSessionBasePromptError =
+  PromptEditorUpdateSessionBasePromptErrors[keyof PromptEditorUpdateSessionBasePromptErrors];
+
+export type PromptEditorUpdateSessionBasePromptResponses = {
+  /**
+   * Successful Response
+   */
+  200: PromptEditorSessionPublic;
+};
+
+export type PromptEditorUpdateSessionBasePromptResponse =
+  PromptEditorUpdateSessionBasePromptResponses[keyof PromptEditorUpdateSessionBasePromptResponses];
+
 export type PromptEditorListMessagesData = {
   body?: never;
   path: {
@@ -7752,13 +7996,13 @@ export type PromptEditorChatResponses = {
 export type PromptEditorGetPresetsData = {
   body?: never;
   path?: never;
-  query?: {
+  query: {
     /**
      * Agent Id
      *
-     * Agent ID for contextual filtering (ignored until CS-63)
+     * Agent ID for contextual filtering
      */
-    agent_id?: string | null;
+    agent_id: string;
   };
   url: '/api/v1/prompt-editor/presets';
 };

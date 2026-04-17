@@ -60,6 +60,10 @@ export function GenerateTestCasesDialog({
 
   const hasPublishedVersion = !versionsLoading && (versions?.count ?? 0) > 0;
 
+  const currentVersionName = agent
+    ? (versions?.data.find((v) => v.version === agent.version)?.change_description ?? null)
+    : null;
+
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: { count: DEFAULT_COUNT },
@@ -107,8 +111,21 @@ export function GenerateTestCasesDialog({
                       <GitBranch className="w-3.5 h-3.5 text-muted-foreground/60" />
                       <span className="text-xs text-foreground">Agent Version</span>
                     </div>
-                    <span className="text-xs font-mono text-foreground">
-                      {agent ? `v${agent.version}` : '—'}
+                    <span
+                      className="text-xs font-mono text-foreground truncate max-w-44"
+                      title={
+                        agent
+                          ? currentVersionName
+                            ? `v${agent.version} | ${currentVersionName}`
+                            : `v${agent.version}`
+                          : undefined
+                      }
+                    >
+                      {agent
+                        ? currentVersionName
+                          ? `v${agent.version} | ${currentVersionName}`
+                          : `v${agent.version}`
+                        : '—'}
                     </span>
                   </div>
                   <div className="px-3 py-2 border-t border-border/50 bg-accent/10">
@@ -121,7 +138,7 @@ export function GenerateTestCasesDialog({
               </div>
 
               {!versionsLoading && !hasPublishedVersion && (
-                <Alert variant="destructive">
+                <Alert className="border-amber-500/40 bg-amber-500/10 text-amber-400 [&>svg]:text-amber-400">
                   <AlertTriangle className="w-4 h-4" />
                   <AlertTitle>No published version</AlertTitle>
                   <AlertDescription>
@@ -151,7 +168,7 @@ export function GenerateTestCasesDialog({
                           type="number"
                           min={MIN_COUNT}
                           max={MAX_COUNT}
-                          className="h-9 text-sm"
+                          className="h-9 text-sm [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           name={field.name}
                           ref={field.ref}
                           onBlur={field.onBlur}
