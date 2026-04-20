@@ -1,5 +1,9 @@
 'use client';
 
+import { useState } from 'react';
+
+import { AddTestCaseAiDrawer } from '@/app/(app)/(agent)/_components/evals/test-cases/add-test-case-ai-drawer';
+import { AddTestCaseManualDrawer } from '@/app/(app)/(agent)/_components/evals/test-cases/add-test-case-manual-drawer';
 import { DeleteTestCasesDialog } from '@/app/(app)/(agent)/_components/evals/test-cases/delete-test-cases-dialog';
 import { getTestCasesColumns } from '@/app/(app)/(agent)/_components/evals/test-cases/get-test-cases-columns';
 import { TestCaseDetailDrawer } from '@/app/(app)/(agent)/_components/evals/test-cases/test-case-detail-drawer';
@@ -17,10 +21,9 @@ import type { TestCasePublic } from '@/client/types.gen';
 interface TestCasesTableProps {
   agentId: string;
   testCases: TestCasePublic[];
-  onGenerateClick: () => void;
 }
 
-export function TestCasesTable({ agentId, testCases, onGenerateClick }: TestCasesTableProps) {
+export function TestCasesTable({ agentId, testCases }: TestCasesTableProps) {
   const { statusFilter, difficultyFilter, setFilters, filtered, clearFilters } =
     useTestCasesFilters(testCases);
 
@@ -29,6 +32,8 @@ export function TestCasesTable({ agentId, testCases, onGenerateClick }: TestCase
   const selection = useTestCasesSelection(filteredIds);
   const drawer = useTestCaseDrawer();
   const grouping = useTestCasesGrouping(filtered);
+  const [manualAddOpen, setManualAddOpen] = useState(false);
+  const [aiAddOpen, setAiAddOpen] = useState(false);
 
   const deletion = useTestCasesDeletion({
     agentId,
@@ -61,7 +66,8 @@ export function TestCasesTable({ agentId, testCases, onGenerateClick }: TestCase
           totalCount={testCases.length}
           onClearSelection={selection.clear}
           onBatchDelete={requestBatchDelete}
-          onGenerateClick={onGenerateClick}
+          onAddManually={() => setManualAddOpen(true)}
+          onAddWithAi={() => setAiAddOpen(true)}
         />
 
         <TestCasesFilterBar
@@ -104,6 +110,14 @@ export function TestCasesTable({ agentId, testCases, onGenerateClick }: TestCase
         onConfirm={deletion.confirm}
         isPending={deletion.isPending}
       />
+
+      <AddTestCaseManualDrawer
+        agentId={agentId}
+        open={manualAddOpen}
+        onOpenChange={setManualAddOpen}
+      />
+
+      <AddTestCaseAiDrawer agentId={agentId} open={aiAddOpen} onOpenChange={setAiAddOpen} />
     </>
   );
 }

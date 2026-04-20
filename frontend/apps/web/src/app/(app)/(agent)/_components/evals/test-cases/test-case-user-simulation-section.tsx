@@ -78,6 +78,11 @@ export function TestCaseUserSimulationSection() {
                   className="h-64 resize-none font-mono text-sm leading-relaxed"
                 />
               </FormControl>
+              <p className="mt-1.5 text-[10px] leading-relaxed text-muted-foreground/40">
+                Use section headers: <span className="font-mono">[Persona type]</span> ·{' '}
+                <span className="font-mono">[Description]</span> ·{' '}
+                <span className="font-mono">[Behavioral instructions]</span>
+              </p>
               <FormMessage />
             </FormItem>
           )}
