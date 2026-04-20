@@ -89,6 +89,8 @@ from app.crud.test_case import (  # noqa: F401
     delete_test_case,
     export_test_cases,
     get_test_case,
+    list_distinct_tags_for_agent,
+    list_recent_test_cases_for_agent,
     list_test_cases,
     update_test_case,
 )
