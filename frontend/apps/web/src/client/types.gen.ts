@@ -23,7 +23,7 @@ export type AgentCreate = {
   /**
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
-  mode?: AgentMode;
+  mode?: AppModelsEnumsAgentMode;
   /**
    * Endpoint Url
    *
@@ -94,7 +94,7 @@ export type AgentCreateDraft = {
  * Partial update for versionable agent fields — used by PUT /agents/{id}/draft.
  */
 export type AgentDraftUpdate = {
-  mode?: AgentMode | null;
+  mode?: AppModelsEnumsAgentMode | null;
   /**
    * Endpoint Url
    */
@@ -154,16 +154,6 @@ export type AgentGuidelinesUpdate = {
 };
 
 /**
- * AgentMode
- */
-export const AgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const;
-
-/**
- * AgentMode
- */
-export type AgentMode = (typeof AgentMode)[keyof typeof AgentMode];
-
-/**
  * AgentPublic
  */
 export type AgentPublic = {
@@ -182,7 +172,7 @@ export type AgentPublic = {
   /**
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
-  mode?: AgentMode;
+  mode?: AppModelsEnumsAgentMode;
   /**
    * Endpoint Url
    *
@@ -332,7 +322,7 @@ export type AgentUpdate = {
   /**
    * endpoint: HTTP agent; platform: LLM simulated on the platform
    */
-  mode?: AgentMode | null;
+  mode?: AppModelsEnumsAgentMode | null;
   /**
    * Endpoint Url
    *
@@ -435,7 +425,7 @@ export type AgentVersionPublic = {
    */
   version: number | null;
   status: AgentVersionStatus;
-  mode: AgentMode;
+  mode: AppModelsEnumsAgentMode;
   /**
    * Endpoint Url
    */
@@ -2800,6 +2790,89 @@ export type SuggestionsRequest = {
 };
 
 /**
+ * TestCaseAgentRequest
+ *
+ * Input for the single-turn test-case AI agent.
+ */
+export type TestCaseAgentRequest = {
+  mode: AppServicesTestCaseGeneratorAgentSchemasAgentMode;
+  /**
+   * User Message
+   */
+  user_message: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Agent Version
+   *
+   * Agent version to load prompt/tools from; defaults to agent's current version
+   */
+  agent_version?: number | null;
+  /**
+   * Transcript
+   */
+  transcript?: Array<ConversationTurnInput> | null;
+  /**
+   * Test Case Id
+   *
+   * Required when mode=edit; must belong to agent_id
+   */
+  test_case_id?: string | null;
+  /**
+   * Persist
+   *
+   * Default true for create/from_transcript; default false for edit
+   */
+  persist?: boolean | null;
+  /**
+   * Model
+   */
+  model?: string | null;
+  /**
+   * Provider
+   */
+  provider?: string | null;
+  /**
+   * Temperature
+   */
+  temperature?: number | null;
+};
+
+/**
+ * TestCaseAgentResult
+ *
+ * Output from the test-case AI agent.
+ */
+export type TestCaseAgentResult = {
+  mode: AppServicesTestCaseGeneratorAgentSchemasAgentMode;
+  /**
+   * Created
+   */
+  created?: Array<TestCasePublic>;
+  edited?: TestCasePublic | null;
+  /**
+   * Model Used
+   */
+  model_used: string;
+  /**
+   * Latency Ms
+   */
+  latency_ms: number;
+  /**
+   * Token Usage
+   */
+  token_usage?: {
+    [key: string]: number;
+  } | null;
+  /**
+   * Cost Usd
+   */
+  cost_usd?: number | null;
+};
+
+/**
  * TestCaseComparison
  */
 export type TestCaseComparison = {
@@ -3790,6 +3863,32 @@ export type UserUpdateMe = {
    */
   email?: string | null;
 };
+
+/**
+ * AgentMode
+ */
+export const AppModelsEnumsAgentMode = { ENDPOINT: 'endpoint', PLATFORM: 'platform' } as const;
+
+/**
+ * AgentMode
+ */
+export type AppModelsEnumsAgentMode =
+  (typeof AppModelsEnumsAgentMode)[keyof typeof AppModelsEnumsAgentMode];
+
+/**
+ * AgentMode
+ */
+export const AppServicesTestCaseGeneratorAgentSchemasAgentMode = {
+  CREATE: 'create',
+  FROM_TRANSCRIPT: 'from_transcript',
+  EDIT: 'edit',
+} as const;
+
+/**
+ * AgentMode
+ */
+export type AppServicesTestCaseGeneratorAgentSchemasAgentMode =
+  (typeof AppServicesTestCaseGeneratorAgentSchemasAgentMode)[keyof typeof AppServicesTestCaseGeneratorAgentSchemasAgentMode];
 
 export type HealthHealthData = {
   body?: never;
@@ -5592,6 +5691,57 @@ export type TestCasesGenerateTestCasesEndpointResponses = {
 
 export type TestCasesGenerateTestCasesEndpointResponse =
   TestCasesGenerateTestCasesEndpointResponses[keyof TestCasesGenerateTestCasesEndpointResponses];
+
+export type TestCasesRunTestCaseAiAgentData = {
+  body: TestCaseAgentRequest;
+  path?: never;
+  query?: never;
+  url: '/api/v1/test-cases/ai';
+};
+
+export type TestCasesRunTestCaseAiAgentErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type TestCasesRunTestCaseAiAgentError =
+  TestCasesRunTestCaseAiAgentErrors[keyof TestCasesRunTestCaseAiAgentErrors];
+
+export type TestCasesRunTestCaseAiAgentResponses = {
+  /**
+   * Successful Response
+   */
+  200: TestCaseAgentResult;
+};
+
+export type TestCasesRunTestCaseAiAgentResponse =
+  TestCasesRunTestCaseAiAgentResponses[keyof TestCasesRunTestCaseAiAgentResponses];
 
 export type TestCasesDeleteTestCaseData = {
   body?: never;

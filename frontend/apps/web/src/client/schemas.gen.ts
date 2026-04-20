@@ -21,7 +21,7 @@ export const AgentCreateSchema = {
       description: 'What this agent does and its purpose',
     },
     mode: {
-      $ref: '#/components/schemas/AgentMode',
+      $ref: '#/components/schemas/app__models__enums__AgentMode',
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
       default: 'endpoint',
     },
@@ -152,7 +152,7 @@ export const AgentDraftUpdateSchema = {
     mode: {
       anyOf: [
         {
-          $ref: '#/components/schemas/AgentMode',
+          $ref: '#/components/schemas/app__models__enums__AgentMode',
         },
         {
           type: 'null',
@@ -271,12 +271,6 @@ export const AgentGuidelinesUpdateSchema = {
   title: 'AgentGuidelinesUpdate',
 } as const;
 
-export const AgentModeSchema = {
-  type: 'string',
-  enum: ['endpoint', 'platform'],
-  title: 'AgentMode',
-} as const;
-
 export const AgentPublicSchema = {
   properties: {
     name: {
@@ -298,7 +292,7 @@ export const AgentPublicSchema = {
       description: 'What this agent does and its purpose',
     },
     mode: {
-      $ref: '#/components/schemas/AgentMode',
+      $ref: '#/components/schemas/app__models__enums__AgentMode',
       description: 'endpoint: HTTP agent; platform: LLM simulated on the platform',
       default: 'endpoint',
     },
@@ -552,7 +546,7 @@ export const AgentUpdateSchema = {
     mode: {
       anyOf: [
         {
-          $ref: '#/components/schemas/AgentMode',
+          $ref: '#/components/schemas/app__models__enums__AgentMode',
         },
         {
           type: 'null',
@@ -778,7 +772,7 @@ export const AgentVersionPublicSchema = {
       $ref: '#/components/schemas/AgentVersionStatus',
     },
     mode: {
-      $ref: '#/components/schemas/AgentMode',
+      $ref: '#/components/schemas/app__models__enums__AgentMode',
     },
     endpoint_url: {
       anyOf: [
@@ -4508,6 +4502,177 @@ export const SuggestionsRequestSchema = {
   title: 'SuggestionsRequest',
 } as const;
 
+export const TestCaseAgentRequestSchema = {
+  properties: {
+    mode: {
+      $ref: '#/components/schemas/app__services__test_case_generator__agent__schemas__AgentMode',
+    },
+    user_message: {
+      type: 'string',
+      minLength: 1,
+      title: 'User Message',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    agent_version: {
+      anyOf: [
+        {
+          type: 'integer',
+          minimum: 1,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Agent Version',
+      description: "Agent version to load prompt/tools from; defaults to agent's current version",
+    },
+    transcript: {
+      anyOf: [
+        {
+          items: {
+            $ref: '#/components/schemas/ConversationTurn-Input',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Transcript',
+    },
+    test_case_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Test Case Id',
+      description: 'Required when mode=edit; must belong to agent_id',
+    },
+    persist: {
+      anyOf: [
+        {
+          type: 'boolean',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Persist',
+      description: 'Default true for create/from_transcript; default false for edit',
+    },
+    model: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Model',
+    },
+    provider: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Provider',
+    },
+    temperature: {
+      anyOf: [
+        {
+          type: 'number',
+          maximum: 2,
+          minimum: 0,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Temperature',
+    },
+  },
+  type: 'object',
+  required: ['mode', 'user_message', 'agent_id'],
+  title: 'TestCaseAgentRequest',
+  description: 'Input for the single-turn test-case AI agent.',
+} as const;
+
+export const TestCaseAgentResultSchema = {
+  properties: {
+    mode: {
+      $ref: '#/components/schemas/app__services__test_case_generator__agent__schemas__AgentMode',
+    },
+    created: {
+      items: {
+        $ref: '#/components/schemas/TestCasePublic',
+      },
+      type: 'array',
+      title: 'Created',
+    },
+    edited: {
+      anyOf: [
+        {
+          $ref: '#/components/schemas/TestCasePublic',
+        },
+        {
+          type: 'null',
+        },
+      ],
+    },
+    model_used: {
+      type: 'string',
+      title: 'Model Used',
+    },
+    latency_ms: {
+      type: 'integer',
+      title: 'Latency Ms',
+    },
+    token_usage: {
+      anyOf: [
+        {
+          additionalProperties: {
+            type: 'integer',
+          },
+          type: 'object',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Token Usage',
+    },
+    cost_usd: {
+      anyOf: [
+        {
+          type: 'number',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Cost Usd',
+    },
+  },
+  type: 'object',
+  required: ['mode', 'model_used', 'latency_ms'],
+  title: 'TestCaseAgentResult',
+  description: 'Output from the test-case AI agent.',
+} as const;
+
 export const TestCaseComparisonSchema = {
   properties: {
     test_case_id: {
@@ -6215,4 +6380,16 @@ export const UserUpdateMeSchema = {
   },
   type: 'object',
   title: 'UserUpdateMe',
+} as const;
+
+export const app__models__enums__AgentModeSchema = {
+  type: 'string',
+  enum: ['endpoint', 'platform'],
+  title: 'AgentMode',
+} as const;
+
+export const app__services__test_case_generator__agent__schemas__AgentModeSchema = {
+  type: 'string',
+  enum: ['create', 'from_transcript', 'edit'],
+  title: 'AgentMode',
 } as const;
