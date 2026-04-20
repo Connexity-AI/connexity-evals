@@ -137,7 +137,7 @@ export function DraftToolEditor({ onSave, onBack }: DraftToolEditorProps) {
                   onChange={(event) =>
                     set('timeout', Math.max(1, parseInt(event.target.value) || 3))
                   }
-                  className="h-9 text-sm font-mono w-30"
+                  className="h-9 text-sm font-mono w-30 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                 />
               </Field>
             </div>
