@@ -24,3 +24,16 @@ export const promptEditorKeys = {
 export const testCaseKeys = {
   list: (agentId: string) => ['test-cases', agentId] as const,
 };
+
+export const evalConfigKeys = {
+  list: (agentId: string) => ['eval-configs', agentId] as const,
+  detail: (evalConfigId: string) => ['eval-config', evalConfigId] as const,
+};
+
+export const metricKeys = {
+  list: () => ['available-metrics'] as const,
+};
+
+export const runKeys = {
+  list: (agentId: string) => ['runs', agentId] as const,
+};
