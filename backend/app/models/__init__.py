@@ -104,6 +104,14 @@ from app.models.eval_set import (  # noqa: F401
     EvalSetUpdate,
 )
 
+# ── Integration ────────────────────────────────────────────────────
+from app.models.integration import (  # noqa: F401
+    Integration,
+    IntegrationCreate,
+    IntegrationPublic,
+    IntegrationsPublic,
+)
+
 # ── Prompt editor (chat) ───────────────────────────────────────────
 from app.models.prompt_editor import (  # noqa: F401
     PromptEditorChatMessageCreate,
