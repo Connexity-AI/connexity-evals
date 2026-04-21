@@ -27,12 +27,12 @@ const EVALS_TABS: readonly EvalsTab[] = [
   {
     segment: 'eval-configs',
     label: 'Eval Configs',
-    href: null,
+    href: UrlGenerator.agentEvalsConfigs,
   },
   {
     segment: 'eval-runs',
     label: 'Eval Runs',
-    href: null,
+    href: UrlGenerator.agentEvalsRuns,
   },
 ] as const;
 
