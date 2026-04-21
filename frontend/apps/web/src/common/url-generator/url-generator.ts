@@ -50,6 +50,22 @@ export class UrlGenerator {
     return `/agents/${agentId}/evals` as Route;
   }
 
+  static agentEvalsTestCases(agentId: string) {
+    return `/agents/${agentId}/evals/test-cases` as Route;
+  }
+
+  static agentEvalsConfigs(agentId: string) {
+    return `/agents/${agentId}/evals/eval-configs` as Route;
+  }
+
+  static agentEvalsRuns(agentId: string) {
+    return `/agents/${agentId}/evals/eval-runs` as Route;
+  }
+
+  static agentEvalsCreate(agentId: string) {
+    return `/agents/${agentId}/evals/create-eval` as Route;
+  }
+
   static agentDeploy(agentId: string) {
     return `/agents/${agentId}/deploy` as Route;
   }
