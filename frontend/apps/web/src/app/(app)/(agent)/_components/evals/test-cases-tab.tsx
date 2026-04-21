@@ -21,6 +21,7 @@ export function TestCasesTab() {
   const [justQueued, setJustQueued] = useState(false);
 
   const handleGenerate = (count: number) => {
+    console.info('[gen-tc] tab.handleGenerate', { agentId, count });
     generate(count);
     setJustQueued(true);
   };
@@ -76,6 +77,7 @@ export function TestCasesTab() {
               <Sparkles className="w-3.5 h-3.5" />
               Generate Test Cases
             </Button>
+
             <Button size="sm" variant="outline" className="gap-1.5" disabled>
               <Plus className="w-3.5 h-3.5" />
               Add test case
@@ -95,11 +97,7 @@ export function TestCasesTab() {
 
   return (
     <>
-      <TestCasesTable
-        agentId={agentId}
-        testCases={testCases}
-        onGenerateClick={() => setDialogOpen(true)}
-      />
+      <TestCasesTable agentId={agentId} testCases={testCases} />
 
       <GenerateTestCasesDialog
         agentId={agentId}

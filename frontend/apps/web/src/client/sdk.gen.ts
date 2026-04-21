@@ -218,6 +218,9 @@ import type {
   TestCasesListTestCasesData,
   TestCasesListTestCasesErrors,
   TestCasesListTestCasesResponses,
+  TestCasesRunTestCaseAiAgentData,
+  TestCasesRunTestCaseAiAgentErrors,
+  TestCasesRunTestCaseAiAgentResponses,
   TestCasesUpdateTestCaseData,
   TestCasesUpdateTestCaseErrors,
   TestCasesUpdateTestCaseResponses,
@@ -1082,6 +1085,36 @@ export class TestCasesService {
         { scheme: 'bearer', type: 'http' },
       ],
       url: '/api/v1/test-cases/generate',
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
+  }
+
+  /**
+   * Run Test Case Ai Agent
+   *
+   * Single-turn tool-calling agent: create, from_transcript, or edit test cases.
+   */
+  public static testCasesRunTestCaseAiAgent<ThrowOnError extends boolean = false>(
+    options: Options<TestCasesRunTestCaseAiAgentData, ThrowOnError>
+  ) {
+    return (options.client ?? client).post<
+      TestCasesRunTestCaseAiAgentResponses,
+      TestCasesRunTestCaseAiAgentErrors,
+      ThrowOnError
+    >({
+      security: [
+        {
+          in: 'cookie',
+          name: 'auth_cookie',
+          type: 'apiKey',
+        },
+        { scheme: 'bearer', type: 'http' },
+      ],
+      url: '/api/v1/test-cases/ai',
       ...options,
       headers: {
         'Content-Type': 'application/json',

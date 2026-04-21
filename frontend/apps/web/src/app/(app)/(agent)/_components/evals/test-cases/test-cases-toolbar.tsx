@@ -1,8 +1,14 @@
 'use client';
 
-import { Plus, Sparkles, Trash2 } from 'lucide-react';
+import { PenLine, Plus, Sparkles, Trash2 } from 'lucide-react';
 
 import { Button } from '@workspace/ui/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@workspace/ui/components/ui/dropdown-menu';
 
 interface TestCasesToolbarProps {
   selectedCount: number;
@@ -10,7 +16,8 @@ interface TestCasesToolbarProps {
   totalCount: number;
   onClearSelection: () => void;
   onBatchDelete: () => void;
-  onGenerateClick: () => void;
+  onAddManually: () => void;
+  onAddWithAi: () => void;
 }
 
 interface SelectionActionsProps {
@@ -80,7 +87,7 @@ function LeadingContent({
   totalCount,
   onBatchDelete,
   onClearSelection,
-}: Omit<TestCasesToolbarProps, 'onGenerateClick'>) {
+}: Omit<TestCasesToolbarProps, 'onAddManually' | 'onAddWithAi'>) {
   if (selectedCount > 0) {
     return (
       <SelectionActions
@@ -99,10 +106,11 @@ export function TestCasesToolbar({
   totalCount,
   onClearSelection,
   onBatchDelete,
-  onGenerateClick,
+  onAddManually,
+  onAddWithAi,
 }: TestCasesToolbarProps) {
   return (
-    <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-2.5">
+    <div className="flex shrink-0 items-center justify-between border-b border-border px-5 py-2.5 h-12">
       <LeadingContent
         selectedCount={selectedCount}
         filteredCount={filteredCount}
@@ -110,16 +118,39 @@ export function TestCasesToolbar({
         onBatchDelete={onBatchDelete}
         onClearSelection={onClearSelection}
       />
-      <div className="flex items-center gap-1.5">
-        <Button size="sm" className="h-7 gap-1.5 text-xs" onClick={onGenerateClick}>
-          <Sparkles className="h-3 w-3" />
-          Generate
-        </Button>
-        <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" disabled>
-          <Plus className="h-3 w-3" />
-          Add test case
-        </Button>
-      </div>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 gap-1.5 text-xs"
+          >
+            <Plus className="h-3 w-3" />
+            Add test case
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuItem onSelect={onAddManually} className="gap-2">
+            <PenLine className="h-3.5 w-3.5" />
+            <div className="flex min-w-0 flex-col">
+              <span className="text-sm">Manually</span>
+              <span className="text-[11px] text-muted-foreground">
+                Create a test case from scratch
+              </span>
+            </div>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={onAddWithAi} className="gap-2">
+            <Sparkles className="h-3.5 w-3.5 text-violet-400" />
+            <div className="flex min-w-0 flex-col">
+              <span className="text-sm text-violet-300">With AI</span>
+              <span className="text-[11px] text-muted-foreground">
+                Describe what to cover, AI builds it
+              </span>
+            </div>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
