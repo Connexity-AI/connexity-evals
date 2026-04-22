@@ -41,4 +41,9 @@ export const metricKeys = {
 
 export const runKeys = {
   list: (agentId: string) => ['runs', agentId] as const,
+  detail: (runId: string) => ['run', runId] as const,
+};
+
+export const testCaseResultKeys = {
+  byRun: (runId: string) => ['test-case-results', runId] as const,
 };
