@@ -66,3 +66,7 @@ class PromptEditorSessionStatus(StrEnum):
 
 class Platform(StrEnum):
     RETELL = "retell"
+
+
+class IntegrationProvider(StrEnum):
+    RETELL = "retell"
