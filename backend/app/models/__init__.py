@@ -81,12 +81,21 @@ from app.models.enums import (  # noqa: F401
     Difficulty,
     FirstTurn,
     MetricTier,
+    Platform,
     PromptEditorSessionStatus,
     RunStatus,
     ScoreType,
     SimulatorMode,
     TestCaseStatus,
     TurnRole,
+)
+
+# ── Environment ────────────────────────────────────────────────────
+from app.models.environment import (  # noqa: F401
+    Environment,
+    EnvironmentCreate,
+    EnvironmentPublic,
+    EnvironmentsPublic,
 )
 
 # ── Eval config ────────────────────────────────────────────────────

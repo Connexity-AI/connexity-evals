@@ -62,3 +62,7 @@ class MetricTier(StrEnum):
 class PromptEditorSessionStatus(StrEnum):
     ACTIVE = "active"
     ARCHIVED = "archived"
+
+
+class Platform(StrEnum):
+    RETELL = "retell"
