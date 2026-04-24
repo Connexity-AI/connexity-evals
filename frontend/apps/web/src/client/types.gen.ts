@@ -76,6 +76,18 @@ export type AgentCreate = {
    * Custom prompting guidelines for the prompt editor agent (None = use built-in default)
    */
   editor_guidelines?: string | null;
+  /**
+   * Integration Id
+   *
+   * Retell integration this agent pulls calls from (for Observer)
+   */
+  integration_id?: string | null;
+  /**
+   * Retell Agent Id
+   *
+   * Retell-side agent_id used to filter /v2/list-calls
+   */
+  retell_agent_id?: string | null;
 };
 
 /**
@@ -226,6 +238,18 @@ export type AgentPublic = {
    */
   editor_guidelines?: string | null;
   /**
+   * Integration Id
+   *
+   * Retell integration this agent pulls calls from (for Observer)
+   */
+  integration_id?: string | null;
+  /**
+   * Retell Agent Id
+   *
+   * Retell-side agent_id used to filter /v2/list-calls
+   */
+  retell_agent_id?: string | null;
+  /**
    * Id
    *
    * Unique agent identifier
@@ -375,6 +399,18 @@ export type AgentUpdate = {
    * Custom prompting guidelines for the prompt editor agent (None = use default)
    */
   editor_guidelines?: string | null;
+  /**
+   * Integration Id
+   *
+   * Retell integration this agent pulls calls from (for Observer)
+   */
+  integration_id?: string | null;
+  /**
+   * Retell Agent Id
+   *
+   * Retell-side agent_id used to filter /v2/list-calls
+   */
+  retell_agent_id?: string | null;
   /**
    * Change Description
    *
@@ -718,6 +754,94 @@ export type BodyLoginLoginAccessToken = {
    * Client Secret
    */
   client_secret?: string | null;
+};
+
+/**
+ * CallPublic
+ */
+export type CallPublic = {
+  /**
+   * Id
+   */
+  id: string;
+  /**
+   * Agent Id
+   */
+  agent_id: string;
+  /**
+   * Retell Call Id
+   */
+  retell_call_id: string;
+  /**
+   * Retell Agent Id
+   */
+  retell_agent_id: string;
+  /**
+   * Started At
+   */
+  started_at: string;
+  /**
+   * Duration Seconds
+   */
+  duration_seconds?: number | null;
+  /**
+   * Status
+   */
+  status?: string | null;
+  /**
+   * Transcript
+   */
+  transcript?: Array<{
+    [key: string]: unknown;
+  }> | null;
+  /**
+   * Is New
+   *
+   * True when the requesting user has not opened this call yet
+   */
+  is_new?: boolean;
+  /**
+   * Test Case Count
+   *
+   * Number of test cases sourced from this call
+   */
+  test_case_count?: number;
+  /**
+   * Created At
+   */
+  created_at: string;
+};
+
+/**
+ * CallRefreshResult
+ */
+export type CallRefreshResult = {
+  /**
+   * Created
+   *
+   * Number of new call rows inserted from Retell
+   */
+  created: number;
+  /**
+   * Total
+   *
+   * Total call rows in DB for this agent after refresh
+   */
+  total: number;
+};
+
+/**
+ * CallsPublic
+ */
+export type CallsPublic = {
+  /**
+   * Data
+   */
+  data: Array<CallPublic>;
+  /**
+   * Count
+   */
+  count: number;
 };
 
 /**
@@ -3182,6 +3306,12 @@ export type TestCaseCreate = {
    * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
+  /**
+   * Source Call Id
+   *
+   * Call this test case was created from (Observer drawer)
+   */
+  source_call_id?: string | null;
 };
 
 /**
@@ -3262,6 +3392,12 @@ export type TestCaseImportItem = {
    * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
+  /**
+   * Source Call Id
+   *
+   * Call this test case was created from (Observer drawer)
+   */
+  source_call_id?: string | null;
   /**
    * Id
    */
@@ -3372,6 +3508,12 @@ export type TestCasePublic = {
    * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
+  /**
+   * Source Call Id
+   *
+   * Call this test case was created from (Observer drawer)
+   */
+  source_call_id?: string | null;
   /**
    * Id
    *
@@ -3776,6 +3918,12 @@ export type TestCaseUpdate = {
    * Agent this test case belongs to (test suite pool for that agent)
    */
   agent_id?: string | null;
+  /**
+   * Source Call Id
+   *
+   * Call this test case was created from (Observer drawer)
+   */
+  source_call_id?: string | null;
 };
 
 /**
@@ -8975,3 +9123,242 @@ export type EnvironmentsDeleteEnvironmentResponses = {
 
 export type EnvironmentsDeleteEnvironmentResponse =
   EnvironmentsDeleteEnvironmentResponses[keyof EnvironmentsDeleteEnvironmentResponses];
+
+export type CallsListAgentCallsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: {
+    /**
+     * Skip
+     */
+    skip?: number;
+    /**
+     * Limit
+     */
+    limit?: number;
+    /**
+     * Date From
+     */
+    date_from?: string | null;
+    /**
+     * Date To
+     */
+    date_to?: string | null;
+  };
+  url: '/api/v1/agents/{agent_id}/calls';
+};
+
+export type CallsListAgentCallsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsListAgentCallsError = CallsListAgentCallsErrors[keyof CallsListAgentCallsErrors];
+
+export type CallsListAgentCallsResponses = {
+  /**
+   * Successful Response
+   */
+  200: CallsPublic;
+};
+
+export type CallsListAgentCallsResponse =
+  CallsListAgentCallsResponses[keyof CallsListAgentCallsResponses];
+
+export type CallsRefreshAgentCallsData = {
+  body?: never;
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string;
+  };
+  query?: never;
+  url: '/api/v1/agents/{agent_id}/calls/refresh';
+};
+
+export type CallsRefreshAgentCallsErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsRefreshAgentCallsError =
+  CallsRefreshAgentCallsErrors[keyof CallsRefreshAgentCallsErrors];
+
+export type CallsRefreshAgentCallsResponses = {
+  /**
+   * Successful Response
+   */
+  200: CallRefreshResult;
+};
+
+export type CallsRefreshAgentCallsResponse =
+  CallsRefreshAgentCallsResponses[keyof CallsRefreshAgentCallsResponses];
+
+export type CallsMarkCallSeenEndpointData = {
+  body?: never;
+  path: {
+    /**
+     * Call Id
+     */
+    call_id: string;
+  };
+  query?: never;
+  url: '/api/v1/calls/{call_id}/seen';
+};
+
+export type CallsMarkCallSeenEndpointErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsMarkCallSeenEndpointError =
+  CallsMarkCallSeenEndpointErrors[keyof CallsMarkCallSeenEndpointErrors];
+
+export type CallsMarkCallSeenEndpointResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message;
+};
+
+export type CallsMarkCallSeenEndpointResponse =
+  CallsMarkCallSeenEndpointResponses[keyof CallsMarkCallSeenEndpointResponses];
+
+export type CallsGetCallDetailData = {
+  body?: never;
+  path: {
+    /**
+     * Call Id
+     */
+    call_id: string;
+  };
+  query?: never;
+  url: '/api/v1/calls/{call_id}';
+};
+
+export type CallsGetCallDetailErrors = {
+  /**
+   * Bad Request
+   */
+  400: ErrorResponse;
+  /**
+   * Unauthorized
+   */
+  401: ErrorResponse;
+  /**
+   * Forbidden
+   */
+  403: ErrorResponse;
+  /**
+   * Not Found
+   */
+  404: ErrorResponse;
+  /**
+   * Conflict
+   */
+  409: ErrorResponse;
+  /**
+   * Unprocessable Entity
+   */
+  422: ErrorResponse;
+  /**
+   * Internal Server Error
+   */
+  500: ErrorResponse;
+};
+
+export type CallsGetCallDetailError = CallsGetCallDetailErrors[keyof CallsGetCallDetailErrors];
+
+export type CallsGetCallDetailResponses = {
+  /**
+   * Successful Response
+   */
+  200: CallPublic;
+};
+
+export type CallsGetCallDetailResponse =
+  CallsGetCallDetailResponses[keyof CallsGetCallDetailResponses];

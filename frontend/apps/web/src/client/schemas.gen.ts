@@ -128,6 +128,32 @@ export const AgentCreateSchema = {
       description:
         'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
     },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+      description: 'Retell integration this agent pulls calls from (for Observer)',
+    },
+    retell_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Retell Agent Id',
+      description: 'Retell-side agent_id used to filter /v2/list-calls',
+    },
   },
   type: 'object',
   required: ['name'],
@@ -399,6 +425,32 @@ export const AgentPublicSchema = {
       description:
         'Custom prompting guidelines for the prompt editor agent (None = use built-in default)',
     },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+      description: 'Retell integration this agent pulls calls from (for Observer)',
+    },
+    retell_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Retell Agent Id',
+      description: 'Retell-side agent_id used to filter /v2/list-calls',
+    },
     id: {
       type: 'string',
       format: 'uuid',
@@ -655,6 +707,32 @@ export const AgentUpdateSchema = {
       ],
       title: 'Editor Guidelines',
       description: 'Custom prompting guidelines for the prompt editor agent (None = use default)',
+    },
+    integration_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Integration Id',
+      description: 'Retell integration this agent pulls calls from (for Observer)',
+    },
+    retell_agent_id: {
+      anyOf: [
+        {
+          type: 'string',
+          maxLength: 255,
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Retell Agent Id',
+      description: 'Retell-side agent_id used to filter /v2/list-calls',
     },
     change_description: {
       anyOf: [
@@ -1290,6 +1368,127 @@ export const Body_login_login_access_tokenSchema = {
   type: 'object',
   required: ['username', 'password'],
   title: 'Body_login-login_access_token',
+} as const;
+
+export const CallPublicSchema = {
+  properties: {
+    id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Id',
+    },
+    agent_id: {
+      type: 'string',
+      format: 'uuid',
+      title: 'Agent Id',
+    },
+    retell_call_id: {
+      type: 'string',
+      title: 'Retell Call Id',
+    },
+    retell_agent_id: {
+      type: 'string',
+      title: 'Retell Agent Id',
+    },
+    started_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Started At',
+    },
+    duration_seconds: {
+      anyOf: [
+        {
+          type: 'integer',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Duration Seconds',
+    },
+    status: {
+      anyOf: [
+        {
+          type: 'string',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Status',
+    },
+    transcript: {
+      anyOf: [
+        {
+          items: {
+            type: 'object',
+          },
+          type: 'array',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Transcript',
+    },
+    is_new: {
+      type: 'boolean',
+      title: 'Is New',
+      description: 'True when the requesting user has not opened this call yet',
+      default: true,
+    },
+    test_case_count: {
+      type: 'integer',
+      title: 'Test Case Count',
+      description: 'Number of test cases sourced from this call',
+      default: 0,
+    },
+    created_at: {
+      type: 'string',
+      format: 'date-time',
+      title: 'Created At',
+    },
+  },
+  type: 'object',
+  required: ['id', 'agent_id', 'retell_call_id', 'retell_agent_id', 'started_at', 'created_at'],
+  title: 'CallPublic',
+} as const;
+
+export const CallRefreshResultSchema = {
+  properties: {
+    created: {
+      type: 'integer',
+      title: 'Created',
+      description: 'Number of new call rows inserted from Retell',
+    },
+    total: {
+      type: 'integer',
+      title: 'Total',
+      description: 'Total call rows in DB for this agent after refresh',
+    },
+  },
+  type: 'object',
+  required: ['created', 'total'],
+  title: 'CallRefreshResult',
+} as const;
+
+export const CallsPublicSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: '#/components/schemas/CallPublic',
+      },
+      type: 'array',
+      title: 'Data',
+    },
+    count: {
+      type: 'integer',
+      title: 'Count',
+    },
+  },
+  type: 'object',
+  required: ['data', 'count'],
+  title: 'CallsPublic',
 } as const;
 
 export const CauseAnalysisItemSchema = {
@@ -5175,6 +5374,19 @@ export const TestCaseCreateSchema = {
       title: 'Agent Id',
       description: 'Agent this test case belongs to (test suite pool for that agent)',
     },
+    source_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Source Call Id',
+      description: 'Call this test case was created from (Observer drawer)',
+    },
   },
   type: 'object',
   required: ['name'],
@@ -5316,6 +5528,19 @@ export const TestCaseImportItemSchema = {
       ],
       title: 'Agent Id',
       description: 'Agent this test case belongs to (test suite pool for that agent)',
+    },
+    source_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Source Call Id',
+      description: 'Call this test case was created from (Observer drawer)',
     },
     id: {
       anyOf: [
@@ -5504,6 +5729,19 @@ export const TestCasePublicSchema = {
       ],
       title: 'Agent Id',
       description: 'Agent this test case belongs to (test suite pool for that agent)',
+    },
+    source_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Source Call Id',
+      description: 'Call this test case was created from (Observer drawer)',
     },
     id: {
       type: 'string',
@@ -6258,6 +6496,19 @@ export const TestCaseUpdateSchema = {
       ],
       title: 'Agent Id',
       description: 'Agent this test case belongs to (test suite pool for that agent)',
+    },
+    source_call_id: {
+      anyOf: [
+        {
+          type: 'string',
+          format: 'uuid',
+        },
+        {
+          type: 'null',
+        },
+      ],
+      title: 'Source Call Id',
+      description: 'Call this test case was created from (Observer drawer)',
     },
   },
   type: 'object',

@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
+import Link from 'next/link';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AlertTriangle, Check, Loader2 } from 'lucide-react';
-import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 
 import { Button } from '@workspace/ui/components/ui/button';
@@ -33,14 +33,11 @@ import {
 
 import { useCreateEnvironment } from '@/app/(app)/(agent)/_hooks/use-create-environment';
 import { useRetellAgents } from '@/app/(app)/(agent)/_hooks/use-retell-agents';
+import { addEnvironmentFormSchema } from './add-environment-form-schema';
 
 import type { IntegrationPublic } from '@/client/types.gen';
 import type { FC } from 'react';
-
-import {
-  addEnvironmentFormSchema,
-  type AddEnvironmentFormValues,
-} from './add-environment-form-schema';
+import type { AddEnvironmentFormValues } from './add-environment-form-schema';
 
 interface Props {
   open: boolean;
@@ -184,12 +181,7 @@ export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange, agentId, i
               </p>
             </div>
             <div className="flex justify-end gap-2 pt-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-              >
+              <Button type="button" variant="outline" size="sm" onClick={() => onOpenChange(false)}>
                 Cancel
               </Button>
               <Button asChild size="sm">
@@ -203,7 +195,7 @@ export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange, agentId, i
               onSubmit={form.handleSubmit(onSubmit)}
               className="flex flex-col flex-1 min-h-0 gap-0"
             >
-              <div className="overflow-y-auto flex-1 min-h-0 pr-1">
+              <div className="overflow-y-auto flex-1 min-h-0 px-1">
                 <div className="space-y-5 pt-1 pb-1">
                   {/* Name */}
                   <FormField
@@ -267,7 +259,9 @@ export const AddEnvironmentDialog: FC<Props> = ({ open, onOpenChange, agentId, i
                               >
                                 <span className="flex w-full items-center justify-between gap-2">
                                   {i.name}
-                                  {field.value === i.id && <Check className="h-3.5 w-3.5 shrink-0" />}
+                                  {field.value === i.id && (
+                                    <Check className="h-3.5 w-3.5 shrink-0" />
+                                  )}
                                 </span>
                               </SelectItem>
                             ))}
