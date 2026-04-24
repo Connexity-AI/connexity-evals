@@ -218,6 +218,7 @@ def test_refresh_uses_incremental_fetch(
     assert body["total"] == 2
 
     # Verify list_retell_calls was called with a non-None start_after on refresh
+    assert mocked.await_args is not None
     _args, kwargs = mocked.await_args
     assert kwargs.get("start_after") is not None
 

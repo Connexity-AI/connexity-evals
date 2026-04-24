@@ -1,13 +1,18 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import func, update
+from sqlalchemy import Table, func, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlmodel import Session, col, select
 
 from app.models.call import Call, CallPublic
 from app.models.test_case import TestCase
 from app.services.retell import RetellCall
+
+# SQLModel's declarative metaclass sets ``__table__`` at class creation, but
+# pyright's stubs don't expose it on ``type[Call]``; bind it once with an
+# explicit ``Table`` annotation so downstream usage typechecks cleanly.
+_CALL_TABLE: Table = Call.__table__  # type: ignore[attr-defined]
 
 
 def _retell_call_to_row(
@@ -57,10 +62,10 @@ def upsert_calls_from_retell(
         return 0
 
     stmt = (
-        pg_insert(Call.__table__)
+        pg_insert(_CALL_TABLE)
         .values(rows)
         .on_conflict_do_nothing(index_elements=["retell_call_id"])
-        .returning(Call.__table__.c.id)
+        .returning(_CALL_TABLE.c.id)
     )
     result = session.execute(stmt)
     inserted = len(list(result))
@@ -133,9 +138,9 @@ def list_calls_for_agent(
 
 def mark_call_seen(*, session: Session, call_id: uuid.UUID) -> None:
     stmt = (
-        update(Call.__table__)
-        .where(Call.__table__.c.id == call_id)
-        .where(Call.__table__.c.seen_at.is_(None))
+        update(_CALL_TABLE)
+        .where(_CALL_TABLE.c.id == call_id)
+        .where(_CALL_TABLE.c.seen_at.is_(None))
         .values(seen_at=datetime.now(UTC))
     )
     session.execute(stmt)
