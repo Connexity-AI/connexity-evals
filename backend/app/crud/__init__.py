@@ -27,6 +27,7 @@ from app.crud.call import (  # noqa: F401
     get_latest_call_started_at,
     list_calls_for_agent,
     mark_call_seen,
+    soft_delete_calls_for_integration,
     upsert_calls_from_retell,
 )
 from app.crud.custom_metrics import (  # noqa: F401
