@@ -1,7 +1,7 @@
 """call soft delete: nullable integration_id + deleted_at
 
 Revision ID: a7b8c9d0e1f2
-Revises: 5fac2991a010
+Revises: b5c6d7e8f9a0
 Create Date: 2026-04-27 00:00:00.000000
 
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "a7b8c9d0e1f2"
-down_revision = "5fac2991a010"
+down_revision = "b5c6d7e8f9a0"
 branch_labels = None
 depends_on = None
 
