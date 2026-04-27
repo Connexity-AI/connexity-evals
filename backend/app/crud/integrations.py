@@ -1,14 +1,11 @@
 import uuid
 
-from sqlalchemy import Table, func, update
+from sqlalchemy import func
 from sqlmodel import Session, col, select
 
 from app.core.encryption import encrypt, mask_key
 from app.crud.call import soft_delete_calls_for_integration
-from app.models.agent import Agent
 from app.models.integration import Integration, IntegrationCreate
-
-_AGENT_TABLE: Table = Agent.__table__  # type: ignore[attr-defined]
 
 
 def create_integration(
@@ -65,15 +62,9 @@ def delete_integration(*, session: Session, db_integration: Integration) -> None
     """Hard-delete the integration after detaching dependent rows.
 
     Calls are soft-deleted (rows kept so ``test_case.source_call_id`` FKs remain
-    valid) and have their ``integration_id`` nulled. Agents that reference this
-    integration get their Observer link cleared. All in one transaction.
+    valid) and have their ``integration_id`` nulled. All in one transaction.
     """
     integration_id = db_integration.id
     soft_delete_calls_for_integration(session=session, integration_id=integration_id)
-    session.execute(
-        update(_AGENT_TABLE)
-        .where(_AGENT_TABLE.c.integration_id == integration_id)
-        .values(integration_id=None, retell_agent_id=None)
-    )
     session.delete(db_integration)
     session.commit()
