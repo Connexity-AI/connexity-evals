@@ -70,11 +70,14 @@ def _owned_agent_with_environment(db: Session, retell_agent_id: str = "ret_a1"):
 
 
 def _fake_retell_call(
-    call_id: str, start_ms: int, end_ms: int | None = None
+    call_id: str,
+    start_ms: int,
+    end_ms: int | None = None,
+    retell_agent_id: str = "ret_a1",
 ) -> RetellCall:
     return RetellCall(
         call_id=call_id,
-        agent_id="ret_a1",
+        agent_id=retell_agent_id,
         start_timestamp=start_ms,
         end_timestamp=end_ms,
         call_status="ended",
@@ -203,7 +206,12 @@ def test_refresh_uses_incremental_fetch(
         db, retell_agent_id="ret_a_refresh"
     )
     initial = [
-        _fake_retell_call("ret_call_refresh_1", 1_700_002_000_000, 1_700_002_050_000),
+        _fake_retell_call(
+            "ret_call_refresh_1",
+            1_700_002_000_000,
+            1_700_002_050_000,
+            retell_agent_id="ret_a_refresh",
+        ),
     ]
     with patch(
         "app.api.routes.calls.list_retell_calls",
@@ -215,7 +223,12 @@ def test_refresh_uses_incremental_fetch(
         )
 
     second_batch = [
-        _fake_retell_call("ret_call_refresh_2", 1_700_003_000_000, 1_700_003_050_000),
+        _fake_retell_call(
+            "ret_call_refresh_2",
+            1_700_003_000_000,
+            1_700_003_050_000,
+            retell_agent_id="ret_a_refresh",
+        ),
     ]
     mocked = AsyncMock(return_value=second_batch)
     with patch("app.api.routes.calls.list_retell_calls", mocked):

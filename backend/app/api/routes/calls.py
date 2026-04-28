@@ -56,7 +56,6 @@ async def _fetch_and_store_from_retell(
         "incremental": incremental,
         "envs_total": 0,
         "retell_envs": 0,
-        "initial_start_after": None,
         "envs": [],
         "created_total": 0,
         "status": "ok",
@@ -78,13 +77,6 @@ async def _fetch_and_store_from_retell(
                 detail="Add a Retell environment on the Deploy tab first",
             )
 
-        initial_start_after: datetime | None = None
-        if incremental:
-            initial_start_after = crud.get_latest_call_started_at(
-                session=session, agent_id=agent.id
-            )
-        event["initial_start_after"] = initial_start_after
-
         created_total = 0
         for env, _ in retell_envs:
             env_event: dict[str, Any] = {
@@ -97,6 +89,7 @@ async def _fetch_and_store_from_retell(
                 "fetched": 0,
                 "inserted": 0,
                 "skipped_dupes": 0,
+                "start_after": None,
                 "status": "ok",
             }
             event["envs"].append(env_event)
@@ -116,7 +109,18 @@ async def _fetch_and_store_from_retell(
                 raise
             env_event["api_key_len"] = len(api_key) if api_key else 0
 
-            start_after = initial_start_after
+            # Per-environment watermark: the latest started_at of calls already
+            # stored for this (agent, retell_agent_id) pair. A brand-new env on
+            # an agent that has prior calls from a different env still gets a
+            # full backfill instead of inheriting the other env's cutoff.
+            start_after: datetime | None = None
+            if incremental:
+                start_after = crud.get_latest_call_started_at(
+                    session=session,
+                    agent_id=agent.id,
+                    retell_agent_id=env.platform_agent_id,
+                )
+            env_event["start_after"] = start_after
             for iteration in range(_MAX_FETCH_ITERATIONS):
                 env_event["iterations"] = iteration + 1
                 try:
