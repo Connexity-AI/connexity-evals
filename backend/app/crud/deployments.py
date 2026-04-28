@@ -88,4 +88,4 @@ def list_deployments_for_agent(
         .where(Deployment.agent_id == agent_id)
         .order_by(col(Deployment.deployed_at).desc())
     )
-    return [(d, name) for d, name in session.exec(statement).all()]
+    return list(session.exec(statement).all())

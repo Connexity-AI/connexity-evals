@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useParams } from 'next/navigation';
 
 import { Activity, AlertCircle, CheckCheck, Loader2, Plus, Rocket, Zap } from 'lucide-react';
 
@@ -12,19 +11,17 @@ import { formatTimeAgo } from '@/app/(app)/(agent)/_components/evals/eval-runs/s
 import { AddEnvironmentDialog } from './add-environment-dialog';
 import { EnvironmentCard } from './environment-card';
 
-import type { DeploymentPublic, IntegrationPublic } from '@/client/types.gen';
+import type { DeploymentPublic } from '@/client/types.gen';
 import type { FC } from 'react';
 
 interface Props {
   agentId: string;
-  integrations: IntegrationPublic[];
 }
 
-export const EnvironmentsSection = () => {
+export const EnvironmentsSection: FC<Props> = ({ agentId }) => {
   const [addOpen, setAddOpen] = useState(false);
-  const { agentId } = useParams<{ agentId: string }>();
   const { data } = useEnvironments(agentId);
-  const environments = data.data;
+  const environments = data?.data ?? [];
 
   return (
     <>
@@ -66,8 +63,6 @@ export const EnvironmentsSection = () => {
         <AddEnvironmentDialog
           open={addOpen}
           onOpenChange={setAddOpen}
-          agentId={agentId}
-          integrations={integrations}
         />
       </section>
 
