@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle, Loader2, XCircle } from 'lucide-react';
@@ -52,13 +52,17 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange, onAdded })
     defaultValues: { provider: 'retell', name: '', api_key: '' },
   });
 
-  useEffect(() => {
-    if (open) {
+  const handleOpenChange = (next: boolean) => {
+    if (dialogState === 'testing' && !next) {
+      return;
+    }
+    if (next) {
       form.reset({ provider: 'retell', name: '', api_key: '' });
       setDialogState('form');
       setErrorMessage('');
     }
-  }, [open, form]);
+    onOpenChange(next);
+  };
 
   const onSubmit = async (values: FormValues) => {
     setDialogState('testing');
@@ -83,7 +87,7 @@ export const AddIntegrationDialog: FC<Props> = ({ open, onOpenChange, onAdded })
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => dialogState !== 'testing' && onOpenChange(o)}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md p-0 gap-0 overflow-hidden [&>button:last-of-type]:hidden">
         <div className="px-6 py-4 border-b border-border">
           <DialogTitle className="text-sm font-medium text-foreground">
