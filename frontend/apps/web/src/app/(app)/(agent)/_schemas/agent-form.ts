@@ -93,3 +93,12 @@ export function makeDefaultAuthHeader(overrides?: Partial<AuthHeaderValues>): Au
     ...overrides,
   };
 }
+
+// ─── Validation helpers (for draft tool editor — outside react-hook-form) ────
+
+export function validateParameterName(name: string, allNames: string[]): string | undefined {
+  if (!name) return 'Parameter name is required';
+  const occurrences = allNames.filter((n) => n === name).length;
+  if (occurrences > 1) return 'Parameter name must be unique';
+  return undefined;
+}
