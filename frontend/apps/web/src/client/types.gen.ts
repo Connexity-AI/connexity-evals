@@ -854,6 +854,10 @@ export type ConfigPublic = {
    * Docs Url
    */
   docs_url: string;
+  /**
+   * Default Llm Model
+   */
+  default_llm_model: string;
 };
 
 /**

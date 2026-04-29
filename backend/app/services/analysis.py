@@ -30,7 +30,7 @@ _TOP_TEST_CASES_LIMIT = 10
 
 def _analysis_llm_config(max_tokens: int | None = None) -> LLMCallConfig:
     return LLMCallConfig(
-        model=settings.ANALYSIS_MODEL or settings.LLM_DEFAULT_MODEL,
+        model=settings.ANALYSIS_MODEL or settings.default_llm_id,
         provider=settings.ANALYSIS_PROVIDER or settings.LLM_DEFAULT_PROVIDER,
         temperature=settings.ANALYSIS_TEMPERATURE,
         max_tokens=max_tokens or settings.ANALYSIS_MAX_TOKENS,

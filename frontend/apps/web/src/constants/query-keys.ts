@@ -39,6 +39,10 @@ export const metricKeys = {
   list: () => ['available-metrics'] as const,
 };
 
+export const appConfigKeys = {
+  root: () => ['app-config'] as const,
+};
+
 export const llmModelKeys = {
   list: () => ['llm-models'] as const,
 };

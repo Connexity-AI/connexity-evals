@@ -102,7 +102,7 @@ async def test_generate_test_cases_uses_config_default_model() -> None:
         ),
         patch("app.services.test_case_generator.core.settings") as mock_settings,
     ):
-        mock_settings.LLM_DEFAULT_MODEL = "gpt-4o"
+        mock_settings.default_llm_id = "openai/gpt-4o"
         mock_settings.GENERATOR_MAX_TOKENS = 16_000
         _, model_used, _ = await generate_test_cases(request)
 
@@ -127,7 +127,7 @@ async def test_generate_test_cases_respects_model_override() -> None:
         ) as mock_call,
         patch("app.services.test_case_generator.core.settings") as mock_settings,
     ):
-        mock_settings.LLM_DEFAULT_MODEL = "gpt-4o"
+        mock_settings.default_llm_id = "openai/gpt-4o"
         mock_settings.GENERATOR_MAX_TOKENS = 16_000
         _, model_used, _ = await generate_test_cases(request)
 

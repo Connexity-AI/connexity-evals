@@ -38,7 +38,7 @@ async def generate_test_cases(
     )
 
     llm_config = LLMCallConfig(
-        model=request.model or settings.LLM_DEFAULT_MODEL,
+        model=request.model or settings.default_llm_id,
         max_tokens=settings.GENERATOR_MAX_TOKENS,
         temperature=temperature,
     )

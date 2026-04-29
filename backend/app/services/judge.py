@@ -443,7 +443,7 @@ async def evaluate_transcript(inp: JudgeInput) -> JudgeVerdict:
         logger.exception("Judge LLM call failed")
         return _error_verdict(
             raw_output=None,
-            judge_model=llm_cfg.model or settings.LLM_DEFAULT_MODEL or "unknown",
+            judge_model=llm_cfg.model or settings.default_llm_id,
             judge_provider=judge_provider,
             judge_latency_ms=None,
             judge_token_usage=None,

@@ -1462,9 +1462,13 @@ export const ConfigPublicSchema = {
       type: 'string',
       title: 'Docs Url',
     },
+    default_llm_model: {
+      type: 'string',
+      title: 'Default Llm Model',
+    },
   },
   type: 'object',
-  required: ['project_name', 'api_version', 'environment', 'docs_url'],
+  required: ['project_name', 'api_version', 'environment', 'docs_url', 'default_llm_model'],
   title: 'ConfigPublic',
 } as const;
 
