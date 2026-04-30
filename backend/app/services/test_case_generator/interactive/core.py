@@ -347,9 +347,7 @@ class TestCaseAgent:
     ) -> tuple[list[TestCaseCreate], TestCaseCreate | None]:
         if partial_create is None or not partial_create.failed_indices:
             expected_count = self._expected_repair_create_count(raw_calls)
-            return self._parse_response(
-                raw_calls, expected_create_count=expected_count
-            )
+            return self._parse_response(raw_calls, expected_create_count=expected_count)
 
         repair_count = _count_tool_calls(raw_calls, "create_test_case")
         original_count = len(partial_create.created)
@@ -358,7 +356,9 @@ class TestCaseAgent:
         if repair_count == original_count:
             return self._parse_response(raw_calls, expected_create_count=original_count)
 
-        repaired, _ = self._parse_response(raw_calls, expected_create_count=failed_count)
+        repaired, _ = self._parse_response(
+            raw_calls, expected_create_count=failed_count
+        )
         return self._merge_partial_create_generation(partial_create, repaired), None
 
     def _expected_repair_create_count(

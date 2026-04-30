@@ -67,9 +67,7 @@ def parse_agent_tool_definitions(
         desc = str(fn.get("description") or "")
         p = fn.get("parameters")
         params = copy.deepcopy(p) if isinstance(p, dict) else None
-        out.append(
-            AgentToolDefinition(name=name, description=desc, parameters=params)
-        )
+        out.append(AgentToolDefinition(name=name, description=desc, parameters=params))
     return out
 
 
