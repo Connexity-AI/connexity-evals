@@ -89,7 +89,11 @@ async def generate_test_cases(
     except (json.JSONDecodeError, ValidationError, ValueError) as exc:
         validation_errors = validation_errors_from_exception(exc)
         logger.warning(
-            "Generated test cases failed validation; attempting repair: %s", exc
+            "Batch test-case generation output failed validation; attempting repair. "
+            "model=%s expected_count=%s errors=%s",
+            response.model,
+            request.count,
+            validation_errors,
         )
 
     try:
@@ -119,11 +123,22 @@ async def generate_test_cases(
             config=llm_config,
         )
 
-        repaired = _parse_test_cases(
-            repair_response.content,
-            expected_count=len(partial_generation.failed_indices),
-            tools=request.tools,
-        )
+        try:
+            repaired = _parse_test_cases(
+                repair_response.content,
+                expected_count=len(partial_generation.failed_indices),
+                tools=request.tools,
+            )
+        except (json.JSONDecodeError, ValidationError, ValueError) as repair_exc:
+            logger.error(
+                "Batch test-case partial repair failed validation. "
+                "model=%s failed_indices=%s errors=%s",
+                repair_response.model,
+                partial_generation.failed_indices,
+                validation_errors_from_exception(repair_exc),
+            )
+            raise
+
         merged = _merge_partial_generation(partial_generation, repaired)
         _validate_generated_cases(
             merged,
@@ -150,11 +165,20 @@ async def generate_test_cases(
         config=llm_config,
     )
 
-    repaired = _parse_test_cases(
-        repair_response.content,
-        expected_count=request.count,
-        tools=request.tools,
-    )
+    try:
+        repaired = _parse_test_cases(
+            repair_response.content,
+            expected_count=request.count,
+            tools=request.tools,
+        )
+    except (json.JSONDecodeError, ValidationError, ValueError) as repair_exc:
+        logger.error(
+            "Batch test-case full repair failed validation. model=%s errors=%s",
+            repair_response.model,
+            validation_errors_from_exception(repair_exc),
+        )
+        raise
+
     latency_ms = (response.latency_ms or 0) + (repair_response.latency_ms or 0)
     return repaired, repair_response.model, latency_ms
 
