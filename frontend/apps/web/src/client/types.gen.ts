@@ -304,6 +304,28 @@ export type AgentSimulatorConfig = {
 };
 
 /**
+ * AgentToolDefinition
+ *
+ * Prompt-facing tool: ``parameters`` is a full JSON Schema (properties, required, ...).
+ */
+export type AgentToolDefinition = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description?: string;
+  /**
+   * Parameters
+   */
+  parameters?: {
+    [key: string]: unknown;
+  } | null;
+};
+
+/**
  * AgentUpdate
  */
 export type AgentUpdate = {
@@ -854,6 +876,10 @@ export type ConfigPublic = {
    * Docs Url
    */
   docs_url: string;
+  /**
+   * Default Llm Model
+   */
+  default_llm_model: string;
 };
 
 /**
@@ -1652,7 +1678,7 @@ export type GenerateRequest = {
   /**
    * Tools
    */
-  tools?: Array<ToolDefinition>;
+  tools?: Array<AgentToolDefinition>;
   /**
    * Count
    */
@@ -3298,7 +3324,7 @@ export type SuggestionsRequest = {
  * Input for the single-turn test-case AI agent.
  */
 export type TestCaseAgentRequest = {
-  mode: AppServicesTestCaseGeneratorAgentSchemasAgentMode;
+  mode: AppServicesTestCaseGeneratorInteractiveSchemasAgentMode;
   /**
    * User Message
    */
@@ -3355,7 +3381,7 @@ export type TestCaseAgentRequest = {
  * Output from the test-case AI agent.
  */
 export type TestCaseAgentResult = {
-  mode: AppServicesTestCaseGeneratorAgentSchemasAgentMode;
+  mode: AppServicesTestCaseGeneratorInteractiveSchemasAgentMode;
   /**
    * Created
    */
@@ -4228,28 +4254,6 @@ export type ToolCallFunction = {
 };
 
 /**
- * ToolDefinition
- *
- * A single tool/function definition the agent has access to.
- */
-export type ToolDefinition = {
-  /**
-   * Name
-   */
-  name: string;
-  /**
-   * Description
-   */
-  description: string;
-  /**
-   * Parameters
-   */
-  parameters?: {
-    [key: string]: unknown;
-  } | null;
-};
-
-/**
  * ToolDiff
  */
 export type ToolDiff = {
@@ -4407,7 +4411,7 @@ export type AppModelsEnumsAgentMode =
 /**
  * AgentMode
  */
-export const AppServicesTestCaseGeneratorAgentSchemasAgentMode = {
+export const AppServicesTestCaseGeneratorInteractiveSchemasAgentMode = {
   CREATE: 'create',
   FROM_TRANSCRIPT: 'from_transcript',
   EDIT: 'edit',
@@ -4416,8 +4420,8 @@ export const AppServicesTestCaseGeneratorAgentSchemasAgentMode = {
 /**
  * AgentMode
  */
-export type AppServicesTestCaseGeneratorAgentSchemasAgentMode =
-  (typeof AppServicesTestCaseGeneratorAgentSchemasAgentMode)[keyof typeof AppServicesTestCaseGeneratorAgentSchemasAgentMode];
+export type AppServicesTestCaseGeneratorInteractiveSchemasAgentMode =
+  (typeof AppServicesTestCaseGeneratorInteractiveSchemasAgentMode)[keyof typeof AppServicesTestCaseGeneratorInteractiveSchemasAgentMode];
 
 export type HealthHealthData = {
   body?: never;
