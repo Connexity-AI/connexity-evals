@@ -40,10 +40,9 @@ export function ObserveManualTestCasePanel({
     <div className="flex h-full w-[420px] shrink-0 flex-col overflow-hidden">
       <div className="flex h-[52px] shrink-0 items-center justify-between border-b border-border px-4">
         <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-sm text-foreground">
+          <span className="max-w-50 truncate text-sm text-foreground">
             {name?.trim() ? name : 'New test case'}
           </span>
-          <StatusBadge status={status} />
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {onOpenAiAssistant ? (
@@ -57,6 +56,7 @@ export function ObserveManualTestCasePanel({
               AI Assistant
             </button>
           ) : null}
+          <StatusBadge status={status} />
           <button
             type="button"
             onClick={() => onOpenChange(false)}

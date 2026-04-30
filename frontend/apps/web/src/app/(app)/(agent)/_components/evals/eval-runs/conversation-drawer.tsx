@@ -82,7 +82,7 @@ export function ConversationDrawer({
                   Conversation
                 </span>
               </div>
-              <SheetTitle className="pr-6 text-sm font-normal leading-snug text-foreground">
+              <SheetTitle className="max-w-50 truncate pr-6 text-sm font-normal leading-snug text-foreground">
                 {testCaseName}
               </SheetTitle>
             </div>

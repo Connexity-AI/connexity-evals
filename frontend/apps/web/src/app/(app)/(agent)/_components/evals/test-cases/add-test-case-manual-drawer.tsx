@@ -45,13 +45,13 @@ export function AddTestCaseManualDrawer({
         className="flex h-full w-full flex-col gap-0 overflow-hidden border-l border-border p-0 sm:max-w-120"
       >
         <Form {...form}>
-          <SheetHeader className="flex h-13 shrink-0 flex-row items-center justify-between space-y-0 border-b border-border px-4 text-left">
+          <SheetHeader className="flex h-13 shrink-0 flex-row items-center justify-between space-y-0 border-b border-border pl-4 pr-12 text-left">
             <div className="flex min-w-0 items-center gap-2">
-              <SheetTitle className="truncate text-sm font-normal text-foreground">
+              <SheetTitle className="max-w-50 truncate text-sm font-normal text-foreground">
                 {name?.trim() ? name : 'New test case'}
               </SheetTitle>
-              <StatusBadge status={status} />
             </div>
+            <StatusBadge status={status} />
           </SheetHeader>
 
           <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
