@@ -1,62 +1,63 @@
 # connexity
 
-## Prerequisites
+## Quick start (Docker)
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
-- [uv](https://docs.astral.sh/uv/) — `winget install astral-sh.uv`
-- [Node.js](https://nodejs.org/) + [pnpm](https://pnpm.io/)
-- [GNU Make](https://www.gnu.org/software/make/) — `winget install GnuWin32.Make`
-
-## Quick Start
-
-### Option A — Local dev (DB in Docker, app runs natively)
+Prebuilt images live on [GitHub Container Registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry). Use a **public** package (or inherit visibility from a public repo) so pulls work without logging in.
 
 ```bash
-# 1. Copy environment variables
-cp .env.example .env
-cp frontend/apps/web/.env.example frontend/apps/web/.env
+git clone https://github.com/Connexity-AI/connexity.git
+cd connexity
 
-# 2. Install dependencies (Python + frontend)
+cp .env.example .env
+# Edit .env: set SITE_URL, JWT_SECRET_KEY, ENCRYPTION_KEY, POSTGRES_PASSWORD, optional API keys.
+
+docker compose up
+```
+
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
+- **API docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
+- **DB UI (pgweb)**: [http://localhost:8083](http://localhost:8083)
+
+The compose file sets **`API_URL=http://backend:8000`** inside the frontend container so the Next.js server talks to FastAPI over the Docker network. You usually only set **`SITE_URL`** to the URL people open in the browser (`http://localhost:3000` locally, or `https://…` when hosted).
+
+**Forks / custom images**: override in `.env`:
+
+```env
+CONNEXITY_BACKEND_IMAGE=ghcr.io/your-org/connexity-backend:latest
+CONNEXITY_FRONTEND_IMAGE=ghcr.io/your-org/connexity-frontend:latest
+```
+
+**Build images locally** (contributors):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.build.yml up --build
+# or: make docker-build-up
+```
+
+## Local development (DB in Docker, apps on host)
+
+Prerequisites: [Docker Desktop](https://www.docker.com/products/docker-desktop/), [uv](https://docs.astral.sh/uv/), [Node.js](https://nodejs.org/) + [pnpm](https://pnpm.io/), [GNU Make](https://www.gnu.org/software/make/).
+
+One env file at the repo root (same `.env` as Docker). It includes **`API_URL=http://localhost:8000`** and **`POSTGRES_SERVER=localhost`** so the backend and Next.js dev server reach Postgres on the host port.
+
+```bash
+cp .env.example .env
 make install
-
-# 3. Start database
 make db
-
-# 4. Run migrations
 make db-upgrade
-
-# 5. Start backend (in one terminal)
-make dev
-
-# 6. Start frontend (in another terminal)
-make dashboard
+make dev          # terminal 1 — backend
+make dashboard    # terminal 2 — frontend (loads root .env)
 ```
 
-### Option B — Everything in Docker
+## CLI against a hosted instance
 
-```bash
-# 1. Copy environment variables
-cp .env.example .env
-cp frontend/apps/web/.env.example frontend/apps/web/.env
-
-# 2. Start all services (frontend, backend, database, adminer)
-make docker-up
-```
-
-> Logs: `make docker-logs` — Stop: `make docker-down`
-
-## URLs
-
-| Service  | URL                     |
-| -------- | ----------------------- |
-| Frontend | http://localhost:3000   |
-| Backend  | http://localhost:8000/docs |
-| Adminer  | http://localhost:8083   |
+Point the CLI at the **public API base URL** (same host as the app if you reverse-proxy `/api/v1`, or a dedicated API host). See [`.env.example`](.env.example) (`CONNEXITY_CLI_API_URL` / `CONNEXITY_CLI_API_TOKEN`).
 
 ## Accounts
 
-The database starts empty. Sign up at the frontend (`http://localhost:3000`) or via `POST /api/v1/users/signup` to create an account.
+The database starts empty. Sign up in the UI or via `POST /api/v1/users/signup`.
 
-## All Commands
+## Further docs
 
-Run `make help` to see all available targets.
+- [docs/running.md](docs/running.md) — detailed local setup
+- `make help` — Make targets
