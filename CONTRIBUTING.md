@@ -4,8 +4,8 @@ Thanks for your interest in contributing! Connexity is built in the open and we 
 
 ## Ways to contribute
 
-- **Report a bug** — open an [issue](https://github.com/Connexity-AI/connexity-evals/issues) with reproduction steps, expected vs. actual behavior, and your environment (OS, Docker / Node / Python versions).
-- **Request a feature** — start a thread in [GitHub Discussions](https://github.com/Connexity-AI/connexity-evals/discussions). Describe the use case before the implementation — it's much easier to align on a solution that way.
+- **Report a bug** — open an [issue](https://github.com/Connexity-AI/connexity/issues) with reproduction steps, expected vs. actual behavior, and your environment (OS, Docker / Node / Python versions).
+- **Request a feature** — start a thread in [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions). Describe the use case before the implementation — it's much easier to align on a solution that way.
 - **Improve the docs** — typos, missing pieces, or clearer explanations are always appreciated. PRs against [`docs/`](./docs) and the README are welcome.
 - **Send a pull request** — bug fixes, small features, and well-scoped refactors are great first contributions. For larger changes, please open a discussion or issue first so we can agree on the direction.
 
@@ -14,8 +14,8 @@ Thanks for your interest in contributing! Connexity is built in the open and we 
 The fastest way to get a working environment is the local dev mode (DB in Docker, app runs natively):
 
 ```bash
-git clone https://github.com/Connexity-AI/connexity-evals.git
-cd connexity-evals
+git clone https://github.com/Connexity-AI/connexity.git
+cd connexity
 
 cp .env.example .env
 cp frontend/apps/web/.env.example frontend/apps/web/.env
@@ -105,4 +105,4 @@ By contributing to Connexity, you agree that your contributions will be licensed
 
 ---
 
-Questions? Join us on [Discord](https://discord.gg/Gj47DqWq) or start a thread in [GitHub Discussions](https://github.com/Connexity-AI/connexity-evals/discussions). Thanks for helping make Connexity better!
+Questions? Join us on [Discord](https://discord.gg/Gj47DqWq) or start a thread in [GitHub Discussions](https://github.com/Connexity-AI/connexity/discussions). Thanks for helping make Connexity better!
