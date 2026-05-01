@@ -103,29 +103,6 @@ def test_resolve_metrics_mixed_builtin_and_custom(db: Session) -> None:
     assert abs(sum(w for _, w in resolved) - 1.0) < 1e-9
 
 
-def test_resolve_metrics_custom_wrong_owner(db: Session) -> None:
-    owner = create_random_user(db)
-    name = f"wrong_owner_{uuid.uuid4().hex[:10]}"
-    crud.create_custom_metric(
-        session=db,
-        metric_in=CustomMetricCreate(
-            name=name,
-            display_name="X",
-            description="d",
-            tier=MetricTier.KNOWLEDGE,
-            default_weight=0.1,
-            score_type=ScoreType.BINARY,
-            rubric="Measures: x.\n\nPass: a\nExample: b\nFail: c\nExample: d",
-            include_in_defaults=False,
-        ),
-        owner_id=owner.id,
-    )
-    cfg = JudgeConfig(metrics=[MetricSelection(metric=name, weight=1.0)])
-    wrong_id = uuid.uuid4()
-    with pytest.raises(ValueError, match="Unknown metric"):
-        resolve_metrics(cfg, session=db, owner_id=wrong_id)
-
-
 def _minimal_transcript() -> list[ConversationTurn]:
     return [
         ConversationTurn(

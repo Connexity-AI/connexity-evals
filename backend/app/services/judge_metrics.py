@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 from sqlmodel import Session
 
 from app.core.db import engine
-from app.crud.custom_metrics import get_custom_metric_by_name_and_owner
+from app.crud.custom_metrics import get_custom_metric_by_name
 from app.models.custom_metric import CustomMetric
 from app.models.enums import MetricTier, ScoreType
 from app.models.schemas import JudgeConfig, MetricSelection
@@ -330,12 +330,9 @@ def resolve_metrics(
         if sel.metric in METRIC_REGISTRY:
             definition = METRIC_REGISTRY[sel.metric]
         else:
-            if owner_id is None:
-                msg = f"Unknown metric: {sel.metric}"
-                raise ValueError(msg)
             with _session_scope(session) as db_session:
-                row = get_custom_metric_by_name_and_owner(
-                    session=db_session, name=sel.metric, owner_id=owner_id
+                row = get_custom_metric_by_name(
+                    session=db_session, name=sel.metric
                 )
             if row is None:
                 msg = f"Unknown metric: {sel.metric}"

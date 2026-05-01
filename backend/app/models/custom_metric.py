@@ -3,7 +3,7 @@ import uuid
 from datetime import UTC, datetime
 
 from pydantic import field_validator
-from sqlalchemy import Column, Text, UniqueConstraint, text
+from sqlalchemy import Column, Text, text
 from sqlalchemy import Enum as SAEnum
 from sqlmodel import Field, SQLModel
 
@@ -13,7 +13,7 @@ _SLUG_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 
 
 class CustomMetricBase(SQLModel):
-    name: str = Field(max_length=255, description="Unique slug per owner (snake_case)")
+    name: str = Field(max_length=255, description="Globally-unique slug (snake_case)")
     display_name: str = Field(max_length=255)
     description: str = Field(sa_column=Column(Text, nullable=False))
     tier: MetricTier = Field(
@@ -27,7 +27,7 @@ class CustomMetricBase(SQLModel):
             nullable=False,
         )
     )
-    default_weight: float = Field(ge=0.0)
+    default_weight: float = Field(default=1.0, ge=0.0)
     score_type: ScoreType = Field(
         sa_column=Column(
             SAEnum(
@@ -56,9 +56,6 @@ class CustomMetricBase(SQLModel):
 
 class CustomMetric(CustomMetricBase, table=True):
     __tablename__ = "custom_metric"
-    __table_args__ = (
-        UniqueConstraint("created_by", "name", name="uq_custom_metric_owner_name"),
-    )
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     created_by: uuid.UUID = Field(foreign_key="user.id", index=True)
@@ -73,6 +70,7 @@ class CustomMetric(CustomMetricBase, table=True):
             "onupdate": lambda: datetime.now(UTC),
         },
     )
+    deleted_at: datetime | None = Field(default=None, index=True)
 
 
 class CustomMetricCreate(CustomMetricBase):
@@ -112,4 +110,4 @@ class CustomMetricPublic(CustomMetricBase):
 
 class CustomMetricsPublic(SQLModel):
     data: list[CustomMetricPublic] = Field(description="List of custom metrics")
-    count: int = Field(description="Total number of custom metrics for the user")
+    count: int = Field(description="Total number of custom metrics")

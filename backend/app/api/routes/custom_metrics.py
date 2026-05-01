@@ -47,7 +47,7 @@ def create_custom_metric(
         session.rollback()
         raise HTTPException(
             status_code=409,
-            detail="A custom metric with this name already exists for your account",
+            detail="A custom metric with this name already exists",
         ) from None
 
 
@@ -67,13 +67,11 @@ async def generate_custom_metric_preview(
 @router.get("/", response_model=CustomMetricsPublic)
 def list_custom_metrics(
     session: SessionDep,
-    current_user: CurrentUser,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> CustomMetricsPublic:
     items, count = crud.list_custom_metrics(
         session=session,
-        owner_id=current_user.id,
         skip=skip,
         limit=limit,
     )
@@ -88,11 +86,10 @@ def list_custom_metrics(
 @router.get("/{metric_id}", response_model=CustomMetricPublic)
 def get_custom_metric(
     session: SessionDep,
-    current_user: CurrentUser,
     metric_id: uuid.UUID,
 ) -> CustomMetric:
     metric = crud.get_custom_metric(session=session, metric_id=metric_id)
-    if not metric or metric.created_by != current_user.id:
+    if not metric:
         raise HTTPException(status_code=404, detail="Custom metric not found")
     return metric
 
@@ -100,12 +97,11 @@ def get_custom_metric(
 @router.put("/{metric_id}", response_model=CustomMetricPublic)
 def update_custom_metric(
     session: SessionDep,
-    current_user: CurrentUser,
     metric_id: uuid.UUID,
     metric_in: CustomMetricUpdate,
 ) -> CustomMetric:
     metric = crud.get_custom_metric(session=session, metric_id=metric_id)
-    if not metric or metric.created_by != current_user.id:
+    if not metric:
         raise HTTPException(status_code=404, detail="Custom metric not found")
     if metric_in.name is not None and metric_in.name in METRIC_REGISTRY:
         raise HTTPException(
@@ -120,18 +116,17 @@ def update_custom_metric(
         session.rollback()
         raise HTTPException(
             status_code=409,
-            detail="A custom metric with this name already exists for your account",
+            detail="A custom metric with this name already exists",
         ) from None
 
 
 @router.delete("/{metric_id}", response_model=Message)
 def delete_custom_metric(
     session: SessionDep,
-    current_user: CurrentUser,
     metric_id: uuid.UUID,
 ) -> Message:
     metric = crud.get_custom_metric(session=session, metric_id=metric_id)
-    if not metric or metric.created_by != current_user.id:
+    if not metric:
         raise HTTPException(status_code=404, detail="Custom metric not found")
     crud.delete_custom_metric(session=session, db_metric=metric)
     return Message(message="Custom metric deleted successfully")

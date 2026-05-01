@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import { UrlGenerator } from '@/common/url-generator/url-generator';
-import { Bot, Plug } from 'lucide-react';
+import { BarChart3, Bot, Plug } from 'lucide-react';
 
 import {
   SidebarContent,
@@ -30,6 +30,11 @@ const menuItems = [
     title: 'Agents',
     url: UrlGenerator.agents(),
     icon: Bot,
+  },
+  {
+    title: 'Metrics',
+    url: UrlGenerator.metrics(),
+    icon: BarChart3,
   },
   {
     title: 'Integrations',
