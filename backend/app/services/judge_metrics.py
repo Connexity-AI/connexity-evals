@@ -1,7 +1,9 @@
 """Judge metric definitions, rubrics, and selection/weight resolution.
 
-The default set is eight scored metrics. Opt-in-only metrics are included only
-when listed in :class:`~app.models.schemas.JudgeConfig`.
+All metric definitions — both built-in (predefined) and user-created (custom) —
+live in the ``custom_metric`` table. The legacy ``METRIC_REGISTRY`` constant
+in this module is kept only as a fallback used when a metric is referenced by
+name without a database session in scope; it is **not** the source of truth.
 """
 
 import uuid
@@ -9,7 +11,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 
 from pydantic import BaseModel, Field
-from sqlmodel import Session
+from sqlmodel import Session, col, select
 
 from app.core.db import engine
 from app.crud.custom_metrics import get_custom_metric_by_name
@@ -256,8 +258,53 @@ METRIC_REGISTRY: dict[str, MetricDefinition] = {
 }
 
 
-def get_default_metrics() -> list[MetricDefinition]:
-    """Default scored metrics (``include_in_defaults``; excludes opt-in-only)."""
+def _list_active_db_metrics(session: Session) -> list[CustomMetric]:
+    """All non-deleted, non-draft metrics ordered with predefined first."""
+    statement = (
+        select(CustomMetric)
+        .where(
+            CustomMetric.deleted_at.is_(None),  # type: ignore[union-attr]
+            CustomMetric.is_draft.is_(False),  # type: ignore[union-attr]
+        )
+        .order_by(
+            col(CustomMetric.is_predefined).desc(),
+            col(CustomMetric.created_at).asc(),
+        )
+    )
+    return list(session.exec(statement).all())
+
+
+def _db_has_been_seeded(session: Session) -> bool:
+    """True iff at least one predefined row exists in the DB (any draft state).
+
+    Used to gate the in-memory ``METRIC_REGISTRY`` fallback: once the DB has
+    been seeded, the DB result is canonical and an empty result means the
+    user has legitimately deactivated everything — not that we should fall
+    back to the registry.
+    """
+    statement = select(CustomMetric.id).where(
+        col(CustomMetric.is_predefined).is_(True),
+        col(CustomMetric.deleted_at).is_(None),
+    )
+    return session.exec(statement.limit(1)).first() is not None
+
+
+def get_default_metrics(session: Session | None = None) -> list[MetricDefinition]:
+    """Predefined scored metrics flagged ``include_in_defaults`` (DB-backed).
+
+    Falls back to the in-memory ``METRIC_REGISTRY`` only when the DB has not
+    yet been seeded (e.g. unit tests using a fresh schema).
+    """
+    with _session_scope(session) as db_session:
+        if _db_has_been_seeded(db_session):
+            rows = _list_active_db_metrics(db_session)
+            return [
+                custom_metric_row_to_definition(r)
+                for r in rows
+                if r.is_predefined
+                and r.include_in_defaults
+                and r.score_type == ScoreType.SCORED
+            ]
     return [
         m
         for m in METRIC_REGISTRY.values()
@@ -265,8 +312,17 @@ def get_default_metrics() -> list[MetricDefinition]:
     ]
 
 
-def get_metrics_for_api() -> list[MetricDefinition]:
-    """All registered metrics for UI / config discovery."""
+def get_metrics_for_api(session: Session | None = None) -> list[MetricDefinition]:
+    """All active (non-draft, non-deleted) metrics for UI / config discovery.
+
+    Falls back to the in-memory registry only when the DB has not yet been
+    seeded; an empty active list on a seeded DB means the user has marked
+    every metric as draft and we must respect that.
+    """
+    with _session_scope(session) as db_session:
+        if _db_has_been_seeded(db_session):
+            rows = _list_active_db_metrics(db_session)
+            return [custom_metric_row_to_definition(r) for r in rows]
     return list(METRIC_REGISTRY.values())
 
 
@@ -315,29 +371,31 @@ def resolve_metrics(
     rows for ``owner_id`` when provided (optionally reusing ``session``).
     """
     if judge_config is None or judge_config.metrics is None:
-        defaults = get_default_metrics()
+        defaults = get_default_metrics(session)
         pairs = [(m, m.default_weight) for m in defaults]
         return _normalize_weights(pairs)
 
     selections: list[MetricSelection] = judge_config.metrics
     if not selections:
-        defaults = get_default_metrics()
+        defaults = get_default_metrics(session)
         pairs = [(m, m.default_weight) for m in defaults]
         return _normalize_weights(pairs)
 
     pairs: list[tuple[MetricDefinition, float]] = []
     for sel in selections:
-        if sel.metric in METRIC_REGISTRY:
+        with _session_scope(session) as db_session:
+            row = get_custom_metric_by_name(
+                session=db_session, name=sel.metric
+            )
+        if row is not None:
+            definition = custom_metric_row_to_definition(row)
+        elif sel.metric in METRIC_REGISTRY:
+            # Fallback for environments where the DB seed has not yet run
+            # (e.g. unit tests using an empty in-memory DB).
             definition = METRIC_REGISTRY[sel.metric]
         else:
-            with _session_scope(session) as db_session:
-                row = get_custom_metric_by_name(
-                    session=db_session, name=sel.metric
-                )
-            if row is None:
-                msg = f"Unknown metric: {sel.metric}"
-                raise ValueError(msg)
-            definition = custom_metric_row_to_definition(row)
+            msg = f"Unknown metric: {sel.metric}"
+            raise ValueError(msg)
         if sel.metric == "task_completion" and sel.weight is None:
             msg = "task_completion requires an explicit weight when selected"
             raise ValueError(msg)

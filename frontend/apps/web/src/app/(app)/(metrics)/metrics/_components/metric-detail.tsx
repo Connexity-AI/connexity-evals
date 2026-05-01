@@ -18,12 +18,8 @@ import {
   isValidSnakeCase,
 } from './metric-meta';
 
-import type {
-  CustomMetricPublic,
-  CustomMetricUpdate,
-  MetricTier,
-  ScoreType,
-} from '@/client/types.gen';
+import type { MetricRecord, MetricUpdatePatch } from './metric-types';
+import type { MetricTier, ScoreType } from '@/client/types.gen';
 
 export type MetricDraft = {
   id: string | null;
@@ -34,9 +30,10 @@ export type MetricDraft = {
   score_type: ScoreType;
   rubric: string;
   active: boolean;
+  is_predefined: boolean;
 };
 
-export function metricToDraft(metric: CustomMetricPublic): MetricDraft {
+export function metricToDraft(metric: MetricRecord): MetricDraft {
   return {
     id: metric.id,
     name: metric.name,
@@ -45,7 +42,8 @@ export function metricToDraft(metric: CustomMetricPublic): MetricDraft {
     tier: metric.tier,
     score_type: metric.score_type,
     rubric: metric.rubric,
-    active: !!metric.include_in_defaults,
+    active: !metric.is_draft,
+    is_predefined: !!metric.is_predefined,
   };
 }
 
@@ -59,6 +57,7 @@ export function newDraft(): MetricDraft {
     score_type: 'scored',
     rubric: '',
     active: true,
+    is_predefined: false,
   };
 }
 
@@ -73,7 +72,7 @@ export function MetricDetail({
   source: MetricDraft;
   saved: boolean;
   saving: boolean;
-  onSave: (patch: CustomMetricUpdate, draft: MetricDraft) => void;
+  onSave: (patch: MetricUpdatePatch, draft: MetricDraft) => void;
   onDelete: () => void;
   onClose: () => void;
 }) {
@@ -122,18 +121,27 @@ export function MetricDetail({
 
   const handleSave = () => {
     if (!canSave) return;
-    onSave(
-      {
-        name,
-        display_name: displayName,
-        description,
-        tier,
-        score_type: scoreType,
-        rubric,
-        include_in_defaults: active,
-      },
-      { ...source, name, display_name: displayName, description, tier, score_type: scoreType, rubric, active }
-    );
+    // Predefined metrics keep their internal `name` immutable on the backend,
+    // so omit it from the patch to avoid a 409 even when the field is read-only.
+    const patch: MetricUpdatePatch = {
+      display_name: displayName,
+      description,
+      tier,
+      score_type: scoreType,
+      rubric,
+      is_draft: !active,
+    };
+    if (!source.is_predefined) patch.name = name;
+    onSave(patch, {
+      ...source,
+      name,
+      display_name: displayName,
+      description,
+      tier,
+      score_type: scoreType,
+      rubric,
+      active,
+    });
   };
 
   return (
@@ -142,6 +150,11 @@ export function MetricDetail({
         <div className="flex items-center gap-2">
           <TierBadge tier={tier} />
           <ScoreTypeBadge type={scoreType} />
+          {source.is_predefined && (
+            <span className="px-2 py-0.5 rounded text-[10px] uppercase tracking-wider border border-border/60 bg-accent/40 text-muted-foreground/80">
+              Predefined
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {isDirty && source.id !== null && (
@@ -246,17 +259,24 @@ export function MetricDetail({
               setName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''))
             }
             placeholder="e.g. tool_routing"
+            disabled={source.is_predefined}
             className={cn(
               'h-8 text-xs font-mono bg-accent/40 border-border',
-              name && !nameValid && 'border-red-500/50 focus-visible:ring-red-500/20'
+              name && !nameValid && 'border-red-500/50 focus-visible:ring-red-500/20',
+              source.is_predefined && 'opacity-70 cursor-not-allowed'
             )}
           />
-          {name && !nameValid && (
+          {source.is_predefined ? (
+            <p className="text-[10px] text-muted-foreground/50 mt-1">
+              Predefined metrics share a stable id used by existing eval configs and
+              cannot be renamed.
+            </p>
+          ) : name && !nameValid ? (
             <p className="text-[10px] text-red-400 mt-1">
               Must start with a letter and contain only lowercase letters, digits, and
               underscores.
             </p>
-          )}
+          ) : null}
         </div>
 
         <div>

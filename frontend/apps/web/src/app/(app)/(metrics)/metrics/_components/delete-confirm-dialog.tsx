@@ -13,7 +13,7 @@ import {
 
 import { TierBadge } from './metric-badges';
 
-import type { CustomMetricPublic } from '@/client/types.gen';
+import type { MetricRecord } from './metric-types';
 
 export function DeleteConfirmDialog({
   items,
@@ -21,13 +21,15 @@ export function DeleteConfirmDialog({
   onCancel,
   isPending,
 }: {
-  items: CustomMetricPublic[] | null;
+  items: MetricRecord[] | null;
   onConfirm: () => void;
   onCancel: () => void;
   isPending?: boolean;
 }) {
   const open = items !== null && items.length > 0;
   const list = items ?? [];
+  const predefinedCount = list.filter((m) => m.is_predefined).length;
+  const customCount = list.length - predefinedCount;
 
   return (
     <AlertDialog open={open} onOpenChange={(o) => !o && onCancel()}>
@@ -37,8 +39,11 @@ export function DeleteConfirmDialog({
             Delete {list.length} metric{list.length !== 1 ? 's' : ''}?
           </AlertDialogTitle>
           <AlertDialogDescription>
-            Soft-deleted metrics are hidden from the list and excluded from eval runs. This
-            cannot be undone from the UI.
+            {customCount > 0 && predefinedCount > 0
+              ? `Custom metrics (${customCount}) will be permanently removed; predefined metrics (${predefinedCount}) will be soft-deleted and hidden from eval runs.`
+              : predefinedCount > 0
+                ? 'Predefined metrics are soft-deleted: they are hidden from the metrics list and excluded from eval runs, but kept in the database.'
+                : 'Custom metrics are removed permanently. This cannot be undone from the UI.'}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <div className="max-h-60 overflow-auto space-y-1 -mx-6 px-6">

@@ -6,7 +6,7 @@ import { cn } from '@workspace/ui/lib/utils';
 
 import { ScoreTypeBadge, TierBadge } from './metric-badges';
 
-import type { CustomMetricPublic } from '@/client/types.gen';
+import type { MetricRecord } from './metric-types';
 
 export function MetricRow({
   metric,
@@ -16,14 +16,15 @@ export function MetricRow({
   onCheck,
   onToggleActive,
 }: {
-  metric: CustomMetricPublic;
+  metric: MetricRecord;
   isSelected: boolean;
   isChecked: boolean;
   onSelect: (id: string) => void;
   onCheck: (id: string, checked: boolean) => void;
   onToggleActive: (id: string, active: boolean) => void;
 }) {
-  const active = !!metric.include_in_defaults;
+  const active = !metric.is_draft;
+  const isPredefined = !!metric.is_predefined;
 
   return (
     <div
@@ -42,11 +43,18 @@ export function MetricRow({
       </div>
 
       <div className="py-2.5 pr-4 min-w-0">
-        <p className="text-xs font-mono text-foreground truncate">
-          {metric.display_name || metric.name || (
-            <span className="text-muted-foreground italic">unnamed</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <p className="text-xs font-mono text-foreground truncate">
+            {metric.display_name || metric.name || (
+              <span className="text-muted-foreground italic">unnamed</span>
+            )}
+          </p>
+          {isPredefined && (
+            <span className="px-1.5 py-0.5 rounded text-[9px] uppercase tracking-wider border border-border/60 bg-accent/40 text-muted-foreground/80 shrink-0">
+              Predefined
+            </span>
           )}
-        </p>
+        </div>
         {metric.description && (
           <p className="text-[10px] text-muted-foreground/50 truncate mt-0.5 leading-snug">
             {metric.description}

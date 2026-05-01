@@ -49,16 +49,28 @@ def list_custom_metrics(
     session: Session,
     skip: int = 0,
     limit: int = 100,
+    only_active: bool = False,
 ) -> tuple[list[CustomMetric], int]:
+    """List metrics that are not soft-deleted.
+
+    When ``only_active`` is True, also exclude metrics flagged ``is_draft``.
+    Predefined rows are returned first (so the UI lists built-ins above
+    user-created ones), then by creation time ascending within each group.
+    """
+    base_filters = [CustomMetric.deleted_at.is_(None)]  # type: ignore[union-attr]
+    if only_active:
+        base_filters.append(CustomMetric.is_draft.is_(False))  # type: ignore[union-attr]
+
     statement = (
         select(CustomMetric)
-        .where(CustomMetric.deleted_at.is_(None))  # type: ignore[union-attr]
-        .order_by(col(CustomMetric.created_at).desc())
+        .where(*base_filters)
+        .order_by(
+            col(CustomMetric.is_predefined).desc(),
+            col(CustomMetric.created_at).asc(),
+        )
     )
     count_statement = (
-        select(func.count())
-        .select_from(CustomMetric)
-        .where(CustomMetric.deleted_at.is_(None))  # type: ignore[union-attr]
+        select(func.count()).select_from(CustomMetric).where(*base_filters)
     )
     count = session.exec(count_statement).one()
     items = list(session.exec(statement.offset(skip).limit(limit)).all())
@@ -77,6 +89,12 @@ def update_custom_metric(
 
 
 def delete_custom_metric(*, session: Session, db_metric: CustomMetric) -> None:
-    db_metric.deleted_at = datetime.now(UTC)
-    session.add(db_metric)
+    """Predefined metrics are soft-deleted (kept for audit/history); user-created
+    metrics are hard-deleted from the table.
+    """
+    if db_metric.is_predefined:
+        db_metric.deleted_at = datetime.now(UTC)
+        session.add(db_metric)
+    else:
+        session.delete(db_metric)
     session.commit()

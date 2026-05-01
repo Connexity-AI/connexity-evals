@@ -1,6 +1,8 @@
 'use client';
 'use no memo';
 
+import Link from 'next/link';
+
 import { useFormContext, useWatch } from 'react-hook-form';
 
 import { Checkbox } from '@workspace/ui/components/ui/checkbox';
@@ -60,6 +62,23 @@ function MetricsTable({ metrics }: MetricsTableProps) {
     useJudgeMetrics({ metrics });
 
   if (rows.length === 0) {
+    // Distinguish "API hasn't responded yet" from "user has deactivated all
+    // metrics in /metrics/". When the available-metrics endpoint genuinely
+    // returns zero rows, point the user at the place to fix it.
+    if (metrics.length === 0) {
+      return (
+        <div className="rounded-md border border-border bg-accent/5 px-4 py-6 text-center text-xs text-muted-foreground/60">
+          No metrics selected. Adjust active metrics in the{' '}
+          <Link
+            href="/metrics"
+            className="text-foreground underline-offset-4 hover:underline"
+          >
+            Metrics tab
+          </Link>
+          .
+        </div>
+      );
+    }
     return (
       <div className="rounded-md border border-border bg-accent/5 px-4 py-6 text-center text-xs text-muted-foreground/60">
         Loading metrics…

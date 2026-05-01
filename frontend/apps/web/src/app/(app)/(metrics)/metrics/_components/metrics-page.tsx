@@ -29,11 +29,11 @@ import {
   type TierFilter,
 } from './metric-meta';
 import { MetricRow } from './metric-row';
-
-import type { CustomMetricPublic } from '@/client/types.gen';
+import type { MetricRecord } from './metric-types';
 
 export function MetricsPage() {
-  const { rows, isLoading, error } = useCustomMetrics();
+  const { rows: rawRows } = useCustomMetrics();
+  const rows = rawRows as MetricRecord[];
   const createMutation = useCreateCustomMetric();
   const updateMutation = useUpdateCustomMetric();
   const deleteMutation = useDeleteCustomMetric();
@@ -43,7 +43,7 @@ export function MetricsPage() {
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
   const [tierFilter, setTierFilter] = useState<TierFilter>('all');
   const [scoreFilter, setScoreFilter] = useState<ScoreFilter>('all');
-  const [deleteTarget, setDeleteTarget] = useState<CustomMetricPublic[] | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MetricRecord[] | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
 
   const selectAllRef = useRef<HTMLInputElement>(null);
@@ -101,9 +101,11 @@ export function MetricsPage() {
   };
 
   const handleToggleActive = (id: string, active: boolean) => {
+    // The "active" toggle is the inverse of the backing ``is_draft`` flag:
+    // active rows are visible to eval configs; drafts are hidden.
     updateMutation.mutate({
       metricId: id,
-      body: { include_in_defaults: active },
+      body: { is_draft: !active } as never,
     });
   };
 
@@ -131,7 +133,11 @@ export function MetricsPage() {
           default_weight: 1.0,
           score_type: draft.score_type,
           rubric: draft.rubric,
+          // include_in_defaults gates whether the metric is auto-checked in
+          // new eval configs; mirror the active toggle so freshly-created
+          // active metrics show up checked-by-default like the built-ins.
           include_in_defaults: draft.active,
+          ...({ is_draft: !draft.active } as Record<string, unknown>),
         },
         {
           onSuccess: (created) => {
@@ -227,11 +233,9 @@ export function MetricsPage() {
             </div>
           ) : (
             <p className="text-xs text-muted-foreground">
-              {isLoading
-                ? 'Loading…'
-                : error
-                  ? error
-                  : `${filtered.length}${filtered.length !== rows.length ? ` of ${rows.length}` : ''} metric${rows.length === 1 ? '' : 's'}`}
+              {filtered.length}
+              {filtered.length !== rows.length ? ` of ${rows.length}` : ''} metric
+              {rows.length === 1 ? '' : 's'}
             </p>
           )}
         </div>
@@ -294,11 +298,9 @@ export function MetricsPage() {
             <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground/40">
               <BarChart3 className="w-8 h-8" />
               <p className="text-sm">
-                {isLoading
-                  ? 'Loading metrics…'
-                  : rows.length === 0
-                    ? 'No metrics yet — create your first one.'
-                    : 'No metrics match the current filters'}
+                {rows.length === 0
+                  ? 'No metrics yet — create your first one.'
+                  : 'No metrics match the current filters'}
               </p>
             </div>
           ) : (

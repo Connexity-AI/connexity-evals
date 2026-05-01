@@ -1,6 +1,10 @@
 'use client';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from '@tanstack/react-query';
 
 import {
   createCustomMetric,
@@ -8,30 +12,20 @@ import {
   updateCustomMetric,
 } from '@/actions/custom-metrics';
 import { CustomMetricService } from '@/app/(app)/(metrics)/_service';
-import { customMetricKeys } from '@/constants/query-keys';
+import { customMetricKeys, metricKeys } from '@/constants/query-keys';
 import { isErrorApiResult } from '@/utils/api';
 import { getApiErrorMessage } from '@/utils/error';
 
 import type {
   CustomMetricCreate,
-  CustomMetricPublic,
   CustomMetricUpdate,
 } from '@/client/types.gen';
 
 export function useCustomMetrics() {
-  const query = useQuery(CustomMetricService.getCustomMetricsQuery());
-
-  const rows: CustomMetricPublic[] =
-    query.data && !isErrorApiResult(query.data) ? query.data.data.data : [];
-
+  const query = useSuspenseQuery(CustomMetricService.getCustomMetricsQuery());
   return {
-    rows,
-    isLoading: query.isLoading,
+    rows: query.data.data,
     isFetching: query.isFetching,
-    error:
-      query.data && isErrorApiResult(query.data)
-        ? getApiErrorMessage(query.data.error)
-        : null,
   };
 }
 
@@ -47,6 +41,9 @@ export function useCreateCustomMetric() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: customMetricKeys.all });
+      // The create-eval judge picker reads /config/available-metrics, which
+      // mirrors the same active set; keep it in sync after any mutation.
+      void queryClient.invalidateQueries({ queryKey: metricKeys.list() });
     },
   });
 
@@ -76,6 +73,9 @@ export function useUpdateCustomMetric() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: customMetricKeys.all });
+      // The create-eval judge picker reads /config/available-metrics, which
+      // mirrors the same active set; keep it in sync after any mutation.
+      void queryClient.invalidateQueries({ queryKey: metricKeys.list() });
     },
   });
 
@@ -99,6 +99,9 @@ export function useDeleteCustomMetric() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: customMetricKeys.all });
+      // The create-eval judge picker reads /config/available-metrics, which
+      // mirrors the same active set; keep it in sync after any mutation.
+      void queryClient.invalidateQueries({ queryKey: metricKeys.list() });
     },
   });
 

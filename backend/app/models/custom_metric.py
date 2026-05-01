@@ -41,6 +41,14 @@ class CustomMetricBase(SQLModel):
     )
     rubric: str = Field(sa_column=Column(Text, nullable=False))
     include_in_defaults: bool = Field(default=False)
+    is_predefined: bool = Field(
+        default=False,
+        description="True for built-in metrics seeded from the registry; False for user-created metrics.",
+    )
+    is_draft: bool = Field(
+        default=False,
+        description="When True, metric is hidden from eval-config selection (acts as the inverse of the UI 'active' toggle).",
+    )
 
     @field_validator("name")
     @classmethod
@@ -86,6 +94,7 @@ class CustomMetricUpdate(SQLModel):
     score_type: ScoreType | None = None
     rubric: str | None = None
     include_in_defaults: bool | None = None
+    is_draft: bool | None = None
 
     @field_validator("name")
     @classmethod
@@ -103,7 +112,10 @@ class CustomMetricUpdate(SQLModel):
 
 class CustomMetricPublic(CustomMetricBase):
     id: uuid.UUID
-    created_by: uuid.UUID
+    # Predefined rows that were inserted before the registry seeder owned a
+    # user id can have a NULL ``created_by``; the field is informational on
+    # the public schema and shouldn't fail validation in that case.
+    created_by: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime
 
