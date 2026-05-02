@@ -76,9 +76,9 @@ export function useMetricDetailPanel({
           is_draft: !draft.active,
         },
         {
-          onSuccess: (created) => {
+          onSuccess: () => {
             setNewParam(null);
-            setSelectedId(created.id);
+            setSelectedId(null);
             flashSaved();
           },
         }

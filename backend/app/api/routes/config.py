@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel, Field
 
-from app.api.deps import CurrentUser, SessionDep, get_current_user
+from app.api.deps import SessionDep, get_current_user
 from app.core.config import settings
 from app.models import ConfigPublic
 from app.services.judge_metrics import MetricDefinition, get_metrics_for_api
 from app.services.llm_models import LLMModelsPublic, get_available_llm_models
-from app.services.predefined_metrics_seed import ensure_predefined_metrics_seeded
 
 router = APIRouter(
     prefix="/config",
@@ -34,7 +33,6 @@ def get_config(request: Request) -> ConfigPublic:
 @router.get("/available-metrics", response_model=AvailableMetricsPublic)
 def get_available_metrics(
     session: SessionDep,
-    current_user: CurrentUser,
 ) -> AvailableMetricsPublic:
     """All metrics available for use in eval configs (active, non-draft).
 
@@ -42,7 +40,6 @@ def get_available_metrics(
     ``custom_metric`` table; ``is_draft`` rows are excluded so the create-eval
     judge picker only shows metrics the user has marked active.
     """
-    ensure_predefined_metrics_seeded(session=session, owner_id=current_user.id)
     metrics = get_metrics_for_api(session)
     return AvailableMetricsPublic(data=metrics, count=len(metrics))
 

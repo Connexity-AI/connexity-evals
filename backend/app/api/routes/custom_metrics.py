@@ -19,7 +19,6 @@ from app.services.metric_generator import (
     MetricGenerateResult,
     generate_metric,
 )
-from app.services.predefined_metrics_seed import ensure_predefined_metrics_seeded
 
 router = APIRouter(
     prefix="/custom-metrics",
@@ -64,13 +63,9 @@ async def generate_custom_metric_preview(
 @router.get("/", response_model=CustomMetricsPublic)
 def list_custom_metrics(
     session: SessionDep,
-    current_user: CurrentUser,
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=1000),
 ) -> CustomMetricsPublic:
-    # Backfill any predefined metrics that were missed by the migration
-    # (e.g. the migration ran on a DB with zero users).
-    ensure_predefined_metrics_seeded(session=session, owner_id=current_user.id)
     items, count = crud.list_custom_metrics(
         session=session,
         skip=skip,
@@ -104,7 +99,11 @@ def update_custom_metric(
     metric = crud.get_custom_metric(session=session, metric_id=metric_id)
     if not metric:
         raise HTTPException(status_code=404, detail="Custom metric not found")
-    if metric.is_predefined and metric_in.name is not None and metric_in.name != metric.name:
+    if (
+        metric.is_predefined
+        and metric_in.name is not None
+        and metric_in.name != metric.name
+    ):
         raise HTTPException(
             status_code=409,
             detail="The internal name of a predefined metric cannot be changed",

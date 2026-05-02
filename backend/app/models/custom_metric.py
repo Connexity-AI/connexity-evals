@@ -66,7 +66,10 @@ class CustomMetric(CustomMetricBase, table=True):
     __tablename__ = "custom_metric"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    created_by: uuid.UUID = Field(foreign_key="user.id", index=True)
+    # NULL for predefined (system-seeded) metrics that have no human owner.
+    created_by: uuid.UUID | None = Field(
+        default=None, foreign_key="user.id", index=True, nullable=True
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={"server_default": text("now()")},
@@ -112,9 +115,6 @@ class CustomMetricUpdate(SQLModel):
 
 class CustomMetricPublic(CustomMetricBase):
     id: uuid.UUID
-    # Predefined rows that were inserted before the registry seeder owned a
-    # user id can have a NULL ``created_by``; the field is informational on
-    # the public schema and shouldn't fail validation in that case.
     created_by: uuid.UUID | None = None
     created_at: datetime
     updated_at: datetime

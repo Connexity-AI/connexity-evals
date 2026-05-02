@@ -1,28 +1,14 @@
-"""custom_metric: add is_predefined / is_draft and seed built-in metrics
+"""Single source of truth for the built-in (predefined) judge metrics.
 
-Revision ID: j7k8l9m0n1o2
-Revises: i6j7k8l9m0n1
-Create Date: 2026-05-01 00:00:01.000000
-
+The Alembic seed migration and the test setup both import ``PREDEFINED_METRICS``
+to insert these rows into ``custom_metric``. At runtime the rows are read from
+the DB, so this module is *not* a fallback — it exists only as the canonical
+data definition that gets persisted on first migration.
 """
 
-import uuid
+from app.models.enums import MetricTier, ScoreType
+from app.services.judge_metrics import MetricDefinition
 
-import sqlalchemy as sa
-from alembic import op
-from sqlalchemy.dialects import postgresql
-
-revision = "j7k8l9m0n1o2"
-down_revision = "i6j7k8l9m0n1"
-branch_labels = None
-depends_on = None
-
-
-# Rubrics and metric definitions are duplicated here so the seed is
-# self-contained and stable across refactors of app.services.predefined_metrics
-# / app.services.judge_metrics. A migration must replay deterministically on a
-# clean DB years from now, even if the application module is renamed, removed,
-# or refactored. Do not import application code from this file.
 _RUBRIC_TOOL_ROUTING = """\
 Scored 0-5 integer. Measures: correct tool names and call sequence.
 
@@ -158,198 +144,87 @@ Pass: outcomes satisfied given the transcript and test case.
 Fail: primary task not achieved."""
 
 
-# Tier / score-type values mirror the MetricTier and ScoreType StrEnums in
-# app.models.enums at the time this migration was written. Hard-coded as
-# strings on purpose so the migration replays without depending on the
-# current state of those enums.
-_PREDEFINED: list[dict[str, object]] = [
-    {
-        "name": "tool_routing",
-        "display_name": "Tool Routing",
-        "description": "Correct tool names and call sequence.",
-        "tier": "execution",
-        "default_weight": 0.15,
-        "score_type": "scored",
-        "rubric": _RUBRIC_TOOL_ROUTING,
-        "include_in_defaults": True,
-    },
-    {
-        "name": "parameter_extraction",
-        "display_name": "Parameter Extraction",
-        "description": "Arguments correctly extracted from conversation for tools.",
-        "tier": "execution",
-        "default_weight": 0.15,
-        "score_type": "scored",
-        "rubric": _RUBRIC_PARAMETER_EXTRACTION,
-        "include_in_defaults": True,
-    },
-    {
-        "name": "result_interpretation",
-        "display_name": "Result Interpretation",
-        "description": "Tool outputs accurately reflected in agent responses.",
-        "tier": "execution",
-        "default_weight": 0.15,
-        "score_type": "scored",
-        "rubric": _RUBRIC_RESULT_INTERPRETATION,
-        "include_in_defaults": True,
-    },
-    {
-        "name": "grounding_fidelity",
-        "display_name": "Grounding Fidelity",
-        "description": "Claims traceable to context, tools, or business rules.",
-        "tier": "knowledge",
-        "default_weight": 0.125,
-        "score_type": "scored",
-        "rubric": _RUBRIC_GROUNDING_FIDELITY,
-        "include_in_defaults": True,
-    },
-    {
-        "name": "instruction_compliance",
-        "display_name": "Instruction Compliance",
-        "description": "Follows explicit system prompt and business rules.",
-        "tier": "knowledge",
-        "default_weight": 0.125,
-        "score_type": "scored",
-        "rubric": _RUBRIC_INSTRUCTION_COMPLIANCE,
-        "include_in_defaults": True,
-    },
-    {
-        "name": "information_gathering",
-        "display_name": "Information Gathering",
-        "description": "Required information collected before action; prior info reused.",
-        "tier": "process",
-        "default_weight": 0.10,
-        "score_type": "scored",
-        "rubric": _RUBRIC_INFORMATION_GATHERING,
-        "include_in_defaults": True,
-    },
-    {
-        "name": "conversation_management",
-        "display_name": "Conversation Management",
-        "description": "Ambiguity handling, error recovery, conversation closure.",
-        "tier": "process",
-        "default_weight": 0.10,
-        "score_type": "scored",
-        "rubric": _RUBRIC_CONVERSATION_MANAGEMENT,
-        "include_in_defaults": True,
-    },
-    {
-        "name": "response_delivery",
-        "display_name": "Response Delivery",
-        "description": "Concise, natural, TTS-friendly, non-repetitive responses.",
-        "tier": "delivery",
-        "default_weight": 0.10,
-        "score_type": "scored",
-        "rubric": _RUBRIC_RESPONSE_DELIVERY,
-        "include_in_defaults": True,
-    },
-    {
-        "name": "task_completion",
-        "display_name": "Task Completion (binary example)",
-        "description": "Primary task from expected_outcomes achieved (pass/fail).",
-        "tier": "execution",
-        "default_weight": 0.0,
-        "score_type": "binary",
-        "rubric": _RUBRIC_TASK_COMPLETION,
-        "include_in_defaults": False,
-    },
+PREDEFINED_METRICS: list[MetricDefinition] = [
+    MetricDefinition(
+        name="tool_routing",
+        display_name="Tool Routing",
+        description="Correct tool names and call sequence.",
+        tier=MetricTier.EXECUTION,
+        default_weight=0.15,
+        score_type=ScoreType.SCORED,
+        rubric=_RUBRIC_TOOL_ROUTING,
+    ),
+    MetricDefinition(
+        name="parameter_extraction",
+        display_name="Parameter Extraction",
+        description="Arguments correctly extracted from conversation for tools.",
+        tier=MetricTier.EXECUTION,
+        default_weight=0.15,
+        score_type=ScoreType.SCORED,
+        rubric=_RUBRIC_PARAMETER_EXTRACTION,
+    ),
+    MetricDefinition(
+        name="result_interpretation",
+        display_name="Result Interpretation",
+        description="Tool outputs accurately reflected in agent responses.",
+        tier=MetricTier.EXECUTION,
+        default_weight=0.15,
+        score_type=ScoreType.SCORED,
+        rubric=_RUBRIC_RESULT_INTERPRETATION,
+    ),
+    MetricDefinition(
+        name="grounding_fidelity",
+        display_name="Grounding Fidelity",
+        description="Claims traceable to context, tools, or business rules.",
+        tier=MetricTier.KNOWLEDGE,
+        default_weight=0.125,
+        score_type=ScoreType.SCORED,
+        rubric=_RUBRIC_GROUNDING_FIDELITY,
+    ),
+    MetricDefinition(
+        name="instruction_compliance",
+        display_name="Instruction Compliance",
+        description="Follows explicit system prompt and business rules.",
+        tier=MetricTier.KNOWLEDGE,
+        default_weight=0.125,
+        score_type=ScoreType.SCORED,
+        rubric=_RUBRIC_INSTRUCTION_COMPLIANCE,
+    ),
+    MetricDefinition(
+        name="information_gathering",
+        display_name="Information Gathering",
+        description="Required information collected before action; prior info reused.",
+        tier=MetricTier.PROCESS,
+        default_weight=0.10,
+        score_type=ScoreType.SCORED,
+        rubric=_RUBRIC_INFORMATION_GATHERING,
+    ),
+    MetricDefinition(
+        name="conversation_management",
+        display_name="Conversation Management",
+        description="Ambiguity handling, error recovery, conversation closure.",
+        tier=MetricTier.PROCESS,
+        default_weight=0.10,
+        score_type=ScoreType.SCORED,
+        rubric=_RUBRIC_CONVERSATION_MANAGEMENT,
+    ),
+    MetricDefinition(
+        name="response_delivery",
+        display_name="Response Delivery",
+        description="Concise, natural, TTS-friendly, non-repetitive responses.",
+        tier=MetricTier.DELIVERY,
+        default_weight=0.10,
+        score_type=ScoreType.SCORED,
+        rubric=_RUBRIC_RESPONSE_DELIVERY,
+    ),
+    MetricDefinition(
+        name="task_completion",
+        display_name="Task Completion (binary example)",
+        description="Primary task from expected_outcomes achieved (pass/fail).",
+        tier=MetricTier.EXECUTION,
+        default_weight=0.0,
+        score_type=ScoreType.BINARY,
+        rubric=_RUBRIC_TASK_COMPLETION,
+        include_in_defaults=False,
+    ),
 ]
-
-
-def upgrade() -> None:
-    op.add_column(
-        "custom_metric",
-        sa.Column(
-            "is_predefined",
-            sa.Boolean(),
-            nullable=False,
-            server_default=sa.false(),
-        ),
-    )
-    op.add_column(
-        "custom_metric",
-        sa.Column(
-            "is_draft",
-            sa.Boolean(),
-            nullable=False,
-            server_default=sa.false(),
-        ),
-    )
-
-    # Predefined metrics have no human owner; allow NULL on created_by.
-    op.alter_column("custom_metric", "created_by", nullable=True)
-
-    bind = op.get_bind()
-
-    # Reference the existing native PG enum types so bulk_insert emits the
-    # proper ``::metrictier`` / ``::scoretype`` casts. Values are listed
-    # explicitly (not pulled from the Python enum) so this migration replays
-    # even if the enum classes are later renamed or extended.
-    metric_tier_enum = postgresql.ENUM(
-        "execution",
-        "knowledge",
-        "process",
-        "delivery",
-        name="metrictier",
-        create_type=False,
-    )
-    score_type_enum = postgresql.ENUM(
-        "scored",
-        "binary",
-        name="scoretype",
-        create_type=False,
-    )
-
-    custom_metric = sa.table(
-        "custom_metric",
-        sa.column("id", postgresql.UUID(as_uuid=True)),
-        sa.column("name", sa.String),
-        sa.column("display_name", sa.String),
-        sa.column("description", sa.Text),
-        sa.column("tier", metric_tier_enum),
-        sa.column("default_weight", sa.Float),
-        sa.column("score_type", score_type_enum),
-        sa.column("rubric", sa.Text),
-        sa.column("include_in_defaults", sa.Boolean),
-        sa.column("is_predefined", sa.Boolean),
-        sa.column("is_draft", sa.Boolean),
-        sa.column("created_by", postgresql.UUID(as_uuid=True)),
-    )
-
-    existing_names = {
-        row[0]
-        for row in bind.execute(
-            sa.text("SELECT name FROM custom_metric WHERE deleted_at IS NULL")
-        ).fetchall()
-    }
-
-    rows_to_insert = [
-        {
-            "id": uuid.uuid4(),
-            "name": m["name"],
-            "display_name": m["display_name"],
-            "description": m["description"],
-            "tier": m["tier"],
-            "default_weight": m["default_weight"],
-            "score_type": m["score_type"],
-            "rubric": m["rubric"],
-            "include_in_defaults": m["include_in_defaults"],
-            "is_predefined": True,
-            "is_draft": False,
-            "created_by": None,
-        }
-        for m in _PREDEFINED
-        if m["name"] not in existing_names
-    ]
-    if rows_to_insert:
-        op.bulk_insert(custom_metric, rows_to_insert)
-
-
-def downgrade() -> None:
-    bind = op.get_bind()
-    # Predefined rows are the only ones permitted to have NULL created_by, so
-    # purge them before restoring the NOT NULL constraint.
-    bind.execute(sa.text("DELETE FROM custom_metric WHERE is_predefined = TRUE"))
-    op.alter_column("custom_metric", "created_by", nullable=False)
-    op.drop_column("custom_metric", "is_draft")
-    op.drop_column("custom_metric", "is_predefined")

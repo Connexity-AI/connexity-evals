@@ -34,9 +34,7 @@ def get_custom_metric(*, session: Session, metric_id: uuid.UUID) -> CustomMetric
     return metric
 
 
-def get_custom_metric_by_name(
-    *, session: Session, name: str
-) -> CustomMetric | None:
+def get_custom_metric_by_name(*, session: Session, name: str) -> CustomMetric | None:
     statement = select(CustomMetric).where(
         CustomMetric.name == name,
         CustomMetric.deleted_at.is_(None),  # type: ignore[union-attr]

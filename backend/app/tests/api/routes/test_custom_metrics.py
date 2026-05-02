@@ -82,9 +82,11 @@ def test_create_list_get_update_delete_custom_metric(
     assert get_again.status_code == 404
 
 
-def test_create_custom_metric_reserved_builtin_name_conflict(
+def test_create_custom_metric_with_predefined_name_conflicts(
     client: TestClient, auth_cookies: dict[str, str]
 ) -> None:
+    """Predefined metrics are seeded into the same table, so attempting to
+    create one with a reserved name collides on the global unique-name index."""
     body = _create_body(name="tool_routing")
     r = client.post(
         f"{settings.API_V1_STR}/custom-metrics/",
@@ -92,7 +94,6 @@ def test_create_custom_metric_reserved_builtin_name_conflict(
         cookies=auth_cookies,
     )
     assert r.status_code == 409
-    assert "built-in" in r.json()["detail"].lower()
 
 
 def test_create_duplicate_name_conflicts(
