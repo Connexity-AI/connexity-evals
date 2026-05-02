@@ -34,11 +34,23 @@ def get_custom_metric(*, session: Session, metric_id: uuid.UUID) -> CustomMetric
     return metric
 
 
-def get_custom_metric_by_name(*, session: Session, name: str) -> CustomMetric | None:
-    statement = select(CustomMetric).where(
-        CustomMetric.name == name,
-        CustomMetric.deleted_at.is_(None),  # type: ignore[union-attr]
-    )
+def get_custom_metric_by_name(
+    *, session: Session, name: str, include_deleted: bool = False
+) -> CustomMetric | None:
+    """Look up a metric by name.
+
+    By default returns only the live row. With ``include_deleted=True``, falls
+    back to the most-recently-deleted row when no live one exists — used by
+    judge resolution so historical eval configs can still find a metric whose
+    name has been soft-deleted.
+    """
+    statement = select(CustomMetric).where(CustomMetric.name == name)
+    if not include_deleted:
+        statement = statement.where(col(CustomMetric.deleted_at).is_(None))
+    else:
+        statement = statement.order_by(
+            col(CustomMetric.deleted_at).desc().nulls_first()
+        )
     return session.exec(statement).first()
 
 
@@ -87,12 +99,10 @@ def update_custom_metric(
 
 
 def delete_custom_metric(*, session: Session, db_metric: CustomMetric) -> None:
-    """Predefined metrics are soft-deleted (kept for audit/history); user-created
-    metrics are hard-deleted from the table.
+    """Soft-delete: stamp ``deleted_at`` so historical eval configs that
+    reference the metric by name can still resolve it, while live listings
+    and the partial unique index on ``name`` exclude it.
     """
-    if db_metric.is_predefined:
-        db_metric.deleted_at = datetime.now(UTC)
-        session.add(db_metric)
-    else:
-        session.delete(db_metric)
+    db_metric.deleted_at = datetime.now(UTC)
+    session.add(db_metric)
     session.commit()

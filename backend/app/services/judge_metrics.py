@@ -128,7 +128,9 @@ def resolve_metrics(
     pairs: list[tuple[MetricDefinition, float]] = []
     for sel in selections:
         with _session_scope(session) as db_session:
-            row = get_custom_metric_by_name(session=db_session, name=sel.metric)
+            row = get_custom_metric_by_name(
+                session=db_session, name=sel.metric, include_deleted=True
+            )
         if row is None:
             msg = f"Unknown metric: {sel.metric}"
             raise ValueError(msg)
