@@ -38,6 +38,7 @@ export function BatchPagerNav({
       >
         <ChevronLeft />
       </Button>
+
       <span className="min-w-8.5 px-1 text-center text-[11px] tabular-nums text-foreground">
         {current} / {total}
       </span>

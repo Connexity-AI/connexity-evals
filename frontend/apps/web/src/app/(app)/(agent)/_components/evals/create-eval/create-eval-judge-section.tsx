@@ -16,8 +16,8 @@ import {
   FieldLabel,
   Section,
 } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-section-primitives';
-import { LlmModelPicker } from '@/app/(app)/(agent)/_components/llm/llm-model-picker';
 import { useJudgeMetrics } from '@/app/(app)/(agent)/_components/evals/create-eval/use-judge-metrics';
+import { LlmModelPicker } from '@/app/(app)/(agent)/_components/llm/llm-model-picker';
 
 import type { CreateEvalFormValues } from '@/app/(app)/(agent)/_components/evals/create-eval/create-eval-form-schema';
 import type { MetricDefinition, MetricTier } from '@/client/types.gen';
@@ -58,21 +58,16 @@ interface MetricsTableProps {
 
 function MetricsTable({ metrics }: MetricsTableProps) {
   const readOnly = useCreateEvalReadOnly();
+
   const { fields, rows, byName, enabledCount, allEnabled, toggleAll, updateRow, rootError } =
     useJudgeMetrics({ metrics });
 
   if (rows.length === 0) {
-    // Distinguish "API hasn't responded yet" from "user has deactivated all
-    // metrics in /metrics/". When the available-metrics endpoint genuinely
-    // returns zero rows, point the user at the place to fix it.
     if (metrics.length === 0) {
       return (
         <div className="rounded-md border border-border bg-accent/5 px-4 py-6 text-center text-xs text-muted-foreground/60">
           No metrics selected. Adjust active metrics in the{' '}
-          <Link
-            href="/metrics"
-            className="text-foreground underline-offset-4 hover:underline"
-          >
+          <Link href="/metrics" className="text-foreground underline-offset-4 hover:underline">
             Metrics tab
           </Link>
           .
@@ -179,6 +174,7 @@ export function JudgeSection({ metrics }: JudgeSectionProps) {
       <Section.Body>
         <div className="space-y-4">
           <ProviderAndModel />
+
           <MetricsTable metrics={metrics} />
         </div>
       </Section.Body>
