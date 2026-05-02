@@ -41,6 +41,9 @@ export const SCORE_TYPES: ScoreType[] = ['scored', 'binary'];
 export type TierFilter = 'all' | MetricTier;
 export type ScoreFilter = 'all' | ScoreType;
 
+export const TIER_FILTERS: TierFilter[] = ['all', ...TIERS];
+export const SCORE_FILTERS: ScoreFilter[] = ['all', ...SCORE_TYPES];
+
 export function isValidSnakeCase(s: string): boolean {
   return /^[a-z][a-z0-9_]*$/.test(s);
 }

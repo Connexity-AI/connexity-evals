@@ -38,7 +38,6 @@ export function MetricRow({
         <Checkbox
           checked={isChecked}
           onCheckedChange={(c) => onCheck(metric.id, c === true)}
-          className="h-3.5 w-3.5"
         />
       </div>
 
@@ -74,7 +73,7 @@ export function MetricRow({
         <Switch
           checked={active}
           onCheckedChange={(v) => onToggleActive(metric.id, v)}
-          className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 data-[state=checked]:bg-green-500/80"
+          className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3 data-[state=checked]:bg-green-500/80"
         />
       </div>
     </div>

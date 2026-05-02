@@ -161,7 +161,7 @@ export function MetricDetail({
             <Button
               size="sm"
               variant="ghost"
-              className="h-7 text-xs text-muted-foreground hover:text-foreground"
+              className="text-muted-foreground hover:text-foreground"
               onClick={discard}
             >
               Discard
@@ -171,7 +171,7 @@ export function MetricDetail({
             size="sm"
             variant="outline"
             className={cn(
-              'h-7 text-xs gap-1.5 transition-colors',
+              'gap-2 transition-colors',
               saved && 'border-green-500/40 text-green-400'
             )}
             onClick={handleSave}
@@ -179,7 +179,7 @@ export function MetricDetail({
           >
             {saved ? (
               <>
-                <Check className="w-3 h-3" />
+                <Check />
                 Saved
               </>
             ) : source.id === null ? (
@@ -189,22 +189,26 @@ export function MetricDetail({
             )}
           </Button>
           {source.id !== null && (
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={onDelete}
-              className="text-muted-foreground/50 hover:text-red-400 transition-colors ml-1"
               title="Delete metric"
               type="button"
+              className="h-9 w-9 p-0 text-muted-foreground/50 hover:text-red-400"
             >
-              <Trash2 className="w-4 h-4" />
-            </button>
+              <Trash2 />
+            </Button>
           )}
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClose}
-            className="text-muted-foreground/50 hover:text-foreground transition-colors"
             type="button"
+            className="h-9 w-9 p-0 text-muted-foreground/50 hover:text-foreground"
           >
-            <X className="w-4 h-4" />
-          </button>
+            <X />
+          </Button>
         </div>
       </div>
 
@@ -221,7 +225,7 @@ export function MetricDetail({
           <Switch
             checked={active}
             onCheckedChange={setActive}
-            className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 data-[state=checked]:bg-green-500/80"
+            className="h-4 w-7 [&>span]:h-3 [&>span]:w-3 [&>span]:data-[state=checked]:translate-x-3 data-[state=checked]:bg-green-500/80"
           />
         </div>
 
